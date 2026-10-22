@@ -453,3 +453,23 @@ fn initial_two_ply_counts_match_opening_reference() {
         assert_eq!(nodes, expected);
     }
 }
+
+#[test]
+fn international_ending_clock_preserves_stronger_side_after_capture_to_king_vs_king() {
+    let mut state = empty(DraughtsVariant::International);
+    add(&mut state, 1, WHITE, 0, 0, true);
+    add(&mut state, 2, BLACK, 2, 2, false);
+    add(&mut state, 3, BLACK, 9, 7, true);
+    state.ruleset_state.insert("checkers.draw.long.1", 15_u64);
+    state.ruleset_state.insert("checkers.draw.long.2", 16_u64);
+    let movement = legal_moves(&state, WHITE)
+        .unwrap()
+        .into_iter()
+        .find(|m| m.landings == [Position::new(3, 3)])
+        .unwrap();
+    let turn = play_move(&state, &movement).unwrap();
+    assert_eq!(
+        outcome(&turn.working).unwrap().key,
+        "checkers.limited_ending_draw"
+    );
+}

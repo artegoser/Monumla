@@ -47,7 +47,18 @@ fn both_kings(state: &GameState) -> bool {
         .all(|side| pieces(state, side).into_iter().any(is_king))
 }
 fn ending_side(state: &GameState, short: bool) -> Option<PlayerId> {
-    for (strong, weak) in [(WHITE, BLACK), (BLACK, WHITE)] {
+    let key = if short { SHORT } else { LONG };
+    let black_first = state
+        .ruleset_state
+        .get(&format!("{key}.side"))
+        .and_then(StateValue::as_u64)
+        == Some(u64::from(BLACK.get()));
+    let sides = if black_first {
+        [(BLACK, WHITE), (WHITE, BLACK)]
+    } else {
+        [(WHITE, BLACK), (BLACK, WHITE)]
+    };
+    for (strong, weak) in sides {
         let a = pieces(state, strong);
         let b = pieces(state, weak);
         if b.len() != 1 || !is_king(b[0]) || a.is_empty() || !a.iter().any(|e| is_king(e)) {
@@ -89,15 +100,22 @@ pub(crate) fn update_draw_counters(
         both_kings(before) && before.entities.len() == after.entities.len(),
     );
     for (key, short) in [(SHORT, true), (LONG, false)] {
+        let previous = ending_side(before, short);
+        // Preserve the established stronger side when a capture leaves king vs king.
+        if let Some(side) = previous {
+            after
+                .ruleset_state
+                .insert(format!("{key}.side"), u64::from(side.get()));
+        }
         let next = ending_side(after, short);
-        clock(
-            before,
-            after,
-            key,
-            player,
-            next.is_some(),
-            next == ending_side(before, short),
-        );
+        clock(before, after, key, player, next.is_some(), next == previous);
+        if let Some(side) = next {
+            after
+                .ruleset_state
+                .insert(format!("{key}.side"), u64::from(side.get()));
+        } else {
+            after.ruleset_state.remove(&format!("{key}.side"));
+        }
     }
 }
 
