@@ -2,9 +2,9 @@
 
 ## 1. Goal
 
-Nydra should reproduce the interaction model and visual feedback of the standard Lichess game board as closely as practical while keeping Nydra's own implementation and architecture.
+Monumla should reproduce the interaction model and visual feedback of the standard Lichess game board as closely as practical while keeping Monumla's own implementation and architecture.
 
-This is a behavioral and visual parity target, not a dependency target. The frontend must not depend on Lichess board packages, and no Lichess/Chessground source code or CSS should be copied into Nydra. Rust/WASM remains the sole authority for legal actions and state transitions.
+This is a behavioral and visual parity target, not a dependency target. The frontend must not depend on Lichess board packages, and no Lichess/Chessground source code or CSS should be copied into Monumla. Rust/WASM remains the sole authority for legal actions and state transitions.
 
 The parity reference for this specification is the current Lichess game-board behavior inspected on 2026-08-10, including the Lichess round-board integration and the board behavior it configures.
 
@@ -75,7 +75,7 @@ Required behavior:
 
 ## 4. Legal destination rendering
 
-Lichess distinguishes empty legal destinations from occupied legal capture destinations. Nydra must do the same.
+Lichess distinguishes empty legal destinations from occupied legal capture destinations. Monumla must do the same.
 
 ### 4.1 Quiet destination
 
@@ -144,7 +144,7 @@ Required behavior:
 - undo/redo/history navigation should animate when the navigation mode requests normal board animation;
 - active move animation must not fight the dragged piece transform.
 
-Animation plans should be produced from Nydra `StateDelta`/before-after board state, not from duplicated chess rules.
+Animation plans should be produced from Monumla `StateDelta`/before-after board state, not from duplicated chess rules.
 
 ## 8. Piece drag presentation
 
@@ -188,10 +188,10 @@ Acceptance target:
 
 - default brown-board light/dark relationship matches Lichess visually;
 - destination dot, capture wedges, selected square, last-move square, hover, check, ghost, and piece motion all match Lichess closely enough that side-by-side comparison reveals no obvious behavioral mismatch;
-- remove current Nydra-only board affordances that visibly diverge from Lichess unless they are required for generic future game modes;
+- remove current Monumla-only board affordances that visibly diverge from Lichess unless they are required for generic future game modes;
 - generic future-game affordances must remain dormant for standard chess rather than changing standard chess UX.
 
-Do not copy upstream CSS/source verbatim. Recreate the rendered result in Nydra's own Svelte/CSS implementation.
+Do not copy upstream CSS/source verbatim. Recreate the rendered result in Monumla's own Svelte/CSS implementation.
 
 ## 12. Drawings and secondary board affordances
 

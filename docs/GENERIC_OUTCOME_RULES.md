@@ -53,7 +53,7 @@ Examples:
 - resignation -> `chess.resignation` with winner/loser players;
 - repetition/dead-position/move-count draws -> stable draw reason keys.
 
-Chess-specific APIs such as draw claims remain in `nydra-chess`; the generic layer only receives the resulting terminal outcome.
+Chess-specific APIs such as draw claims remain in `monumla-games-chess`; the generic layer only receives the resulting terminal outcome.
 
 ## Future rulesets
 

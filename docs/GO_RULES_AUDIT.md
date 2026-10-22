@@ -2,7 +2,7 @@
 
 ## Scope
 
-`nydra-go` implements a digital American Go Association (AGA) ruleset. The default game is 19×19 with territory counting and 7.5 komi. The browser may also start 9×9 and 13×13 even games, switch between AGA territory and area counting, and start the standard 19×19 handicaps.
+`monumla-games-go` implements a digital American Go Association (AGA) ruleset. The default game is 19×19 with territory counting and 7.5 komi. The browser may also start 9×9 and 13×13 even games, switch between AGA territory and area counting, and start the standard 19×19 handicaps.
 
 Rules references:
 
@@ -89,14 +89,14 @@ Stone hover previews, dead/disputed review presentation, prisoners, komi, scorin
 The following are not hidden rule simplifications:
 
 - **Illegal-move tournament penalty:** the digital runtime simply does not offer illegal placements. The AGA over-the-board procedure that replaces an accidentally played illegal move with a pass belongs to tournament/session administration.
-- **Time controls and timeout:** not part of `nydra-go`; a future session layer should own clocks and timeout outcomes.
+- **Time controls and timeout:** not part of `monumla-games-go`; a future session layer should own clocks and timeout outcomes.
 - **Rank calculation and automatic handicap assignment:** matchmaking/tournament policy, not board rules.
 - **SGF:** game-record interchange is not yet implemented. This is a format capability, not a legality/scoring shortcut.
 - **Non-standard handicap layouts on smaller boards:** intentionally unsupported until a concrete variant defines them.
 
 ## Architectural result
 
-Full AGA Go still requires no Go-specific variants in `nydra-core`:
+Full AGA Go still requires no Go-specific variants in `monumla-core`:
 
 ```text
 SelectPosition -> spawn stone -> group capture -> history-derived superko
@@ -106,4 +106,4 @@ SelectOption(resume) -> ordinary play
 OutcomeRule -> score/resignation result
 ```
 
-The ruleset validates that Nydra can model placement games, group topology, whole-history legality, multi-phase endgame agreement, and two scoring systems through the existing generic state/history/interaction primitives.
+The ruleset validates that Monumla can model placement games, group topology, whole-history legality, multi-phase endgame agreement, and two scoring systems through the existing generic state/history/interaction primitives.

@@ -1,4 +1,4 @@
-# Nydra Rust Core Implementation Plan
+# Monumla Rust Core Implementation Plan
 
 ## 1. Goal
 
@@ -33,7 +33,7 @@ These rules are constraints for the implementation, not suggestions.
 
 ### 2.1 The generic core contains no chess rules
 
-`nydra-core` must not contain concepts such as:
+`monumla-core` must not contain concepts such as:
 
 - pawn, knight, bishop, rook, queen, king;
 - white/black as player identities;
@@ -43,7 +43,7 @@ These rules are constraints for the implementation, not suggestions.
 - promotion;
 - FEN/PGN/SAN.
 
-Those belong to `nydra-chess`.
+Those belong to `monumla-games-chess`.
 
 ### 2.2 Players are IDs, not colors
 
@@ -231,20 +231,18 @@ Do not infer attacks from final legal moves.
 Target layout:
 
 ```text
-nydra/
+monumla/
 ├── Cargo.toml
 ├── crates/
-│   ├── nydra-core/
+│   ├── monumla-core/
 │   │   └── src/
-│   ├── nydra-chess/
+│   ├── monumla-games-chess/
 │   │   └── src/
-│   ├── nydra-checkers/
+│   ├── monumla-games-checkers/
 │   │   └── src/
-│   ├── nydra-go/
+│   ├── monumla-games-go/
 │   │   └── src/
-│   ├── nydra-rift/
-│   │   └── src/
-│   └── nydra-wasm/
+│   └── monumla-wasm/
 │       └── src/
 ├── docs/
 │   ├── CORE_IMPLEMENTATION_PLAN.md
@@ -257,7 +255,7 @@ nydra/
 
 Suggested ownership:
 
-### `nydra-core`
+### `monumla-core`
 
 - IDs and stable handles;
 - board/grid primitives;
@@ -274,7 +272,7 @@ Suggested ownership:
 - optional presentation cues;
 - generic ruleset/entity/ability interfaces.
 
-### `nydra-chess`
+### `monumla-games-chess`
 
 - chess sides and side-to-player mapping;
 - standard initial position;
@@ -290,7 +288,7 @@ Suggested ownership:
 - FEN;
 - later SAN/PGN.
 
-### `nydra-wasm`
+### `monumla-wasm`
 
 - browser-facing `GameHandle`;
 - DTO conversion;
@@ -699,7 +697,7 @@ Add established special-rule perft positions covering castling, en passant, chec
 
 Do not ship another game mode yet. Add internal test-only rules proving the generic runtime is not secretly chess-only.
 
-At minimum prove that without changing `nydra-core` one can define a test entity/ruleset that:
+At minimum prove that without changing `monumla-core` one can define a test entity/ruleset that:
 
 - owns custom entity state;
 - mutates another entity's state;
@@ -721,9 +719,9 @@ Introduce the Rust workspace alongside the current Svelte application without ch
 Deliverables:
 
 - root Cargo workspace;
-- `nydra-core`;
-- `nydra-chess`;
-- `nydra-wasm`;
+- `monumla-core`;
+- `monumla-games-chess`;
+- `monumla-wasm`;
 - browser build integration skeleton;
 - documented development commands.
 
@@ -788,7 +786,7 @@ Replace TypeScript piece/FEN/game-state authority with the WASM game handle whil
 
 ### Phase 13 — Lichess-parity interactive local chess UI
 
-Replace the temporary click-only board interaction layer with a first-class board UX that matches the standard Lichess game board as closely as practical while remaining an independent Nydra implementation. The detailed contract lives in [`LICHESS_BOARD_UX_SPEC.md`](./LICHESS_BOARD_UX_SPEC.md).
+Replace the temporary click-only board interaction layer with a first-class board UX that matches the standard Lichess game board as closely as practical while remaining an independent Monumla implementation. The detailed contract lives in [`LICHESS_BOARD_UX_SPEC.md`](./LICHESS_BOARD_UX_SPEC.md).
 
 Phase 13 must include both click-to-move and drag-and-drop, Lichess-style quiet-dot/capture-wedge destination markers, selected/last-move/check/hover states, drag threshold + ghost + cancellation semantics, StateDelta-driven move/capture/special-move animations, board-local graphical promotion choices, orientation-safe hit testing, responsive geometry, status/history/undo/redo/FEN development controls, and complete local two-player play.
 
@@ -816,20 +814,18 @@ Standard pawn promotion is the first production proof: `Pawn` owns the trigger, 
 
 ### Phase 16 — Architecture proof
 
-Implement the built-in proof rulesets described in [`BUILTIN_RULESETS.md`](./BUILTIN_RULESETS.md) as independent crates: `nydra-checkers`, `nydra-go`, and `nydra-rift`. Each mode must run through the same WASM `GameHandle`, interaction protocol, Svelte board renderer, transition animation path, history, and undo/redo pipeline as chess while adding no mechanic-specific concepts to `nydra-core`.
 
 - checkers proves mandatory capture, forced multi-capture continuation, piece-local promotion state, and multiple authoritative steps in one turn;
 - Go proves placement via entity spawning, group capture, pass stones, suicide rejection, full-history situational superko, multi-phase dead-group review, AGA territory/area scoring, komi, and handicap;
-- Rift proves arbitrary HP/mana state, explicit abilities, move + ability turns, target/option continuations, entity removal, history-derived rewind, three players/two teams, controller changes independent of owner, presentation cues, and team-level outcomes.
 
-The built-ins share the architecture-proof role but may mature independently. `nydra-go` now targets complete digital AGA board/scoring semantics; see [`GO_RULES_AUDIT.md`](./GO_RULES_AUDIT.md). Production matchmaking, tournament administration, exhaustive external record formats, and mode-specific production polish remain separate concerns.
+The built-ins share the architecture-proof role but may mature independently. `monumla-games-go` now targets complete digital AGA board/scoring semantics; see [`GO_RULES_AUDIT.md`](./GO_RULES_AUDIT.md). Production matchmaking, tournament administration, exhaustive external record formats, and mode-specific production polish remain separate concerns.
 
 
 ### Phase 17 — Generic action notation and deterministic replay
 
 Implement the canonical ruleset-agnostic game record described in [`GENERIC_ACTION_NOTATION.md`](./GENERIC_ACTION_NOTATION.md). Persist the ordered authoritative choices that produced each committed turn without storing ephemeral `ChoiceId` values, replay them through the ordinary `InteractionDriver`, and keep SAN/PGN as a chess-specific human notation adapter rather than the universal record model.
 
-The phase must prove replay for arbitrary abilities, multi-step turns, forced continuation, history-dependent mechanics, control changes, and games with more than two players without adding mechanic-specific variants to `nydra-core`.
+The phase must prove replay for arbitrary abilities, multi-step turns, forced continuation, history-dependent mechanics, control changes, and games with more than two players without adding mechanic-specific variants to `monumla-core`.
 
 ## 15. Definition of done for the first core milestone
 
@@ -846,7 +842,7 @@ The milestone is complete when:
 9. the frontend receives structural change traces for animation;
 10. the standard chess board matches the Lichess move interaction loop: click + drag, quiet dots + capture wedges, selected/last-move/check feedback, drag ghost/cancellation, rounded board clipping, and deterministic special-move animation;
 11. perft and special-rule regression suites pass;
-12. the built-in checkers, Go, and Rift rulesets prove that adding non-chess entities/abilities does not require changing the generic core;
+12. the built-in checkers, Go, and Go rulesets prove that adding non-chess entities/abilities does not require changing the generic core;
 13. a canonical generic action record can replay arbitrary accepted choice sequences through the same interaction runtime.
 14. terminal conditions can be supplied as generic ruleset-level outcome rules without modifying entity rules or core enums;
 15. intrinsic entity continuations and ruleset-wide modifiers compose through generic `ChoiceSpec`/`GameRuleSet` APIs without mechanic-specific interaction branches.

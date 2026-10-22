@@ -1,10 +1,10 @@
-# Nydra Rust Core Implementation Checklist
+# Monumla Rust Core Implementation Checklist
 
 This checklist tracks the implementation described in `CORE_IMPLEMENTATION_PLAN.md`.
 
 ## Architectural invariants
 
-- [x] `nydra-core` contains no chess-specific piece/rule concepts.
+- [x] `monumla-core` contains no chess-specific piece/rule concepts.
 - [x] Core player identity uses `PlayerId`, not white/black.
 - [x] Core supports `TeamId` independently from `PlayerId`.
 - [x] Entities have distinct `owner` and `controller` fields.
@@ -26,9 +26,9 @@ This checklist tracks the implementation described in `CORE_IMPLEMENTATION_PLAN.
 ## Phase 0 — Repository preparation
 
 - [x] Add root `Cargo.toml` workspace.
-- [x] Add `crates/nydra-core`.
-- [x] Add `crates/nydra-chess`.
-- [x] Add `crates/nydra-wasm`.
+- [x] Add `crates/monumla-core`.
+- [x] Add `crates/monumla-games-chess`.
+- [x] Add `crates/monumla-wasm`.
 - [x] Define workspace dependency/version policy.
 - [x] Add Rust formatting/lint/test commands.
 - [x] Add WASM browser build integration skeleton.
@@ -127,7 +127,7 @@ This checklist tracks the implementation described in `CORE_IMPLEMENTATION_PLAN.
 
 ### Chess setup
 
-- [x] Define `ChessSide` in `nydra-chess` only.
+- [x] Define `ChessSide` in `monumla-games-chess` only.
 - [x] Map `ChessSide::White` to a concrete `PlayerId`.
 - [x] Map `ChessSide::Black` to a concrete `PlayerId`.
 - [x] Create standard 8×8 chess board setup.
@@ -310,7 +310,7 @@ This checklist tracks the implementation described in `CORE_IMPLEMENTATION_PLAN.
 
 ## Phase 13 — Lichess-parity interactive local chess UI
 
-Reference: [`LICHESS_BOARD_UX_SPEC.md`](./LICHESS_BOARD_UX_SPEC.md). The target is the standard Lichess board interaction experience, implemented independently in Nydra with Rust/WASM remaining authoritative.
+Reference: [`LICHESS_BOARD_UX_SPEC.md`](./LICHESS_BOARD_UX_SPEC.md). The target is the standard Lichess board interaction experience, implemented independently in Monumla with Rust/WASM remaining authoritative.
 
 ### Authority boundary
 
@@ -397,7 +397,7 @@ Reference: [`LICHESS_BOARD_UX_SPEC.md`](./LICHESS_BOARD_UX_SPEC.md). The target 
 - [x] Match the default Lichess brown-board visual relationship closely.
 - [x] Match Lichess-like piece scale/alignment within squares.
 - [x] Keep subtle rounded outer board corners, clip overlays/pieces consistently, and avoid clipping coordinate labels.
-- [x] Remove current Nydra-only destination marker styling that visibly differs from Lichess.
+- [x] Remove current Monumla-only destination marker styling that visibly differs from Lichess.
 - [x] Remove/adjust current board-only styling that visibly prevents side-by-side Lichess parity.
 - [x] Do not add any Lichess/Chessground runtime dependency.
 - [x] Do not copy upstream source/CSS verbatim; independently recreate the behavior/rendered result.
@@ -524,29 +524,17 @@ Reference: [`GENERIC_GAME_RULES.md`](./GENERIC_GAME_RULES.md).
 
 Reference: [`BUILTIN_RULESETS.md`](./BUILTIN_RULESETS.md).
 
-- [x] Split the Phase 16 proof modes into independent `nydra-checkers`, `nydra-go`, and `nydra-rift` crates.
-- [x] Register non-chess checker, Go stone, and Rift mage entity types without editing `nydra-core` enums.
-- [x] Give Rift entities custom HP/mana state.
-- [x] Expose explicit named Fireball, Rewind, and Hijack ability choices.
-- [x] Mutate another entity's custom state and remove it when Fireball damage reaches zero HP.
-- [x] Perform move + ability as two authoritative steps during one Rift turn.
+- [x] Register non-chess checker and Go stone entity types without editing `monumla-core` enums.
 - [x] Force an additional checkers capture continuation after the first capture step.
 - [x] Read complete committed play history for AGA situational-superko legality.
-- [x] Restore selected Rift HP data from an older committed state.
-- [x] Create a Rift state with three `PlayerId`s.
-- [x] Demonstrate two players sharing one team while a third player belongs to another team.
-- [x] Change a Rift target's `controller` without changing `owner`.
-- [x] Emit semantic presentation cues for checkers promotion and Rift abilities.
 - [x] Prove a primary game action can be placement/spawn rather than movement through the Go example.
 - [x] Prove transactional group capture by removing multiple Go entities from one placement.
-- [x] Prove ruleset-level outcomes for checkers, Go, and the synthetic team mode.
 - [x] Confirm all built-in non-chess rulesets use existing generic choices, transactions, state, history, teams, abilities, and outcomes with no mechanic-specific core enum variants.
-- [x] Expose all four built-in rulesets through one WASM `GameHandle` selected by ruleset ID.
-- [x] Add a Svelte ruleset selector and make chess, checkers, Go, and Rift playable through the shared board/interaction pipeline.
+- [x] Expose all three built-in rulesets through one WASM `GameHandle` selected by ruleset ID.
+- [x] Add a Svelte ruleset selector and make chess, checkers, and Go playable through the shared board/interaction pipeline.
 - [x] Keep FEN/PGN as chess-only capabilities rather than leaking them into the generic runtime contract.
-- [x] Render ruleset-owned entity presentation assets and Rift HP/mana without frontend legality logic.
 - [x] Verify Go board-position choices work without selecting or moving an existing entity.
-- [x] Delete the temporary `nydra-examples` crate once the rulesets are independently runnable.
+- [x] Delete the temporary `monumla-examples` crate once the rulesets are independently runnable.
 - [x] Replace the 9×9/living-stone Go proof with a configurable 9×9/13×13/19×19 AGA ruleset.
 - [x] Implement pass stones, two-pass scoring review, independent dead-group assessment, dispute resume, and White-last-pass handling.
 - [x] Implement exact-half-point AGA territory and area scoring with current even/handicap komi and area handicap compensation.
@@ -576,7 +564,6 @@ Reference: [`GENERIC_ACTION_NOTATION.md`](./GENERIC_ACTION_NOTATION.md).
 - [ ] Round-trip forced multi-step continuation.
 - [ ] Round-trip a history-dependent rewind/copy action.
 - [ ] Round-trip a controller change without owner change.
-- [ ] Round-trip a game with at least three players.
 - [ ] Keep SAN/PGN as a chess-specific pretty notation/import adapter rather than the universal record.
 - [ ] Expose a deterministic generic expanded text/debug rendering for rulesets with no custom human notation adapter.
 

@@ -1,11 +1,10 @@
 [workspace]
 members = [
-    "crates/nydra-core",
-    "crates/nydra-chess",
-    "crates/nydra-checkers",
-    "crates/nydra-go",
-    "crates/nydra-rift",
-    "crates/nydra-wasm",
+    "crates/monumla-core",
+    "crates/monumla-games-chess",
+    "crates/monumla-games-checkers",
+    "crates/monumla-games-go",
+    "crates/monumla-wasm",
 ]
 resolver = "2"
 
@@ -14,14 +13,13 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
-repository = "https://github.com/artegoser/nydra"
+repository = "https://github.com/artegoser/monumla"
 
 [workspace.dependencies]
-nydra-core = { path = "crates/nydra-core" }
-nydra-chess = { path = "crates/nydra-chess" }
-nydra-checkers = { path = "crates/nydra-checkers" }
-nydra-go = { path = "crates/nydra-go" }
-nydra-rift = { path = "crates/nydra-rift" }
+monumla-core = { path = "crates/monumla-core" }
+monumla-games-chess = { path = "crates/monumla-games-chess" }
+monumla-games-checkers = { path = "crates/monumla-games-checkers" }
+monumla-games-go = { path = "crates/monumla-games-go" }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 thiserror = "2.0"

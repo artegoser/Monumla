@@ -2,11 +2,11 @@
 
 ## Scope
 
-This audit covers the authoritative standard-chess rules implemented by `nydra-chess` and the chess-only FEN/SAN/PGN and browser-runtime adapters that expose those rules.
+This audit covers the authoritative standard-chess rules implemented by `monumla-games-chess` and the chess-only FEN/SAN/PGN and browser-runtime adapters that expose those rules.
 
 The target is ordinary over-the-board standard chess position and game semantics: legal piece movement, king safety, special moves, terminal positions, FIDE repetition and move-count draws, resignation/agreement recording, and interoperable notation/position formats.
 
-Physical tournament procedure is intentionally outside the board-rules runtime. Nydra does not model a physical touch-move violation, clock-button handling, flag fall, arbiter penalties, scoresheet possession, or other venue/competition procedure. Those belong to a future clock/tournament/session layer rather than piece or board legality.
+Physical tournament procedure is intentionally outside the board-rules runtime. Monumla does not model a physical touch-move violation, clock-button handling, flag fall, arbiter penalties, scoresheet possession, or other venue/competition procedure. Those belong to a future clock/tournament/session layer rather than piece or board legality.
 
 ## Audited rule coverage
 
@@ -27,7 +27,7 @@ The existing move generator remains authoritative and is covered by reference pe
 - attacked castling transit squares;
 - promotion and underpromotion, including capture-promotion.
 
-No chess-specific movement state is stored in `nydra-core`.
+No chess-specific movement state is stored in `monumla-core`.
 
 ### Terminal positions and draw rules
 
@@ -74,7 +74,7 @@ Import validates the six standard fields and additionally rejects structurally i
 - castling rights without the required king/rook placement;
 - inconsistent en-passant predecessor information.
 
-Castling rights are reconstructed into king/rook movement state. An en-passant target reconstructs only the minimal synthetic previous pawn move needed for normal history-derived en-passant logic. FEN cannot reconstruct repetition history that the format does not contain, and Nydra does not fabricate it.
+Castling rights are reconstructed into king/rook movement state. An en-passant target reconstructs only the minimal synthetic previous pawn move needed for normal history-derived en-passant logic. FEN cannot reconstruct repetition history that the format does not contain, and Monumla does not fabricate it.
 
 Terminal outcome metadata is deliberately ignored when determining the FEN en-passant field, because resignation/agreement/claim recording does not alter the board position or erase the immediately preceding pawn double advance.
 
@@ -94,7 +94,7 @@ PGN main-line import/export now preserves game-result semantics:
 - standard source tags and additional source tags are preserved where possible;
 - comments, NAGs, and side variations may be consumed while replaying only the main line.
 
-SAN/PGN are chess-specific adapters. They are not the future ruleset-agnostic Nydra replay format.
+SAN/PGN are chess-specific adapters. They are not the future ruleset-agnostic Monumla replay format.
 
 ## Explicit limitations
 

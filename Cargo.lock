@@ -50,23 +50,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nydra-checkers"
-version = "0.1.0"
-dependencies = [
- "nydra-core",
-]
-
-[[package]]
-name = "nydra-chess"
-version = "0.1.0"
-dependencies = [
- "nydra-core",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "nydra-core"
+name = "monumla-core"
 version = "0.1.0"
 dependencies = [
  "serde",
@@ -74,28 +58,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "nydra-go"
+name = "monumla-games-checkers"
 version = "0.1.0"
 dependencies = [
- "nydra-core",
+ "monumla-core",
 ]
 
 [[package]]
-name = "nydra-rift"
+name = "monumla-games-chess"
 version = "0.1.0"
 dependencies = [
- "nydra-core",
+ "monumla-core",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]
-name = "nydra-wasm"
+name = "monumla-games-go"
 version = "0.1.0"
 dependencies = [
- "nydra-checkers",
- "nydra-chess",
- "nydra-core",
- "nydra-go",
- "nydra-rift",
+ "monumla-core",
+]
+
+[[package]]
+name = "monumla-wasm"
+version = "0.1.0"
+dependencies = [
+ "monumla-core",
+ "monumla-games-checkers",
+ "monumla-games-chess",
+ "monumla-games-go",
  "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",

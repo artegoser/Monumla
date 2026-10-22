@@ -1,0 +1,20 @@
+[package]
+name = "monumla-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Browser WebAssembly facade for the Monumla programmable game runtime."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+monumla-core.workspace = true
+monumla-games-chess.workspace = true
+monumla-games-checkers.workspace = true
+monumla-games-go.workspace = true
+serde.workspace = true
+serde-wasm-bindgen.workspace = true
+wasm-bindgen.workspace = true

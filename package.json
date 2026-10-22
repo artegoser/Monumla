@@ -1,5 +1,5 @@
 {
-	"name": "nydra",
+	"name": "monumla",
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -18,9 +18,9 @@
 		"rust:lint": "cargo clippy --workspace --all-targets --all-features",
 		"rust:test": "cargo test --workspace",
 		"rust:check": "cargo check --workspace",
-		"wasm:build": "wasm-pack build crates/nydra-wasm --target web --out-dir ../../src/lib/wasm/pkg --out-name nydra",
+		"wasm:build": "wasm-pack build crates/monumla-wasm --target web --out-dir ../../src/lib/wasm/pkg --out-name monumla",
 		"test": "cargo test --workspace && pnpm check",
-		"test:full": "cargo test --workspace && cargo test --release -p nydra-chess perft::tests:: -- --ignored && cargo check --workspace && cargo clippy --workspace --all-targets --all-features && pnpm check && NODE_ENV=production vite build",
+		"test:full": "cargo test --workspace && cargo test --release -p monumla-games-chess perft::tests:: -- --ignored && cargo check --workspace && cargo clippy --workspace --all-targets --all-features && pnpm check && NODE_ENV=production vite build",
 		"browserslist:update": "pnpm dlx update-browserslist-db latest",
 		"start": "node build"
 	},

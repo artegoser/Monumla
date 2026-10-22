@@ -1,15 +1,14 @@
-# Nydra
+# Monumla
 
-Nydra is a local-first programmable game runtime with a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, Go, and Rift rulesets compile to WebAssembly for the browser.
+Monumla is a local-first programmable game runtime with a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, and Go rulesets compile to WebAssembly for the browser.
 
 ## Repository layout
 
-- `crates/nydra-core` — generic state, history, turns, interaction, and runtime primitives.
-- `crates/nydra-chess` — standard chess rules built on the generic core.
-- `crates/nydra-checkers` — playable compact checkers ruleset.
-- `crates/nydra-go` — playable digital AGA Go ruleset with 9×9/13×13/19×19 boards, superko, scoring review, komi and handicap.
-- `crates/nydra-rift` — playable synthetic tactical ruleset for abilities, teams and history mechanics.
-- `crates/nydra-wasm` — browser bindings for the Rust runtime.
+- `crates/monumla-core` — generic state, history, turns, interaction, and runtime primitives.
+- `crates/monumla-games-chess` — standard chess rules built on the generic core.
+- `crates/monumla-games-checkers` — playable compact checkers ruleset.
+- `crates/monumla-games-go` — playable digital AGA Go ruleset with 9×9/13×13/19×19 boards, superko, scoring review, komi and handicap.
+- `crates/monumla-wasm` — browser bindings for the Rust runtime.
 - `src` — SvelteKit presentation and input layer.
 - `docs/CORE_IMPLEMENTATION_PLAN.md` — architecture and implementation plan.
 - `docs/CORE_IMPLEMENTATION_CHECKLIST.md` — implementation checklist.
@@ -68,7 +67,7 @@ cargo clippy --workspace --all-targets --all-features
 The normal workspace suite keeps expensive depth-4 perft cases ignored so the development loop stays fast. Run the slow correctness gate explicitly when changing move generation, history semantics, or special-move execution:
 
 ```bash
-cargo test --release -p nydra-chess perft::tests:: -- --ignored
+cargo test --release -p monumla-games-chess perft::tests:: -- --ignored
 ```
 
 Frontend:

@@ -19,7 +19,6 @@
 		{ id: 'chess', label: 'Chess', description: 'Standard chess with SAN, PGN and FEN.' },
 		{ id: 'checkers', label: 'Checkers', description: 'Mandatory captures, chains and kinging.' },
 		{ id: 'go', label: 'Go', description: 'AGA rules with superko, scoring review, komi and handicap.' },
-		{ id: 'rift', label: 'Rift', description: 'Three players, teams, HP, mana and abilities.' }
 	];
 
 	let runtime: LocalGame | null = null;
@@ -240,9 +239,6 @@
 		return choice.option_key ?? 'Choose';
 	}
 
-	function entityStat(entity: GameView['entities'][number], key: string) {
-		return stateScalar(entity.presentation_data, key);
-	}
 
 	function goDetail(key: string) {
 		return game?.ruleset === 'go' ? stateScalar(game.status.details, key) : null;
@@ -278,7 +274,7 @@
 	});
 </script>
 
-<div class="ruleset-tabs" aria-label="Nydra rulesets">
+<div class="ruleset-tabs" aria-label="Monumla rulesets">
 	{#each rulesets as ruleset}
 		<button
 			type="button"
@@ -307,7 +303,7 @@
 						height={game.height}
 						{orientation}
 						boardStyle={game.board_style}
-						showCoordinates={game.ruleset !== 'rift'}
+						showCoordinates={true}
 					/>
 					<Pieces
 						{game}
@@ -346,20 +342,7 @@
 		</div>
 
 		<aside class="game-panel">
-			{#if game.ruleset === 'rift'}
-				<section>
-					<h2>Units</h2>
-					<div class="unit-list">
-						{#each game.entities as entity}
-							<div class="unit-row">
-								<strong>{entity.label ?? `Entity ${entity.id}`}</strong>
-								<span>owner {entity.owner} · controller {entity.controller}</span>
-								<span>HP {entityStat(entity, 'hp') ?? '?'} · MP {entityStat(entity, 'mana') ?? '?'}</span>
-							</div>
-						{/each}
-					</div>
-				</section>
-			{/if}
+
 
 			{#if game.ruleset === 'go'}
 				<section>
@@ -483,7 +466,7 @@
 				<section>
 					<h2>Runtime proof</h2>
 					<p class="panel-muted">
-						This mode uses the same Nydra GameHandle, interaction choices, transactional history, undo/redo and board renderer as chess.
+						This mode uses the same Monumla GameHandle, interaction choices, transactional history, undo/redo and board renderer as chess.
 					</p>
 				</section>
 			{/if}
@@ -492,7 +475,7 @@
 {:else if error}
 	<p class="runtime-error">{error}</p>
 {:else}
-	<p class="runtime-loading">{loading ? 'Loading Nydra WASM runtime…' : 'Runtime unavailable.'}</p>
+	<p class="runtime-loading">{loading ? 'Loading Monumla WASM runtime…' : 'Runtime unavailable.'}</p>
 {/if}
 
 {#if error && game}

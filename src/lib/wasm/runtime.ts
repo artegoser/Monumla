@@ -1,4 +1,4 @@
-export type RulesetId = 'chess' | 'checkers' | 'go' | 'rift';
+export type RulesetId = 'chess' | 'checkers' | 'go';
 export type GoScoring = 'territory' | 'area';
 
 export interface PositionView {
@@ -178,7 +178,7 @@ interface WasmModule {
 let modulePromise: Promise<WasmModule> | null = null;
 
 async function loadModule(): Promise<WasmModule> {
-	modulePromise ??= import('./pkg/nydra.js').then(async (module) => {
+	modulePromise ??= import('./pkg/monumla.js').then(async (module) => {
 		const wasm = module as unknown as WasmModule;
 		await wasm.default();
 		return wasm;

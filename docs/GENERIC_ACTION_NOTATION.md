@@ -2,9 +2,9 @@
 
 ## 1. Goal
 
-Nydra needs a canonical game record that can represent and replay turns for any ruleset built on the generic core, not only standard chess.
+Monumla needs a canonical game record that can represent and replay turns for any ruleset built on the generic core, not only standard chess.
 
-The record must handle, without adding mechanic-specific variants to `nydra-core`:
+The record must handle, without adding mechanic-specific variants to `monumla-core`:
 
 - arbitrary entity types;
 - arbitrary board sizes;
@@ -144,7 +144,7 @@ The initial state may be stored directly as generic `GameState` for internal/tes
 
 One universal compact human syntax cannot remain equally ergonomic for chess, checkers, a Fireball ability, a card-like target selector, and an Ekko-style history rewind without becoming a programming language.
 
-Nydra should therefore separate:
+Monumla should therefore separate:
 
 ### Canonical generic record
 

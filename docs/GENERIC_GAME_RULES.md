@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Nydra separates mechanics by ownership instead of collecting every rule in one ruleset switch.
+Monumla separates mechanics by ownership instead of collecting every rule in one ruleset switch.
 
 - `EntityRule` / a ruleset-specific entity extension owns mechanics intrinsic to one entity type.
 - `AbilityRule` owns mechanics intrinsic to one explicit ability.
@@ -13,7 +13,7 @@ A standard chess pawn therefore owns promotion. A chess variant that removes que
 
 ## Core composition
 
-`nydra-core` exposes a clonable `GameRuleSet`. Rules execute in registration order.
+`monumla-core` exposes a clonable `GameRuleSet`. Rules execute in registration order.
 
 The choice pipeline is:
 
@@ -127,7 +127,7 @@ Examples:
 
 ## Invariants
 
-1. `nydra-core` contains no promotion, pawn, chess-piece, terrain, spell, or similar mechanic-specific enum variant.
+1. `monumla-core` contains no promotion, pawn, chess-piece, terrain, spell, or similar mechanic-specific enum variant.
 2. `ChessInteractionRules` coordinates interaction; it does not own piece mechanics.
 3. Global rules are composable and ordered rather than represented by one monolithic `ChessRules` branch table.
 4. Required local continuations suppress unrelated global choices while still allowing global constraints to transform them.
