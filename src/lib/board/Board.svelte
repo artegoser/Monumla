@@ -17,9 +17,21 @@
 
 	const rulesets: Array<{ id: RulesetId; label: string; description: string }> = [
 		{ id: 'chess', label: 'Chess', description: 'Standard chess with SAN, PGN and FEN.' },
-		{ id: 'checkers', label: 'Russian draughts', description: '8×8 · Backward captures, flying kings and promotion during captures.' },
-		{ id: 'checkers-international', label: 'International draughts', description: '10×10 · Maximum captures, flying kings and promotion after the turn.' },
-		{ id: 'go', label: 'Go', description: 'AGA rules with superko, scoring review, komi and handicap.' },
+		{
+			id: 'checkers',
+			label: 'Russian draughts',
+			description: '8×8 · Backward captures, flying kings and promotion during captures.'
+		},
+		{
+			id: 'checkers-international',
+			label: 'International draughts',
+			description: '10×10 · Maximum captures, flying kings and promotion after the turn.'
+		},
+		{
+			id: 'go',
+			label: 'Go',
+			description: 'AGA rules with superko, scoring review, komi and handicap.'
+		}
 	];
 
 	let runtime: LocalGame | null = null;
@@ -140,10 +152,7 @@
 		run(() => runtime!.chessClaimDraw(kind), false);
 	}
 
-	function chessClaimDrawAfterSan(
-		kind: 'threefold_repetition' | 'fifty_move_rule',
-		san: string
-	) {
+	function chessClaimDrawAfterSan(kind: 'threefold_repetition' | 'fifty_move_rule', san: string) {
 		if (!runtime || game?.ruleset !== 'chess' || game.status.outcome) return;
 		run(() => runtime!.chessClaimDrawAfterSan(kind, san), false);
 	}
@@ -240,7 +249,6 @@
 		return choice.option_key ?? 'Choose';
 	}
 
-
 	function goDetail(key: string) {
 		return game?.ruleset === 'go' ? stateScalar(game.status.details, key) : null;
 	}
@@ -281,8 +289,8 @@
 			type="button"
 			class:active={selectedRuleset === ruleset.id}
 			disabled={loading}
-			on:click={() => switchRuleset(ruleset.id)}
-		>{ruleset.label}</button>
+			on:click={() => switchRuleset(ruleset.id)}>{ruleset.label}</button
+		>
 	{/each}
 </div>
 
@@ -297,7 +305,11 @@
 				<span class="ruleset-id">{game.ruleset}</span>
 			</div>
 
-			<div class="board-frame" class:orientation-black={orientation === 'black'} class:go-frame={game.board_style === 'go'}>
+			<div
+				class="board-frame"
+				class:orientation-black={orientation === 'black'}
+				class:go-frame={game.board_style === 'go'}
+			>
 				<div class="board">
 					<Bg
 						width={game.width}
@@ -338,13 +350,15 @@
 				<button type="button" on:click={undo} disabled={!game.can_undo}>Undo</button>
 				<button type="button" on:click={redo} disabled={!game.can_redo}>Redo</button>
 				<button type="button" on:click={resetGame}>Reset</button>
-				<button type="button" on:click={() => (orientation = orientation === 'white' ? 'black' : 'white')}>Flip board</button>
+				<button
+					type="button"
+					on:click={() => (orientation = orientation === 'white' ? 'black' : 'white')}
+					>Flip board</button
+				>
 			</div>
 		</div>
 
 		<aside class="game-panel">
-
-
 			{#if game.ruleset === 'go'}
 				<section>
 					<h2>AGA game</h2>
@@ -368,7 +382,9 @@
 							Handicap
 							<select bind:value={goHandicap}>
 								{#each { length: 10 } as _, handicap}
-									<option value={handicap} disabled={goSize !== 19 && handicap > 1}>{handicap === 0 ? 'Even' : handicap}</option>
+									<option value={handicap} disabled={goSize !== 19 && handicap > 1}
+										>{handicap === 0 ? 'Even' : handicap}</option
+									>
 								{/each}
 							</select>
 						</label>
@@ -383,14 +399,20 @@
 						<span>White pass stones</span><strong>{goDetail('white_pass_stones') ?? 0}</strong>
 					</div>
 					{#if goDetail('phase') === 'review'}
-						<p class="panel-muted">Click stone groups to mark their status, then choose Done reviewing. If the assessments differ, resume play resolves the dispute under AGA rules.</p>
+						<p class="panel-muted">
+							Click stone groups to mark their status, then choose Done reviewing. If the
+							assessments differ, resume play resolves the dispute under AGA rules.
+						</p>
 					{/if}
 					{#if game.status.outcome?.key === 'go.score'}
 						<div class="go-final-score">
 							<strong>Final score</strong>
 							<span>Black {halfPointText(goDetail('black_score_half'))}</span>
 							<span>White {halfPointText(goDetail('white_score_half'))}</span>
-							<span>Territory {goDetail('black_territory') ?? 0}–{goDetail('white_territory') ?? 0} · neutral {goDetail('neutral_points') ?? 0}</span>
+							<span
+								>Territory {goDetail('black_territory') ?? 0}–{goDetail('white_territory') ?? 0} · neutral
+								{goDetail('neutral_points') ?? 0}</span
+							>
 						</div>
 					{/if}
 				</section>
@@ -413,7 +435,9 @@
 				<section>
 					<h2>Game actions</h2>
 					{#if game.status.outcome}
-						<p class="panel-muted">The game is finished. Undo the terminal action to continue locally.</p>
+						<p class="panel-muted">
+							The game is finished. Undo the terminal action to continue locally.
+						</p>
 					{:else}
 						<div class="action-bar" aria-label="Chess game actions">
 							<button type="button" on:click={chessResign}>Resign</button>
@@ -421,18 +445,28 @@
 								<button type="button" on:click={chessAgreeDraw}>Draw by agreement</button>
 							{/if}
 							{#if chessDrawClaims?.current_threefold_repetition}
-								<button type="button" on:click={() => chessClaimDraw('threefold_repetition')}>Claim threefold</button>
+								<button type="button" on:click={() => chessClaimDraw('threefold_repetition')}
+									>Claim threefold</button
+								>
 							{/if}
 							{#if chessDrawClaims?.current_fifty_move_rule}
-								<button type="button" on:click={() => chessClaimDraw('fifty_move_rule')}>Claim 50-move draw</button>
+								<button type="button" on:click={() => chessClaimDraw('fifty_move_rule')}
+									>Claim 50-move draw</button
+								>
 							{/if}
 						</div>
 						{#if chessDrawClaims && chessDrawClaims.by_move.length > 0}
 							<div class="unit-list">
 								{#each chessDrawClaims.by_move as claim}
 									<div class="unit-row">
-										<span>Claim {claim.kind === 'threefold_repetition' ? 'threefold' : '50-move'} by declaring <strong>{claim.san}</strong></span>
-										<button type="button" on:click={() => chessClaimDrawAfterSan(claim.kind, claim.san)}>Claim</button>
+										<span
+											>Claim {claim.kind === 'threefold_repetition' ? 'threefold' : '50-move'} by declaring
+											<strong>{claim.san}</strong></span
+										>
+										<button
+											type="button"
+											on:click={() => chessClaimDrawAfterSan(claim.kind, claim.san)}>Claim</button
+										>
 									</div>
 								{/each}
 							</div>
@@ -459,7 +493,8 @@
 					</div>
 					<textarea readonly value={currentPgn} rows="9" aria-label="Current PGN"></textarea>
 					<form on:submit|preventDefault={loadPgn} class="pgn-loader">
-						<textarea bind:value={pgnDraft} rows="6" spellcheck="false" aria-label="Load PGN"></textarea>
+						<textarea bind:value={pgnDraft} rows="6" spellcheck="false" aria-label="Load PGN"
+						></textarea>
 						<button type="submit">Load PGN</button>
 					</form>
 				</section>
@@ -467,7 +502,8 @@
 				<section>
 					<h2>Runtime proof</h2>
 					<p class="panel-muted">
-						This mode uses the same Monumla GameHandle, interaction choices, transactional history, undo/redo and board renderer as chess.
+						This mode uses the same Monumla GameHandle, interaction choices, transactional history,
+						undo/redo and board renderer as chess.
 					</p>
 				</section>
 			{/if}
@@ -476,7 +512,9 @@
 {:else if error}
 	<p class="runtime-error">{error}</p>
 {:else}
-	<p class="runtime-loading">{loading ? 'Loading Monumla WASM runtime…' : 'Runtime unavailable.'}</p>
+	<p class="runtime-loading">
+		{loading ? 'Loading Monumla WASM runtime…' : 'Runtime unavailable.'}
+	</p>
 {/if}
 
 {#if error && game}
