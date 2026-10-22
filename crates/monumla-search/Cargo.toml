@@ -1,0 +1,11 @@
+[package]
+name = "monumla-search"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Game-independent search, analysis, and best-action selection."
+
+[dependencies]
+thiserror.workspace = true

@@ -8,5 +8,6 @@ repository.workspace = true
 
 [dependencies]
 monumla-core.workspace = true
+monumla-search.workspace = true
 serde.workspace = true
 thiserror.workspace = true

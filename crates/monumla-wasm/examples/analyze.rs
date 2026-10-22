@@ -1,10 +1,8 @@
-//! A small native host for the same generic search core used by every adapter.
-use monumla_core::{
-    search::{search, SearchLimits},
-    GameTimeline,
-};
+//! A native host for the generic search engine.
+use monumla_core::GameTimeline;
 use monumla_games_checkers::{search::DraughtsSearch, state_for_variant, DraughtsVariant, WHITE};
 use monumla_games_chess::{search::ChessSearch, standard_chess_state};
+use monumla_search::{search, SearchLimits};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {

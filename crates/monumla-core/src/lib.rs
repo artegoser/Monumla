@@ -7,7 +7,6 @@ mod history;
 mod ids;
 mod interaction;
 mod rules;
-pub mod search;
 mod state;
 mod transaction;
 mod value;

@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/monumla-core",
+    "crates/monumla-search",
     "crates/monumla-games-chess",
     "crates/monumla-games-checkers",
     "crates/monumla-games-go",
@@ -16,6 +17,7 @@ license = "MIT"
 repository = "https://github.com/artegoser/monumla"
 
 [workspace.dependencies]
+monumla-search = { path = "crates/monumla-search" }
 monumla-core = { path = "crates/monumla-core" }
 monumla-games-chess = { path = "crates/monumla-games-chess" }
 monumla-games-checkers = { path = "crates/monumla-games-checkers" }

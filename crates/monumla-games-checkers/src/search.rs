@@ -1,9 +1,6 @@
-//! A draughts adapter for the game-independent core search.
 use crate::{is_king, legal_moves, play_move, CheckersOutcomeRule, DraughtsMove, WHITE};
-use monumla_core::{
-    search::{NodeRole, SearchDomain},
-    GameTimeline, InteractionError, OutcomeRule, PlayerId, RuleContext,
-};
+use monumla_core::{GameTimeline, InteractionError, OutcomeRule, PlayerId, RuleContext};
+use monumla_search::{NodeRole, SearchDomain};
 
 #[derive(Default)]
 pub struct DraughtsSearch;
@@ -100,10 +97,8 @@ fn active(position: &GameTimeline) -> Result<PlayerId, InteractionError> {
 mod tests {
     use super::*;
     use crate::{state_for_variant, DraughtsVariant, BLACK, CHECKER};
-    use monumla_core::{
-        search::{search, SearchLimits},
-        EntityId, EntityState, Position,
-    };
+    use monumla_core::{EntityId, EntityState, Position};
+    use monumla_search::{search, SearchLimits};
 
     #[test]
     fn search_returns_a_complete_winning_capture_in_both_variants_without_mutating_root() {
@@ -175,9 +170,6 @@ mod tests {
         let result = search(&DraughtsSearch, &timeline, WHITE, SearchLimits::default()).unwrap();
         assert_eq!(result.best_action, None);
         assert_eq!(result.score, Some(0));
-        assert_eq!(
-            result.stop_reason,
-            monumla_core::search::StopReason::Terminal
-        );
+        assert_eq!(result.stop_reason, monumla_search::StopReason::Terminal);
     }
 }

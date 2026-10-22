@@ -1,11 +1,12 @@
 # Universal search: first implementation
 
-`monumla_core::search` implements iterative-deepening alpha-beta search. It depends only on a `SearchDomain` trait: no pieces, boards, chess rules, draughts rules, or game-specific evaluation live in the algorithm. The two game crates supply their own adapters.
+`monumla_search` implements iterative-deepening alpha-beta search. It depends only on a `SearchDomain` trait: no pieces, boards, chess rules, draughts rules, or game-specific evaluation live in the algorithm. The two game crates supply their own adapters.
 
 A domain supplies its position, complete action, perspective, error type, terminal utility, static evaluation, node role, legal actions, and successor function. Scores always use the caller's fixed perspective. Explicit maximizing/minimizing roles allow extra turns and opposing coalitions without assuming alternating colors. A position can include any history required by its rules.
 
 ```rust
-use monumla_core::{search::{search, SearchLimits}, GameTimeline};
+use monumla_core::GameTimeline;
+use monumla_search::{search, SearchLimits};
 use monumla_games_checkers::{search::DraughtsSearch, standard_state, WHITE};
 
 let position = GameTimeline::new(standard_state())?;

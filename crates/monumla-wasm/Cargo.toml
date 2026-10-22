@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 monumla-core.workspace = true
+monumla-search.workspace = true
 monumla-games-chess.workspace = true
 monumla-games-checkers.workspace = true
 monumla-games-go.workspace = true

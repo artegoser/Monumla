@@ -1,12 +1,9 @@
-//! Standard chess adapter; evaluation and piece values stay in this game crate.
 use crate::{
     ChessDrawClaim, ChessError, ChessRules, ChessSide, PseudoMove, BISHOP, KNIGHT, PAWN, QUEEN,
     ROOK,
 };
-use monumla_core::{
-    search::{NodeRole, SearchDomain},
-    ChoiceInput, EntityTypeId, GameTimeline, RecordedAction, StateMap,
-};
+use monumla_core::{ChoiceInput, EntityTypeId, GameTimeline, RecordedAction, StateMap};
+use monumla_search::{NodeRole, SearchDomain};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ChessSearchAction {
@@ -222,7 +219,7 @@ impl SearchDomain for ChessSearch {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use monumla_core::search::{search, SearchLimits};
+    use monumla_search::{search, SearchLimits};
     fn limits(depth: u16) -> SearchLimits {
         SearchLimits {
             max_depth: depth,
