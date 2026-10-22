@@ -12,6 +12,7 @@ mod outcome;
 mod perft;
 mod piece;
 mod pieces;
+pub mod search;
 
 pub use error::ChessError;
 pub use fen::{FenGame, STANDARD_FEN};

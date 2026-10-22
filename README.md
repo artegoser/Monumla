@@ -4,7 +4,7 @@ Monumla is a local-first programmable game runtime with a Svelte frontend. Its g
 
 ## Repository layout
 
-- `crates/monumla-core` — generic state, history, turns, interaction, and runtime primitives.
+- `crates/monumla-core` — generic state, history, turns, interaction, runtime primitives, and game-independent search.
 - `crates/monumla-games-chess` — standard chess rules built on the generic core.
 - `crates/monumla-games-checkers` — Russian 8×8 and international 10×10 draughts, sharing move generation and interaction.
 - `crates/monumla-games-go` — playable digital AGA Go ruleset with 9×9/13×13/19×19 boards, superko, scoring review, komi and handicap.
@@ -88,3 +88,7 @@ See:
 - [`docs/GENERIC_OUTCOME_RULES.md`](docs/GENERIC_OUTCOME_RULES.md)
 - [`docs/GENERIC_GAME_RULES.md`](docs/GENERIC_GAME_RULES.md)
 - [`docs/BUILTIN_RULESETS.md`](docs/BUILTIN_RULESETS.md)
+
+## Search engine
+
+The core includes iterative-deepening alpha-beta search with node limits, cancellation, principal variations, and game-owned evaluation. Chess and both draughts variants have working adapters. See [`docs/SEARCH_ENGINE.md`](docs/SEARCH_ENGINE.md) for the API, runnable analysis example, and current limits.

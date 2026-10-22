@@ -4,6 +4,7 @@
 mod interaction;
 mod moves;
 mod outcome;
+pub mod search;
 
 pub use interaction::CheckersInteractionRules;
 pub use moves::{legal_moves, play_move, DraughtsMove};
