@@ -19,7 +19,7 @@ No checkers- or Go-specific variant may be added to a generic `monumla-core` enu
 
 ## Checkers
 
-`monumla-games-checkers` demonstrates a movement game whose turn structure differs from chess:
+`monumla-games-checkers` implements Russian 8×8 and international 10×10 draughts in one crate. See [`DRAUGHTS_RULES_AUDIT.md`](./DRAUGHTS_RULES_AUDIT.md) for rule differences and verification. Its turn structure differs from chess:
 
 - one checker entity type with piece-local `king` state;
 - mandatory captures;
@@ -53,14 +53,14 @@ No checkers- or Go-specific variant may be added to a generic `monumla-core` enu
 
 Detailed coverage and deliberate tournament/session boundaries are documented in [`GO_RULES_AUDIT.md`](./GO_RULES_AUDIT.md).
 
-
 ## Shared browser runtime
 
 The browser boundary exposes the generic runtime constructor plus ruleset-specific configuration constructors where a game genuinely has setup parameters:
 
 ```text
 new_game("chess")
-new_game("checkers")
+new_game("checkers")    # Russian 8x8
+new_game("checkers-international") # international 10x10
 new_game("go")          # standard 19x19 AGA game
 new_go(size, scoring, handicap)
 ```

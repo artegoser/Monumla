@@ -6,7 +6,7 @@ Monumla is a local-first programmable game runtime with a Svelte frontend. Its g
 
 - `crates/monumla-core` — generic state, history, turns, interaction, and runtime primitives.
 - `crates/monumla-games-chess` — standard chess rules built on the generic core.
-- `crates/monumla-games-checkers` — playable compact checkers ruleset.
+- `crates/monumla-games-checkers` — Russian 8×8 and international 10×10 draughts, sharing move generation and interaction.
 - `crates/monumla-games-go` — playable digital AGA Go ruleset with 9×9/13×13/19×19 boards, superko, scoring review, komi and handicap.
 - `crates/monumla-wasm` — browser bindings for the Rust runtime.
 - `src` — SvelteKit presentation and input layer.

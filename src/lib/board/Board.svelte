@@ -17,7 +17,8 @@
 
 	const rulesets: Array<{ id: RulesetId; label: string; description: string }> = [
 		{ id: 'chess', label: 'Chess', description: 'Standard chess with SAN, PGN and FEN.' },
-		{ id: 'checkers', label: 'Checkers', description: 'Mandatory captures, chains and kinging.' },
+		{ id: 'checkers', label: 'Russian draughts', description: '8×8 · Backward captures, flying kings and promotion during captures.' },
+		{ id: 'checkers-international', label: 'International draughts', description: '10×10 · Maximum captures, flying kings and promotion after the turn.' },
 		{ id: 'go', label: 'Go', description: 'AGA rules with superko, scoring review, komi and handicap.' },
 	];
 

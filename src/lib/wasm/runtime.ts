@@ -1,4 +1,4 @@
-export type RulesetId = 'chess' | 'checkers' | 'go';
+export type RulesetId = 'chess' | 'checkers' | 'checkers-international' | 'go';
 export type GoScoring = 'territory' | 'area';
 
 export interface PositionView {
