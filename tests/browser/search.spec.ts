@@ -203,3 +203,84 @@ test('game review assesses previously played moves and hides badges in Play', as
 	await expect(page.locator('.move-assessment')).toHaveCount(0);
 	await expect(page.locator('.board-assessment')).toHaveCount(0);
 });
+
+test('analysis navigation retains evaluation, restores cached depth and keeps controls fixed', async ({
+	page
+}) => {
+	await open(page);
+	await page.getByRole('combobox', { name: 'Opponent', exact: true }).selectOption('local');
+	await analysis(page);
+	const panel = page.getByLabel('Position analysis');
+	await expect(panel).toHaveAttribute('data-analysis-depth', /[2-9]/, { timeout: 30000 });
+	const score = await page.getByLabel('Position evaluation').innerText();
+	const retainedDepth = Number(await panel.getAttribute('data-analysis-depth'));
+	const bar = await page.locator('.evaluation-bar > div').getAttribute('style');
+	const controlsTop = () =>
+		page
+			.locator('.history-controls')
+			.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+	const before = await controlsTop();
+	const held: import('@playwright/test').Route[] = [];
+	await page.route(/engine\.worker-[^/]+\.js$/, (route) => {
+		held.push(route);
+	});
+	await humanMove(page);
+	await expect(panel).toHaveAttribute('data-analysis-pending', 'true');
+	await expect(page.getByLabel('Position evaluation')).toHaveText(score);
+	await expect(page.locator('.evaluation-bar > div')).toHaveAttribute('style', bar!);
+	await expect(page.getByLabel('Suggested moves')).toHaveCount(0);
+	const moved = await controlsTop();
+	expect(Math.abs(moved - before)).toBeLessThanOrEqual(1);
+	await page.getByRole('button', { name: 'Undo', exact: true }).click();
+	await expect(panel).toHaveAttribute('data-analysis-depth', String(retainedDepth));
+	await expect(page.getByLabel('Position evaluation')).toHaveText(score);
+	await expect(panel).toHaveAttribute('data-analysis-pending', 'false');
+	const returned = await controlsTop();
+	expect(Math.abs(returned - before)).toBeLessThanOrEqual(1);
+	await page.unroute(/engine\.worker-[^/]+\.js$/);
+	for (const route of held) await route.continue().catch(() => {});
+	// A restarted worker must not replace a deeper cached result with depth one.
+	await page.evaluate(() => {
+		const panel = document.querySelector('[data-analysis-depth]')!;
+		(window as unknown as { observedDepths: number[] }).observedDepths = [];
+		new MutationObserver(() =>
+			(window as unknown as { observedDepths: number[] }).observedDepths.push(
+				Number(panel.getAttribute('data-analysis-depth'))
+			)
+		).observe(panel, { attributes: true, attributeFilter: ['data-analysis-depth'] });
+	});
+	await expect(panel).toHaveAttribute('data-analysis-depth', /[3-9]/, { timeout: 30000 });
+	const depths = await page.evaluate(
+		() => (window as unknown as { observedDepths: number[] }).observedDepths
+	);
+	expect(depths.every((depth) => depth >= retainedDepth)).toBe(true);
+});
+
+test('move assessments have readable names, a legend and distinct quality colors', async ({
+	page
+}) => {
+	await open(page);
+	await page.getByRole('combobox', { name: 'Opponent', exact: true }).selectOption('local');
+	await page.getByText('Game · PGN', { exact: true }).click();
+	await page
+		.getByLabel('Load PGN', { exact: true })
+		.fill('1. e4 e5 2. Nf3 d5 3. Nc3 dxe4 4. Nxe4 Qxd2+ *');
+	await page.getByRole('button', { name: 'Load PGN', exact: true }).click();
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await expect(page.getByLabel('Current move assessment')).toContainText('Qxd2+ · Blunder', {
+		timeout: 30000
+	});
+	await expect(page.locator('.move-row button.current .move-badge')).toHaveAttribute(
+		'data-quality',
+		'blunder'
+	);
+	await page.getByText('Move symbols', { exact: true }).click();
+	const legend = page.locator('.assessment-key');
+	await expect(legend).toContainText('Good move');
+	await expect(legend).toContainText('Mistake');
+	const good = await legend.locator('span').filter({ hasText: 'Good move' }).getAttribute('style');
+	const blunder = await legend.locator('span').filter({ hasText: 'Blunder' }).getAttribute('style');
+	expect(good).not.toEqual(blunder);
+	await page.getByRole('button', { name: 'Play', exact: true }).click();
+	await expect(page.getByLabel('Current move assessment')).toHaveCount(0);
+});

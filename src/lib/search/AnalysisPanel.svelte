@@ -29,6 +29,10 @@
 	let paused = false;
 	let thinking = false;
 	let analysis: AnalysisView | null = null;
+	let analysisKey = '';
+	let currentKey = '';
+	const cache = new Map<string, AnalysisView>();
+	$: isCurrent = analysis != null && analysisKey === currentKey;
 	let failure: string | null = null;
 	let job = 0;
 	let scheduled = '';
@@ -75,15 +79,27 @@
 		partial: boolean
 	) {
 		if (!ready) return;
+		const switched = current !== seenRuntime || currentMode !== seenMode;
+		if (current !== seenRuntime) {
+			cache.clear();
+			analysis = null;
+			analysisKey = '';
+			currentKey = '';
+		}
 		if (current !== seenRuntime || currentMode !== seenMode) {
 			paused = false;
 			suspended = false;
 			seenRuntime = current;
 			seenMode = mode;
 		}
-		if (position !== seenRevision) {
-			analysis = null;
-			onanalysis(null);
+		if (position !== seenRevision || switched) {
+			currentKey = current.analysisPositionKey();
+			const retained = cache.get(currentKey);
+			if (retained) {
+				analysis = retained;
+				analysisKey = currentKey;
+			}
+			onanalysis(retained ?? null);
 			selectedLine = 0;
 			seenRevision = position;
 		}
@@ -102,11 +118,21 @@
 		const request = job;
 		const position = revision;
 		const current = runtime;
+		const sourceKey = current.analysisPositionKey();
 		thinking = true;
 		try {
 			const accept = (value: AnalysisView) => {
 				if (request !== job || position !== revision || current !== runtime) return;
+				if (value.score == null) return;
+				const previous = cache.get(sourceKey);
+				if (previous && previous.depth > value.depth) return;
+				if (value.score != null) {
+					cache.delete(sourceKey);
+					cache.set(sourceKey, value);
+					if (cache.size > 128) cache.delete(cache.keys().next().value!);
+				}
 				analysis = value;
+				analysisKey = sourceKey;
 				if (selectedLine >= value.lines.length) selectedLine = 0;
 				if (!playAfter) onanalysis(value);
 			};
@@ -168,6 +194,8 @@
 
 <section
 	class="engine-panel"
+	data-analysis-depth={isCurrent ? (analysis?.depth ?? 0) : 0}
+	data-analysis-pending={!isCurrent}
 	aria-label={mode === 'analysis' ? 'Position analysis' : 'Computer opponent'}
 >
 	<div class="panel-heading-row">
@@ -248,50 +276,70 @@
 				<label><input type="checkbox" bind:checked={showCoordinates} /> Board coordinates</label>
 			</div>
 		{/if}
-		<div class="analysis-summary">
+		<div class="analysis-summary" class:previous-position={!isCurrent && analysis != null}>
 			<strong class="score" aria-label="Position evaluation"
 				>{scoreText(analysis?.score ?? null)}</strong
 			>
 			<div>
-				<span>White perspective</span><small
-					>{thinking ? 'Searching deeper' : paused ? 'Analysis paused' : 'Search finished'}{analysis
-						? ` · depth ${analysis.depth}`
-						: ''}</small
-				>
+				<span>White perspective</span><small>
+					{turnInProgress
+						? 'Complete the current move'
+						: !isCurrent && analysis
+							? 'Previous position · searching'
+							: thinking
+								? 'Searching deeper'
+								: paused
+									? 'Analysis paused'
+									: 'Search finished'}{isCurrent && analysis ? ` · depth ${analysis.depth}` : ''}
+				</small>
 			</div>
 			<span class="status-dot" class:busy={thinking}></span>
 		</div>
-		{#if analysis?.lines.length}
-			<div class="best-lines" aria-label="Best continuations">
-				{#each analysis.lines as line, index}
+		<div
+			class="best-lines"
+			aria-label="Best continuations"
+			style:grid-template-rows={`repeat(${lineCount}, 42px)`}
+		>
+			{#each Array.from({ length: lineCount }) as _, index}
+				{@const line = analysis?.lines[index]}
+				{#if line}
 					<button
 						type="button"
-						class:chosen={selectedLine === index}
+						class:chosen={selectedLine === index && isCurrent}
 						style:--candidate-color={['#7db869', '#6ba9cf', '#b294d0', '#d6ae60', '#d3847b'][index]}
 						on:click={() => (selectedLine = index)}
-						aria-pressed={selectedLine === index}
-						title="Show this move on the board"
-						><span class="line-rank">{index + 1}</span><strong>{scoreText(line.score)}</strong><span
-							class="line-moves">{line.moves.join('  ')}</span
-						></button
+						disabled={!isCurrent || turnInProgress}
+						aria-pressed={selectedLine === index && isCurrent}
+						title={isCurrent
+							? line.moves.join('  ')
+							: 'Previous position; waiting for current analysis'}
 					>
-				{/each}
-			</div>
-		{:else}
-			<p class="empty-analysis">
-				{game.status.outcome
-					? game.status.text
-					: turnInProgress
-						? 'Complete the move to analyze the next position.'
-						: paused
-							? 'Resume to explore this position.'
-							: 'Finding the first complete line…'}
-			</p>
-		{/if}
-		{#if analysis}<p class="search-details">
-				{analysis.nodes.toLocaleString()} nodes · {(analysis.nodes_per_second / 1000).toFixed(1)}k
-				nodes/s · {(analysis.elapsed_ms / 1000).toFixed(1)}s
-			</p>{/if}
+						<span class="line-rank">{index + 1}</span><strong>{scoreText(line.score)}</strong><span
+							class="line-moves">{line.moves.join('  ')}</span
+						>
+					</button>
+				{:else}
+					<div class="line-placeholder">
+						<span>{index + 1}</span><span>…</span><span
+							>{index === 0
+								? game.status.outcome
+									? game.status.text
+									: turnInProgress
+										? 'Complete the current move'
+										: paused
+											? 'Resume analysis'
+											: 'Searching this position…'
+								: 'Awaiting a completed line'}</span
+						>
+					</div>
+				{/if}
+			{/each}
+		</div>
+		<p class="search-details">
+			{analysis && isCurrent
+				? `${analysis.nodes.toLocaleString()} nodes · ${(analysis.nodes_per_second / 1000).toFixed(1)}k nodes/s · ${(analysis.elapsed_ms / 1000).toFixed(1)}s`
+				: 'Waiting for a completed search iteration'}
+		</p>
 		<p class="evaluation-note">
 			Generic heuristic score · not a win probability{game.ruleset === 'go'
 				? ' or territory count'

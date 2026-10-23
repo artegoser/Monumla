@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import AnalysisPanel from '$lib/search/AnalysisPanel.svelte';
 	import type { AnalysisView, BestAction, MoveAssessment } from '$lib/search/types';
+	import MoveBadge from '$lib/search/MoveBadge.svelte';
+	import { describeAssessment, assessmentLegend } from '$lib/search/assessment';
 	import GameReview from '$lib/search/GameReview.svelte';
 	import AnalysisOverlay from '$lib/search/AnalysisOverlay.svelte';
 	import Icon from '$lib/ui/Icon.svelte';
@@ -65,6 +67,7 @@
 
 	let mode: 'play' | 'analysis' = 'play';
 	let analysis: AnalysisView | null = null;
+	let lastWhiteScore: number | null = null;
 	let selectedLine = 0;
 	let showArrows = true;
 	let showEvaluation = true;
@@ -76,23 +79,29 @@
 	$: whiteSide = game?.ruleset === 'go' ? 2 : 1;
 	$: bottomSide = orientation === 'white' ? whiteSide : whiteSide === 1 ? 2 : 1;
 	$: topSide = bottomSide === 1 ? 2 : 1;
-	$: whiteEvaluation =
-		analysis?.score == null ? 0 : analysis.score * (analysis.perspective === whiteSide ? 1 : -1);
+	$: whiteEvaluation = lastWhiteScore ?? 0;
 	$: evaluationHeight = 50 + 48 * Math.tanh(whiteEvaluation / 600);
 	$: historyRows = Array.from({ length: Math.ceil(fullHistory.length / 2) }, (_, i) =>
 		fullHistory.slice(i * 2, i * 2 + 2)
 	);
+
+	$: currentTurn = history[history.length - 1];
+	$: currentAssessment = currentTurn ? reviewResults[positionId(history)] : undefined;
+	$: currentGrade = describeAssessment(currentAssessment);
 
 	function positionId(turns = history) {
 		return selectedRuleset + ':' + turns.map((t) => `${t.actor}:${t.notation}`).join('/');
 	}
 	function receiveAnalysis(value: AnalysisView | null) {
 		analysis = value;
+		if (value?.score != null)
+			lastWhiteScore = value.score * (value.perspective === whiteSide ? 1 : -1);
 	}
 	function assessment(index: number, results: Record<string, MoveAssessment>) {
 		const result = results[positionId(fullHistory.slice(0, index + 1))];
 		if (!result?.symbol) return null;
 		return {
+			...result,
 			symbol: result.symbol,
 			bad: ['?!', '?', '??'].includes(result.symbol),
 			title: `${result.label} · depth ${result.depth} · score loss ${((result.loss ?? 0) / 100).toFixed(2)}${result.best_move ? ` · best: ${result.best_move}` : ''}`
@@ -261,6 +270,7 @@
 		fullHistory = [];
 		reviewResults = {};
 		analysis = null;
+		lastWhiteScore = null;
 		previousGame = null;
 		latestTransition = null;
 		animationSeq += 1;
@@ -427,6 +437,7 @@
 				{#if mode === 'analysis' && showEvaluation}
 					<div
 						class="evaluation-bar"
+						class:pending={analysis == null && lastWhiteScore != null}
 						class:inverted={orientation === 'black'}
 						aria-label="Evaluation bar"
 						title="Generic heuristic evaluation, White perspective"
@@ -476,7 +487,7 @@
 									title={note.title}
 									style:left={`${(((orientation === 'white' ? game.last_move.to.x : game.width - 1 - game.last_move.to.x) + 0.8) * 100) / game.width}%`}
 									style:top={`${(((orientation === 'white' ? game.height - 1 - game.last_move.to.y : game.last_move.to.y) + 0.1) * 100) / game.height}%`}
-									>{note.symbol}</span
+									><MoveBadge assessment={note} title={note.title} /></span
 								>{/if}
 						{/if}
 					</div>
@@ -551,15 +562,48 @@
 					<h2>Moves</h2>
 					<span class="subtle">{history.length} plies</span>
 				</div>
-				{#if mode === 'analysis' && showAnnotations && !turnInProgress}
-					<GameReview
-						{runtime}
-						{history}
-						revision={positionRevision}
-						keys={reviewKeys}
-						results={reviewResults}
-						onassessment={(key, value) => (reviewResults = { ...reviewResults, [key]: value })}
-					/>
+				{#if mode === 'analysis' && showAnnotations}
+					<div
+						class="move-insight"
+						aria-label="Current move assessment"
+						style:--quality-color={currentGrade.color}
+						data-quality={currentGrade.tone}
+					>
+						{#if currentAssessment}<MoveBadge assessment={currentAssessment} />{:else}<span
+								class="assessment-pending">…</span
+							>{/if}
+						<div>
+							<strong
+								>{currentTurn
+									? `${currentTurn.notation} · ${currentGrade.name}`
+									: 'Explore a continuation'}</strong
+							><small
+								>{currentAssessment
+									? `Engine estimate · depth ${currentAssessment.depth}${currentAssessment.best_move && currentAssessment.loss && currentAssessment.loss >= 40 ? ` · Better: ${currentAssessment.best_move}` : ''}`
+									: currentTurn
+										? 'Reviewing this move…'
+										: 'Move assessments appear here'}</small
+							>
+						</div>
+					</div>
+					<div class="review-slot">
+						{#if !turnInProgress}<GameReview
+								{runtime}
+								{history}
+								revision={positionRevision}
+								keys={reviewKeys}
+								results={reviewResults}
+								onassessment={(key, value) => (reviewResults = { ...reviewResults, [key]: value })}
+							/>{/if}
+					</div>
+					<details class="assessment-key">
+						<summary>Move symbols</summary>
+						<div>
+							{#each assessmentLegend as grade}<span style:--quality-color={grade.color}
+									><b>{grade.symbol}</b>{grade.name}</span
+								>{/each}
+						</div>
+					</details>
 				{/if}
 				<div class="move-list">
 					{#if !fullHistory.length}<p class="history-empty">
@@ -582,7 +626,7 @@
 										)}{#if note}<span
 												class="move-assessment"
 												class:bad={note.bad}
-												title={note.title}>{note.symbol}</span
+												title={note.title}><MoveBadge assessment={note} title={note.title} /></span
 											>{/if}{/if}</button
 								>{/each}
 						</div>{/each}

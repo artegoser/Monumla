@@ -149,6 +149,7 @@ export interface HistoryTurnView {
 }
 
 interface WasmHandle {
+	analysisPositionKey(): string;
 	reviewTurn(ply: number, depth: number, nodes: number, timeMs: number): MoveAssessment;
 	searchSnapshot(): unknown;
 	turnInProgress(): boolean;
@@ -232,6 +233,9 @@ export class LocalGame {
 		return new LocalGame(wasm.from_search_snapshot(snapshot));
 	}
 
+	analysisPositionKey(): string {
+		return this.handle.analysisPositionKey();
+	}
 	searchSnapshot(): unknown {
 		return this.handle.searchSnapshot();
 	}
