@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 #[derive(Clone, Debug, Default, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct StateMap(BTreeMap<String, StateValue>);
+pub struct StateMap(Arc<BTreeMap<String, StateValue>>);
 
 impl StateMap {
     pub fn new() -> Self {
@@ -15,7 +15,7 @@ impl StateMap {
     }
 
     pub fn get_mut(&mut self, key: &str) -> Option<&mut StateValue> {
-        self.0.get_mut(key)
+        Arc::make_mut(&mut self.0).get_mut(key)
     }
 
     pub fn insert(
@@ -23,11 +23,11 @@ impl StateMap {
         key: impl Into<String>,
         value: impl Into<StateValue>,
     ) -> Option<StateValue> {
-        self.0.insert(key.into(), value.into())
+        Arc::make_mut(&mut self.0).insert(key.into(), value.into())
     }
 
     pub fn remove(&mut self, key: &str) -> Option<StateValue> {
-        self.0.remove(key)
+        Arc::make_mut(&mut self.0).remove(key)
     }
 
     pub fn contains_key(&self, key: &str) -> bool {
@@ -152,5 +152,32 @@ impl std::hash::Hash for StateValue {
             Self::List(v) => v.hash(hasher),
             Self::Map(v) => v.hash(hasher),
         }
+    }
+}
+
+#[cfg(test)]
+mod sharing_tests {
+    use super::*;
+    #[test]
+    fn branches_keep_nested_values_isolated() {
+        let mut nested = StateMap::new();
+        nested.insert("count", 3_u64);
+        let mut original = StateMap::new();
+        original.insert("nested", nested);
+        original.insert("keep", true);
+        let mut branch = original.clone();
+        let StateValue::Map(child) = branch.get_mut("nested").unwrap() else {
+            panic!()
+        };
+        child.insert("count", 9_u64);
+        branch.remove("keep");
+        branch.insert("new", false);
+        let StateValue::Map(child) = original.get("nested").unwrap() else {
+            panic!()
+        };
+        assert_eq!(child.get("count").and_then(StateValue::as_u64), Some(3));
+        assert!(original.contains_key("keep"));
+        assert!(!original.contains_key("new"));
+        assert_eq!(original, original.clone());
     }
 }
