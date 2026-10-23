@@ -147,3 +147,34 @@ pub fn registry() -> RuleRegistry {
 
 #[cfg(test)]
 mod tests;
+
+pub fn turn_notation(turn: &monumla_core::TurnRecord) -> String {
+    let moves: Vec<_> = turn
+        .steps
+        .iter()
+        .flat_map(|step| &step.delta.changes)
+        .filter_map(|change| {
+            if let monumla_core::StateChange::EntityMoved { from, to, .. } = change {
+                Some((*from, *to))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let mut path = Vec::new();
+    if let Some((from, _)) = moves.first() {
+        path.push(*from);
+    }
+    path.extend(moves.iter().map(|(_, to)| *to));
+    let capture = turn.before.entities.len() > turn.after.entities.len();
+    path.into_iter()
+        .map(|p| {
+            if turn.before.board.width() == 10 {
+                ((9 - p.y) * 5 + p.x / 2 + 1).to_string()
+            } else {
+                format!("{}{}", char::from(b'a' + p.x as u8), p.y + 1)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(if capture { "x" } else { "-" })
+}

@@ -473,3 +473,29 @@ fn international_ending_clock_preserves_stronger_side_after_capture_to_king_vs_k
         "checkers.limited_ending_draw"
     );
 }
+
+#[test]
+fn notation_records_every_capture_landing_in_both_variants() {
+    for (variant, expected) in [
+        (DraughtsVariant::Russian, "b2xd4xf6"),
+        (DraughtsVariant::International, "41x32x23"),
+    ] {
+        let mut state = empty(variant);
+        add(&mut state, 1, WHITE, 1, 1, false);
+        add(&mut state, 2, BLACK, 2, 2, false);
+        add(&mut state, 3, BLACK, 4, 4, false);
+        add(&mut state, 4, BLACK, 0, 6, false);
+        let movement = legal_moves(&state, WHITE)
+            .unwrap()
+            .into_iter()
+            .find(|m| m.landings == [Position::new(3, 3), Position::new(5, 5)])
+            .unwrap();
+        let turn = play_move(&state, &movement).unwrap();
+        let mut timeline = monumla_core::GameTimeline::new(state).unwrap();
+        timeline.commit_turn(turn).unwrap();
+        assert_eq!(
+            turn_notation(timeline.history().previous_turn().unwrap()),
+            expected
+        );
+    }
+}
