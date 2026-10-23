@@ -1,0 +1,60 @@
+game	ply	engine	color	uci	san	depth	nodes	elapsed_ms	stop
+1	1	Monumla	white	b1c3	Nc3	1	131	1011.3	Cancelled
+1	2	Stockfish 19	black	d7d5	d5	22	902163	1000.3	movetime
+1	3	Monumla	white	c3d5	Nxd5	1	112	1006.2	Cancelled
+1	4	Stockfish 19	black	d8d5	Qxd5	18	825487	1000.1	movetime
+1	5	Monumla	white	d2d3	d3	1	118	1019.5	Cancelled
+1	6	Stockfish 19	black	e7e5	e5	20	864181	1000.6	movetime
+1	7	Monumla	white	c1e3	Be3	1	118	1008.8	Cancelled
+1	8	Stockfish 19	black	g8f6	Nf6	19	839716	1000.5	movetime
+1	9	Monumla	white	e3a7	Bxa7	1	50	1007.4	Cancelled
+1	10	Stockfish 19	black	a8a7	Rxa7	20	880915	1000.6	movetime
+1	11	Monumla	white	g1f3	Nf3	1	134	1009.2	Cancelled
+1	12	Stockfish 19	black	d5b5	Qb5	20	892253	1000.2	movetime
+1	13	Monumla	white	f3e5	Nxe5	1	45	1012.7	Cancelled
+1	14	Stockfish 19	black	b5e5	Qxe5	20	883155	1000.9	movetime
+1	15	Monumla	white	a2a4	a4	1	112	1014.6	Cancelled
+1	16	Stockfish 19	black	f8b4	Bb4+	29	902637	1001.1	movetime
+1	17	Monumla	white	c2c3	c3	1	83	1010.6	Cancelled
+1	18	Stockfish 19	black	b4c3	Bxc3+	30	969367	1000.6	movetime
+1	19	Monumla	white	b2c3	bxc3	2	70	1016.8	Cancelled
+1	20	Stockfish 19	black	e5c3	Qxc3+	27	973982	1001.0	movetime
+1	21	Monumla	white	d1d2	Qd2	2	81	1017.7	Cancelled
+1	22	Stockfish 19	black	c3a1	Qxa1+	28	1019189	1000.9	movetime
+1	23	Monumla	white	d2d1	Qd1	2	81	1026.5	Cancelled
+1	24	Stockfish 19	black	a7a4	Rxa4	25	1044565	1000.4	movetime
+1	25	Monumla	white	d1a1	Qxa1	1	50	1019.6	Cancelled
+1	26	Stockfish 19	black	a4a1	Rxa1+	15	1009661	1000.5	movetime
+1	27	Monumla	white	e1d2	Kd2	2	100	1011.3	Cancelled
+1	28	Stockfish 19	black	b8c6	Nc6	22	1032668	1000.5	movetime
+1	29	Monumla	white	h2h4	h4	1	85	1012.7	Cancelled
+1	30	Stockfish 19	black	a1a2	Ra2+	21	1006746	1000.7	movetime
+1	31	Monumla	white	d2c3	Kc3	1	93	1002.1	Cancelled
+1	32	Stockfish 19	black	f6d5	Nd5+	60	2694567	1000.1	movetime
+1	33	Monumla	white	c3c4	Kc4	1	87	1005.6	Cancelled
+1	34	Stockfish 19	black	c8e6	Be6	192	6431184	999.8	movetime
+1	35	Monumla	white	e2e4	e4	1	72	1006.8	Cancelled
+1	36	Stockfish 19	black	d5b4	Ndb4+	245	20806	6.8	movetime
+1	37	Monumla	white	c4c3	Kc3	2	101	1005.8	Cancelled
+1	38	Stockfish 19	black	a2c2	Rc2#	245	11276	4.0	movetime
+2	1	Stockfish 19	white	e2e4	e4	24	930283	1000.6	movetime
+2	2	Monumla	black	b8c6	Nc6	1	126	1011.2	Cancelled
+2	3	Stockfish 19	white	d2d4	d4	22	933357	1000.5	movetime
+2	4	Monumla	black	c6d4	Nxd4	1	81	1009.3	Cancelled
+2	5	Stockfish 19	white	d1d4	Qxd4	20	859083	1000.4	movetime
+2	6	Monumla	black	d7d6	d6	1	115	1012.3	Cancelled
+2	7	Stockfish 19	white	f2f4	f4	19	831355	1000.9	movetime
+2	8	Monumla	black	c8e6	Be6	1	108	1012.3	Cancelled
+2	9	Stockfish 19	white	b1c3	Nc3	20	809715	1001.1	movetime
+2	10	Monumla	black	e6a2	Bxa2	1	54	1010.3	Cancelled
+2	11	Stockfish 19	white	a1a2	Rxa2	18	896789	1001.1	movetime
+2	12	Monumla	black	g8f6	Nf6	1	117	1005.3	Cancelled
+2	13	Stockfish 19	white	a2a7	Rxa7	20	933340	1000.0	movetime
+2	14	Monumla	black	f6e4	Nxe4	1	95	1005.0	Cancelled
+2	15	Stockfish 19	white	d4a4	Qa4+	26	954176	1000.8	movetime
+2	16	Monumla	black	b7b5	b5	2	87	1017.8	Cancelled
+2	17	Stockfish 19	white	f1b5	Bxb5+	245	551732	84.1	movetime
+2	18	Monumla	black	c7c6	c6	1	115	1009.7	Cancelled
+2	19	Stockfish 19	white	b5c6	Bxc6+	245	11551	4.1	movetime
+2	20	Monumla	black	d8d7	Qd7	2	81	1031.5	Cancelled
+2	21	Stockfish 19	white	a7a8	Rxa8#	245	11041	4.8	movetime
