@@ -1,0 +1,302 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import Icon from '$lib/ui/Icon.svelte';
+	import { SearchCancelled, SearchClient } from './client';
+	import type { AnalysisView, BestAction } from './types';
+	import type { GameView, LocalGame } from '$lib/wasm/runtime';
+
+	export let runtime: LocalGame;
+	export let game: GameView;
+	export let mode: 'play' | 'analysis';
+	export let revision: number;
+	export let pauseRevision = 0;
+	export let turnInProgress = false;
+	export let selectedLine = 0;
+	export let showArrows = true;
+	export let showEvaluation = true;
+	export let showAnnotations = true;
+	export let showCoordinates = true;
+	export let onplay: (best: BestAction) => void;
+	export let onanalysis: (analysis: AnalysisView | null) => void;
+	export let oncontrolchange: (side: number | null, human: number, white: number) => void;
+
+	const engine = new SearchClient();
+	let mounted = false;
+	let opponent = 'bot';
+	let humanSide = 1;
+	let timeMs = 1000;
+	let lineCount = 3;
+	let paused = false;
+	let thinking = false;
+	let analysis: AnalysisView | null = null;
+	let failure: string | null = null;
+	let job = 0;
+	let scheduled = '';
+	let seenRuntime: LocalGame | null = null;
+	let seenRevision = -1;
+	let seenMode = mode;
+	let seenPause = pauseRevision;
+	let settingsOpen = false;
+
+	$: whiteSide = game.ruleset === 'go' ? 2 : 1;
+	$: botSide = mode === 'play' && opponent === 'bot' ? (humanSide === 1 ? 2 : 1) : null;
+	$: oncontrolchange(botSide, humanSide, whiteSide);
+	$: botTurn = botSide != null && game.active_players.includes(botSide) && !game.status.outcome;
+	$: if (pauseRevision !== seenPause) {
+		seenPause = pauseRevision;
+		if (mode === 'play') paused = true;
+	}
+	$: reconcile(
+		mounted,
+		runtime,
+		revision,
+		mode,
+		botSide,
+		timeMs,
+		lineCount,
+		paused,
+		turnInProgress
+	);
+
+	function cancel() {
+		job += 1;
+		engine.cancel();
+		thinking = false;
+	}
+	function reconcile(
+		ready: boolean,
+		current: LocalGame,
+		position: number,
+		currentMode: string,
+		computer: number | null,
+		duration: number,
+		lines: number,
+		suspended: boolean,
+		partial: boolean
+	) {
+		if (!ready) return;
+		if (current !== seenRuntime || currentMode !== seenMode) {
+			paused = false;
+			suspended = false;
+			seenRuntime = current;
+			seenMode = mode;
+		}
+		if (position !== seenRevision) {
+			analysis = null;
+			onanalysis(null);
+			selectedLine = 0;
+			seenRevision = position;
+		}
+		const key = `${position}:${currentMode}:${computer}:${duration}:${lines}:${suspended}:${partial}`;
+		if (key === scheduled) return;
+		cancel();
+		scheduled = key;
+		failure = null;
+		if (partial || suspended) return;
+		if (currentMode === 'analysis') void start(false);
+		else if (computer != null && game.active_players.includes(computer) && !game.status.outcome)
+			void start(true);
+	}
+	async function start(playAfter: boolean, duration = timeMs) {
+		cancel();
+		const request = job;
+		const position = revision;
+		const current = runtime;
+		thinking = true;
+		try {
+			const accept = (value: AnalysisView) => {
+				if (request !== job || position !== revision || current !== runtime) return;
+				analysis = value;
+				if (selectedLine >= value.lines.length) selectedLine = 0;
+				if (!playAfter) onanalysis(value);
+			};
+			const result = await engine.analyze(
+				current.searchSnapshot(),
+				{
+					maxDepth: 32,
+					maxNodes: 50_000_000,
+					timeMs: playAfter ? duration : 600_000,
+					lines: playAfter ? 1 : lineCount
+				},
+				accept
+			);
+			if (request !== job || position !== revision || current !== runtime) return;
+			accept(result);
+			thinking = false;
+			if (playAfter) {
+				if (result.best_action) onplay(result.best_action);
+				else if (!game.status.outcome && duration < 30_000)
+					void start(true, Math.min(30_000, duration * 3));
+				else if (!game.status.outcome)
+					throw new Error('No search iteration completed. Increase thinking time and retry.');
+			}
+		} catch (cause) {
+			if (request !== job || cause instanceof SearchCancelled) return;
+			thinking = false;
+			failure = cause instanceof Error ? cause.message : String(cause);
+			paused = true;
+		}
+	}
+	function togglePause() {
+		paused = !paused;
+		scheduled = '';
+	}
+	function whiteScore(score: number) {
+		return score * (analysis?.perspective === whiteSide ? 1 : -1);
+	}
+	function scoreText(score: number | null) {
+		if (score == null) return '…';
+		const value = whiteScore(score);
+		if (Math.abs(value) > 90_000) {
+			const turns = Math.ceil((100_000 - Math.abs(value)) / 2);
+			return turns > 0 && game.ruleset === 'chess'
+				? `${value > 0 ? '+' : '−'}M${turns}`
+				: value > 0
+					? 'White wins'
+					: 'Black wins';
+		}
+		return `${value > 0 ? '+' : ''}${(value / 100).toFixed(2)}`;
+	}
+	onMount(() => {
+		mounted = true;
+		return () => {
+			cancel();
+			oncontrolchange(null, humanSide, whiteSide);
+		};
+	});
+</script>
+
+<section
+	class="engine-panel"
+	aria-label={mode === 'analysis' ? 'Position analysis' : 'Computer opponent'}
+>
+	<div class="panel-heading-row">
+		<h2>{mode === 'analysis' ? 'Position analysis' : 'Your game'}</h2>
+		<div class="panel-tools">
+			{#if mode === 'analysis' || botTurn || paused}
+				<button
+					class="icon-button"
+					type="button"
+					on:click={togglePause}
+					aria-label={paused ? 'Resume search' : 'Pause search'}
+					title={paused ? 'Resume search' : 'Pause search'}
+					><Icon name={paused ? 'play' : 'pause'} /></button
+				>
+			{/if}
+			<button
+				class="icon-button"
+				type="button"
+				on:click={() => (settingsOpen = !settingsOpen)}
+				aria-label="Engine settings"
+				aria-expanded={settingsOpen}><Icon name="settings" /></button
+			>
+		</div>
+	</div>
+	{#if mode === 'play'}
+		<div class="engine-settings">
+			<label
+				>Opponent<select bind:value={opponent} on:change={() => (paused = false)}
+					><option value="bot">Computer</option><option value="local">A friend · local</option
+					></select
+				></label
+			>
+			{#if opponent === 'bot'}
+				<label
+					>Your side<select bind:value={humanSide} on:change={() => (paused = false)}
+						><option value={whiteSide}>White</option><option value={whiteSide === 1 ? 2 : 1}
+							>Black</option
+						></select
+					></label
+				>
+			{/if}
+		</div>
+		{#if settingsOpen && opponent === 'bot'}
+			<label class="field-label"
+				>Thinking time<select bind:value={timeMs}
+					><option value={300}>Quick · 0.3 seconds</option><option value={1000}
+						>Balanced · 1 second</option
+					><option value={3000}>Careful · 3 seconds</option><option value={10000}
+						>Extended · 10 seconds</option
+					></select
+				></label
+			>
+		{/if}
+		<p class="engine-status" aria-live="polite">
+			<span class="status-dot" class:busy={thinking}></span>{game.status.outcome
+				? game.status.text
+				: paused
+					? 'Computer paused'
+					: thinking
+						? 'Computer is thinking…'
+						: opponent === 'bot'
+							? 'Your move'
+							: 'Pass the board to your opponent'}
+		</p>
+	{:else}
+		{#if settingsOpen}
+			<div class="analysis-settings">
+				<label class="field-label"
+					>Best lines<select bind:value={lineCount}
+						><option value={1}>1 line</option><option value={3}>3 lines</option><option value={5}
+							>5 lines</option
+						></select
+					></label
+				>
+				<label><input type="checkbox" bind:checked={showArrows} /> Best-move arrows</label>
+				<label><input type="checkbox" bind:checked={showEvaluation} /> Evaluation bar</label>
+				<label><input type="checkbox" bind:checked={showAnnotations} /> Move assessments</label>
+				<label><input type="checkbox" bind:checked={showCoordinates} /> Board coordinates</label>
+			</div>
+		{/if}
+		<div class="analysis-summary">
+			<strong class="score" aria-label="Position evaluation"
+				>{scoreText(analysis?.score ?? null)}</strong
+			>
+			<div>
+				<span>White perspective</span><small
+					>{thinking ? 'Searching deeper' : paused ? 'Analysis paused' : 'Search finished'}{analysis
+						? ` · depth ${analysis.depth}`
+						: ''}</small
+				>
+			</div>
+			<span class="status-dot" class:busy={thinking}></span>
+		</div>
+		{#if analysis?.lines.length}
+			<div class="best-lines" aria-label="Best continuations">
+				{#each analysis.lines as line, index}
+					<button
+						type="button"
+						class:chosen={selectedLine === index}
+						style:--candidate-color={['#7db869', '#6ba9cf', '#b294d0', '#d6ae60', '#d3847b'][index]}
+						on:click={() => (selectedLine = index)}
+						aria-pressed={selectedLine === index}
+						title="Show this move on the board"
+						><span class="line-rank">{index + 1}</span><strong>{scoreText(line.score)}</strong><span
+							class="line-moves">{line.moves.join('  ')}</span
+						></button
+					>
+				{/each}
+			</div>
+		{:else}
+			<p class="empty-analysis">
+				{game.status.outcome
+					? game.status.text
+					: turnInProgress
+						? 'Complete the move to analyze the next position.'
+						: paused
+							? 'Resume to explore this position.'
+							: 'Finding the first complete line…'}
+			</p>
+		{/if}
+		{#if analysis}<p class="search-details">
+				{analysis.nodes.toLocaleString()} nodes · {(analysis.nodes_per_second / 1000).toFixed(1)}k
+				nodes/s · {(analysis.elapsed_ms / 1000).toFixed(1)}s
+			</p>{/if}
+		<p class="evaluation-note">
+			Generic heuristic score · not a win probability{game.ruleset === 'go'
+				? ' or territory count'
+				: ''}.
+		</p>
+	{/if}
+	{#if failure}<p class="engine-error" role="alert">{failure}</p>{/if}
+</section>

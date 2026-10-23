@@ -30,3 +30,7 @@ vite.config.ts.timestamp-*
 
 # Generated WASM bindings
 /src/lib/wasm/pkg
+
+# Browser verification
+/test-results
+/playwright-report

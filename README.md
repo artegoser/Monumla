@@ -92,4 +92,4 @@ See:
 
 ## Search engine
 
-`monumla-search` provides iterative-deepening alpha-beta search with node limits, cancellation, principal variations, and game-owned evaluation. Chess and both draughts variants have working adapters. See [`docs/SEARCH_ENGINE.md`](docs/SEARCH_ENGINE.md) for the API, runnable analysis example, and current limits.
+`monumla-search` searches the ordinary core rules for chess, both draughts variants, and Go through one shared runtime path. It owns evaluation, iterative deepening, alpha-beta/PVS, transposition storage, quiescence, and ranked continuations. The browser offers automatic computer play and a separate Analysis mode with evaluations and arrows. Game crates contain no search adapters. See [`docs/SEARCH_ENGINE.md`](docs/SEARCH_ENGINE.md) for behavior, examples, and limits.

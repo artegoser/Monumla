@@ -22,10 +22,12 @@
 		"test": "cargo test --workspace && pnpm check",
 		"test:full": "cargo test --workspace && cargo test --release -p monumla-games-chess perft::tests:: -- --ignored && cargo check --workspace && cargo clippy --workspace --all-targets --all-features && pnpm check && NODE_ENV=production vite build",
 		"browserslist:update": "pnpm dlx update-browserslist-db latest",
-		"start": "node build"
+		"start": "node build",
+		"test:browser": "pnpm build && playwright test"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.3",
+		"@playwright/test": "^1.64.1",
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.9.0",
 		"@sveltejs/vite-plugin-svelte": "^5.0.0",

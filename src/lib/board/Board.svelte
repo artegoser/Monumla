@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import AnalysisPanel from '$lib/search/AnalysisPanel.svelte';
+	import type { AnalysisView, BestAction, MoveAssessment } from '$lib/search/types';
+	import GameReview from '$lib/search/GameReview.svelte';
+	import AnalysisOverlay from '$lib/search/AnalysisOverlay.svelte';
+	import Icon from '$lib/ui/Icon.svelte';
 	import Bg from '$lib/board/Bg.svelte';
 	import Pieces from './Pieces.svelte';
 	import {
@@ -53,6 +58,76 @@
 	let goHandicap = 0;
 	let error: string | null = null;
 	let loading = true;
+	let positionRevision = 0;
+	let turnInProgress = false;
+	let botSide: number | null = null;
+	let pauseRevision = 0;
+
+	let mode: 'play' | 'analysis' = 'play';
+	let analysis: AnalysisView | null = null;
+	let selectedLine = 0;
+	let showArrows = true;
+	let showEvaluation = true;
+	let showAnnotations = true;
+	let showCoordinates = true;
+	let fullHistory: HistoryTurnView[] = [];
+	let reviewResults: Record<string, MoveAssessment> = {};
+	$: reviewKeys = history.map((_, i) => positionId(history.slice(0, i + 1)));
+	$: whiteSide = game?.ruleset === 'go' ? 2 : 1;
+	$: bottomSide = orientation === 'white' ? whiteSide : whiteSide === 1 ? 2 : 1;
+	$: topSide = bottomSide === 1 ? 2 : 1;
+	$: whiteEvaluation =
+		analysis?.score == null ? 0 : analysis.score * (analysis.perspective === whiteSide ? 1 : -1);
+	$: evaluationHeight = 50 + 48 * Math.tanh(whiteEvaluation / 600);
+	$: historyRows = Array.from({ length: Math.ceil(fullHistory.length / 2) }, (_, i) =>
+		fullHistory.slice(i * 2, i * 2 + 2)
+	);
+
+	function positionId(turns = history) {
+		return selectedRuleset + ':' + turns.map((t) => `${t.actor}:${t.notation}`).join('/');
+	}
+	function receiveAnalysis(value: AnalysisView | null) {
+		analysis = value;
+	}
+	function assessment(index: number, results: Record<string, MoveAssessment>) {
+		const result = results[positionId(fullHistory.slice(0, index + 1))];
+		if (!result?.symbol) return null;
+		return {
+			symbol: result.symbol,
+			bad: ['?!', '?', '??'].includes(result.symbol),
+			title: `${result.label} · depth ${result.depth} · score loss ${((result.loss ?? 0) / 100).toFixed(2)}${result.best_move ? ` · best: ${result.best_move}` : ''}`
+		};
+	}
+	function navigate(boundary: number) {
+		if (!runtime) return;
+		pauseRevision += 1;
+		while (history.length > boundary && game?.can_undo) run(() => runtime!.undo(), false);
+		while (history.length < boundary && game?.can_redo) run(() => runtime!.redo(), false);
+	}
+	function keyboard(event: KeyboardEvent) {
+		if (
+			event.target instanceof HTMLElement &&
+			(event.target.closest('input,textarea,select') || event.target.isContentEditable)
+		)
+			return;
+		if (event.key === 'ArrowLeft') {
+			event.preventDefault();
+			undo();
+		}
+		if (event.key === 'ArrowRight') {
+			event.preventDefault();
+			redo();
+		}
+	}
+	function playerName(side: number, currentMode: string, computer: number | null) {
+		return currentMode === 'analysis'
+			? 'Analysis board'
+			: computer === side
+				? 'Monumla computer'
+				: computer != null
+					? 'You'
+					: 'Local player';
+	}
 
 	function emptyInteraction(): InteractionView {
 		return {
@@ -75,6 +150,14 @@
 	function syncMetadata(resetDrafts = false) {
 		if (!runtime || !game) return;
 		history = runtime.history();
+		if (
+			!game.can_redo ||
+			history.some(
+				(turn, i) =>
+					fullHistory[i]?.notation !== turn.notation || fullHistory[i]?.actor !== turn.actor
+			)
+		)
+			fullHistory = history;
 		if (game.ruleset === 'chess') {
 			currentFen = runtime.fen();
 			currentPgn = runtime.pgn();
@@ -98,6 +181,11 @@
 	}
 
 	function applyTransition(transition: TransitionView, animate = true) {
+		if (transition.committed) {
+			positionRevision += 1;
+			turnInProgress = false;
+		}
+		turnInProgress = runtime?.turnInProgress() ?? false;
 		previousGame = game;
 		game = transition.game;
 		interaction = transition.interaction;
@@ -118,8 +206,13 @@
 	}
 
 	function choose(choiceId: string) {
-		if (!runtime) return;
+		if (!runtime || (botSide != null && game?.active_players.includes(botSide))) return;
 		run(() => runtime!.choose(choiceId));
+	}
+
+	function playBestAction(best: BestAction) {
+		if (!runtime) return;
+		run(() => runtime!.applyBestAction(best));
 	}
 
 	function cancelSelection() {
@@ -129,11 +222,13 @@
 
 	function undo() {
 		if (!runtime || !game?.can_undo) return;
+		pauseRevision += 1;
 		run(() => runtime!.undo());
 	}
 
 	function redo() {
 		if (!runtime || !game?.can_redo) return;
+		pauseRevision += 1;
 		run(() => runtime!.redo());
 	}
 
@@ -160,7 +255,12 @@
 	async function installRuntime(next: LocalGame) {
 		const old = runtime;
 		runtime = next;
+		positionRevision += 1;
+		turnInProgress = false;
 		selectedRuleset = next.ruleset();
+		fullHistory = [];
+		reviewResults = {};
+		analysis = null;
 		previousGame = null;
 		latestTransition = null;
 		animationSeq += 1;
@@ -249,8 +349,8 @@
 		return choice.option_key ?? 'Choose';
 	}
 
-	function goDetail(key: string) {
-		return game?.ruleset === 'go' ? stateScalar(game.status.details, key) : null;
+	function goDetail(key: string, current: GameView | null) {
+		return current?.ruleset === 'go' ? stateScalar(current.status.details, key) : null;
 	}
 
 	function halfPointText(value: string | number | boolean | null) {
@@ -283,240 +383,385 @@
 	});
 </script>
 
-<div class="ruleset-tabs" aria-label="Monumla rulesets">
-	{#each rulesets as ruleset}
+<svelte:window on:keydown={keyboard} />
+<header class="app-header">
+	<a href="/" class="wordmark">monumla<span class="brand-dot">.</span></a>
+	<nav class="mode-tabs" aria-label="Board mode">
 		<button
 			type="button"
-			class:active={selectedRuleset === ruleset.id}
-			disabled={loading}
-			on:click={() => switchRuleset(ruleset.id)}>{ruleset.label}</button
+			class:active={mode === 'play'}
+			aria-pressed={mode === 'play'}
+			on:click={() => (mode = 'play')}>Play</button
 		>
-	{/each}
-</div>
-
-{#if game}
-	<div class="game-layout">
+		<button
+			type="button"
+			class:active={mode === 'analysis'}
+			aria-pressed={mode === 'analysis'}
+			on:click={() => (mode = 'analysis')}>Analysis</button
+		>
+	</nav>
+	<select
+		aria-label="Game variant"
+		value={selectedRuleset}
+		disabled={loading}
+		on:change={(e) => switchRuleset(e.currentTarget.value as RulesetId)}
+	>
+		{#each rulesets as ruleset}<option value={ruleset.id}>{ruleset.label}</option>{/each}
+	</select>
+</header>
+{#if game && runtime}
+	<main class="game-layout" class:analysis-mode={mode === 'analysis'}>
 		<div class="board-column">
-			<div class="ruleset-heading">
+			<div class="player-strip" class:active-player={game.active_players.includes(topSide)}>
+				<span class="player-avatar"><Icon name={botSide === topSide ? 'bot' : 'user'} /></span>
 				<div>
-					<h1>{game.title}</h1>
-					<p>{currentRuleset.description}</p>
+					<strong>{playerName(topSide, mode, botSide)}</strong><span
+						>{topSide === whiteSide ? 'White' : 'Black'}</span
+					>
 				</div>
-				<span class="ruleset-id">{game.ruleset}</span>
-			</div>
-
-			<div
-				class="board-frame"
-				class:orientation-black={orientation === 'black'}
-				class:go-frame={game.board_style === 'go'}
-			>
-				<div class="board">
-					<Bg
-						width={game.width}
-						height={game.height}
-						{orientation}
-						boardStyle={game.board_style}
-						showCoordinates={true}
-					/>
-					<Pieces
-						{game}
-						{interaction}
-						{previousGame}
-						transition={latestTransition}
-						{animationSeq}
-						{orientation}
-						onchoice={choose}
-						oncancel={cancelSelection}
-					/>
-				</div>
-			</div>
-
-			<div class="board-status" class:terminal={game.status.outcome != null}>
-				<span>{game.status.text}</span>
-				<span class="board-status-meta">
-					{#if game.active_players.length > 0}active {game.active_players.join(', ')}{/if}
-				</span>
-			</div>
-
-			{#if actionChoices.length > 0}
-				<div class="action-bar" aria-label="Available actions">
-					{#each actionChoices as choice}
-						<button type="button" on:click={() => choose(choice.id)}>{actionLabel(choice)}</button>
-					{/each}
-				</div>
-			{/if}
-
-			<div class="board-toolbar" aria-label="Board controls">
-				<button type="button" on:click={undo} disabled={!game.can_undo}>Undo</button>
-				<button type="button" on:click={redo} disabled={!game.can_redo}>Redo</button>
-				<button type="button" on:click={resetGame}>Reset</button>
-				<button
-					type="button"
-					on:click={() => (orientation = orientation === 'white' ? 'black' : 'white')}
-					>Flip board</button
+				<span class="turn-indicator"
+					>{game.active_players.includes(topSide) && !game.status.outcome ? 'To move' : ''}</span
 				>
 			</div>
+			<div class="board-with-evaluation">
+				{#if mode === 'analysis' && showEvaluation}
+					<div
+						class="evaluation-bar"
+						class:inverted={orientation === 'black'}
+						aria-label="Evaluation bar"
+						title="Generic heuristic evaluation, White perspective"
+					>
+						<div style:height={`${evaluationHeight}%`}></div>
+					</div>
+				{/if}
+				<div
+					class="board-frame"
+					class:orientation-black={orientation === 'black'}
+					class:go-frame={game.board_style === 'go'}
+				>
+					<div class="board">
+						<Bg
+							width={game.width}
+							height={game.height}
+							{orientation}
+							boardStyle={game.board_style}
+							showCoordinates={mode === 'play' || showCoordinates}
+						/>
+						<Pieces
+							{game}
+							interaction={botSide != null && game.active_players.includes(botSide)
+								? emptyInteraction()
+								: interaction}
+							{previousGame}
+							transition={latestTransition}
+							{animationSeq}
+							{orientation}
+							onchoice={choose}
+							oncancel={cancelSelection}
+						/>
+						{#if mode === 'analysis' && showArrows && !turnInProgress}
+							<AnalysisOverlay
+								lines={analysis?.lines ?? []}
+								selected={selectedLine}
+								width={game.width}
+								height={game.height}
+								{orientation}
+							/>
+						{/if}
+						{#if mode === 'analysis' && showAnnotations && game.last_move && history.length}
+							{@const note = assessment(history.length - 1, reviewResults)}
+							{#if note}<span
+									class="board-assessment"
+									class:bad={note.bad}
+									title={note.title}
+									style:left={`${(((orientation === 'white' ? game.last_move.to.x : game.width - 1 - game.last_move.to.x) + 0.8) * 100) / game.width}%`}
+									style:top={`${(((orientation === 'white' ? game.height - 1 - game.last_move.to.y : game.last_move.to.y) + 0.1) * 100) / game.height}%`}
+									>{note.symbol}</span
+								>{/if}
+						{/if}
+					</div>
+				</div>
+			</div>
+			<div class="player-strip" class:active-player={game.active_players.includes(bottomSide)}>
+				<span class="player-avatar"><Icon name={botSide === bottomSide ? 'bot' : 'user'} /></span>
+				<div>
+					<strong>{playerName(bottomSide, mode, botSide)}</strong><span
+						>{bottomSide === whiteSide ? 'White' : 'Black'}</span
+					>
+				</div>
+				<span class="turn-indicator"
+					>{game.active_players.includes(bottomSide) && !game.status.outcome ? 'To move' : ''}</span
+				>
+			</div>
+			<div class="board-footer">
+				<span class="board-status" class:terminal={game.status.outcome != null}
+					>{game.status.text}</span
+				><button
+					class="icon-button"
+					type="button"
+					aria-label="Flip board"
+					title="Flip board"
+					on:click={() => (orientation = orientation === 'white' ? 'black' : 'white')}
+					><Icon name="flip" /></button
+				>
+			</div>
+			{#if actionChoices.length > 0}<div class="action-bar" aria-label="Available actions">
+					{#each actionChoices as choice}<button
+							type="button"
+							disabled={botSide != null && game.active_players.includes(botSide)}
+							on:click={() => choose(choice.id)}>{actionLabel(choice)}</button
+						>{/each}
+				</div>{/if}
 		</div>
-
 		<aside class="game-panel">
+			<div class="session-heading">
+				<div>
+					<h1>{game.title}</h1>
+					<span>{mode === 'analysis' ? 'Explore every possibility' : 'A board. A good game.'}</span>
+				</div>
+				<button
+					class="icon-button"
+					type="button"
+					on:click={resetGame}
+					aria-label="New game"
+					title="New game"><Icon name="reset" /></button
+				>
+			</div>
+			<AnalysisPanel
+				{runtime}
+				{game}
+				{mode}
+				revision={positionRevision}
+				{pauseRevision}
+				{turnInProgress}
+				bind:selectedLine
+				bind:showArrows
+				bind:showEvaluation
+				bind:showAnnotations
+				bind:showCoordinates
+				onplay={playBestAction}
+				onanalysis={receiveAnalysis}
+				oncontrolchange={(side, human, white) => {
+					botSide = side;
+					if (side != null) orientation = human === white ? 'white' : 'black';
+				}}
+			/>
+			<section class="history-panel" aria-label="Move history">
+				<div class="panel-heading-row">
+					<h2>Moves</h2>
+					<span class="subtle">{history.length} plies</span>
+				</div>
+				{#if mode === 'analysis' && showAnnotations && !turnInProgress}
+					<GameReview
+						{runtime}
+						{history}
+						revision={positionRevision}
+						keys={reviewKeys}
+						results={reviewResults}
+						onassessment={(key, value) => (reviewResults = { ...reviewResults, [key]: value })}
+					/>
+				{/if}
+				<div class="move-list">
+					{#if !fullHistory.length}<p class="history-empty">
+							{mode === 'analysis'
+								? 'Make a move to explore a continuation.'
+								: 'Your next game starts here.'}
+						</p>{/if}
+					{#each historyRows as row, rowIndex}<div class="move-row">
+							<span class="move-number">{row[0].turn_number}.</span
+							>{#each row as turn, column}<button
+									type="button"
+									class:current={history.length === rowIndex * 2 + column + 1}
+									class:future={history.length < rowIndex * 2 + column + 1}
+									on:click={() => navigate(rowIndex * 2 + column + 1)}
+									aria-label={`Go to move ${rowIndex * 2 + column + 1}: ${turn.notation}`}
+									><span>{turn.notation}</span
+									>{#if mode === 'analysis' && showAnnotations}{@const note = assessment(
+											rowIndex * 2 + column,
+											reviewResults
+										)}{#if note}<span
+												class="move-assessment"
+												class:bad={note.bad}
+												title={note.title}>{note.symbol}</span
+											>{/if}{/if}</button
+								>{/each}
+						</div>{/each}
+				</div>
+				<div class="history-controls" aria-label="Move navigation">
+					<button
+						class="icon-button"
+						type="button"
+						aria-label="First move"
+						on:click={() => navigate(0)}
+						disabled={!game.can_undo}><Icon name="first" /></button
+					><button
+						class="icon-button"
+						type="button"
+						aria-label="Undo"
+						on:click={undo}
+						disabled={!game.can_undo}><Icon name="back" /></button
+					><button
+						class="icon-button"
+						type="button"
+						aria-label="Redo"
+						on:click={redo}
+						disabled={!game.can_redo}><Icon name="next" /></button
+					><button
+						class="icon-button"
+						type="button"
+						aria-label="Latest move"
+						on:click={() => navigate(fullHistory.length)}
+						disabled={!game.can_redo}><Icon name="last" /></button
+					>
+				</div>
+			</section>
 			{#if game.ruleset === 'go'}
-				<section>
-					<h2>AGA game</h2>
-					<div class="go-settings">
-						<label>
-							Board
-							<select bind:value={goSize} on:change={handleGoSizeChange}>
-								<option value={9}>9×9</option>
-								<option value={13}>13×13</option>
-								<option value={19}>19×19</option>
-							</select>
-						</label>
-						<label>
-							Counting
-							<select bind:value={goScoring}>
-								<option value="territory">Territory</option>
-								<option value="area">Area</option>
-							</select>
-						</label>
-						<label>
-							Handicap
-							<select bind:value={goHandicap}>
-								{#each { length: 10 } as _, handicap}
-									<option value={handicap} disabled={goSize !== 19 && handicap > 1}
-										>{handicap === 0 ? 'Even' : handicap}</option
-									>
-								{/each}
-							</select>
-						</label>
-						<button type="button" on:click={newGoGame} disabled={loading}>New game</button>
-					</div>
-					<div class="go-score-grid">
-						<span>Rules</span><strong>AGA</strong>
-						<span>Komi</span><strong>{halfPointText(goDetail('komi_half'))}</strong>
-						<span>Black prisoners</span><strong>{goDetail('black_prisoners') ?? 0}</strong>
-						<span>White prisoners</span><strong>{goDetail('white_prisoners') ?? 0}</strong>
-						<span>Black pass stones</span><strong>{goDetail('black_pass_stones') ?? 0}</strong>
-						<span>White pass stones</span><strong>{goDetail('white_pass_stones') ?? 0}</strong>
-					</div>
-					{#if goDetail('phase') === 'review'}
-						<p class="panel-muted">
-							Click stone groups to mark their status, then choose Done reviewing. If the
-							assessments differ, resume play resolves the dispute under AGA rules.
-						</p>
-					{/if}
-					{#if game.status.outcome?.key === 'go.score'}
-						<div class="go-final-score">
-							<strong>Final score</strong>
-							<span>Black {halfPointText(goDetail('black_score_half'))}</span>
-							<span>White {halfPointText(goDetail('white_score_half'))}</span>
-							<span
-								>Territory {goDetail('black_territory') ?? 0}–{goDetail('white_territory') ?? 0} · neutral
-								{goDetail('neutral_points') ?? 0}</span
+				<details class="panel-details">
+					<summary>Go rules & scoring</summary>
+					<section>
+						<h2>AGA game</h2>
+						<div class="go-settings">
+							<label>
+								Board
+								<select aria-label="Board" bind:value={goSize} on:change={handleGoSizeChange}>
+									<option value={9}>9×9</option>
+									<option value={13}>13×13</option>
+									<option value={19}>19×19</option>
+								</select>
+							</label>
+							<label>
+								Counting
+								<select bind:value={goScoring}>
+									<option value="territory">Territory</option>
+									<option value="area">Area</option>
+								</select>
+							</label>
+							<label>
+								Handicap
+								<select bind:value={goHandicap}>
+									{#each { length: 10 } as _, handicap}
+										<option value={handicap} disabled={goSize !== 19 && handicap > 1}
+											>{handicap === 0 ? 'Even' : handicap}</option
+										>
+									{/each}
+								</select>
+							</label>
+							<button type="button" on:click={newGoGame} disabled={loading}>New game</button>
+						</div>
+						<div class="go-score-grid">
+							<span>Rules</span><strong>AGA</strong>
+							<span>Komi</span><strong>{halfPointText(goDetail('komi_half', game))}</strong>
+							<span>Black prisoners</span><strong>{goDetail('black_prisoners', game) ?? 0}</strong>
+							<span>White prisoners</span><strong>{goDetail('white_prisoners', game) ?? 0}</strong>
+							<span>Black pass stones</span><strong
+								>{goDetail('black_pass_stones', game) ?? 0}</strong
+							>
+							<span>White pass stones</span><strong
+								>{goDetail('white_pass_stones', game) ?? 0}</strong
 							>
 						</div>
-					{/if}
-				</section>
-			{/if}
-
-			<section class="history-panel">
-				<h2>History</h2>
-				{#if history.length === 0}
-					<p class="panel-muted">No turns yet.</p>
-				{:else}
-					<ol>
-						{#each history as turn}
-							<li><span>{turn.turn_number}. {turn.actor_label}</span> {turn.notation}</li>
-						{/each}
-					</ol>
-				{/if}
-			</section>
-
-			{#if game.ruleset === 'chess'}
-				<section>
-					<h2>Game actions</h2>
-					{#if game.status.outcome}
-						<p class="panel-muted">
-							The game is finished. Undo the terminal action to continue locally.
-						</p>
-					{:else}
-						<div class="action-bar" aria-label="Chess game actions">
-							<button type="button" on:click={chessResign}>Resign</button>
-							{#if chessDrawClaims?.can_agree_draw}
-								<button type="button" on:click={chessAgreeDraw}>Draw by agreement</button>
-							{/if}
-							{#if chessDrawClaims?.current_threefold_repetition}
-								<button type="button" on:click={() => chessClaimDraw('threefold_repetition')}
-									>Claim threefold</button
+						{#if goDetail('phase', game) === 'review'}
+							<p class="panel-muted">
+								Click stone groups to mark their status, then choose Done reviewing. If the
+								assessments differ, resume play resolves the dispute under AGA rules.
+							</p>
+						{/if}
+						{#if game.status.outcome?.key === 'go.score'}
+							<div class="go-final-score">
+								<strong>Final score</strong>
+								<span>Black {halfPointText(goDetail('black_score_half', game))}</span>
+								<span>White {halfPointText(goDetail('white_score_half', game))}</span>
+								<span
+									>Territory {goDetail('black_territory', game) ?? 0}–{goDetail(
+										'white_territory',
+										game
+									) ?? 0} · neutral
+									{goDetail('neutral_points', game) ?? 0}</span
 								>
-							{/if}
-							{#if chessDrawClaims?.current_fifty_move_rule}
-								<button type="button" on:click={() => chessClaimDraw('fifty_move_rule')}
-									>Claim 50-move draw</button
-								>
-							{/if}
-						</div>
-						{#if chessDrawClaims && chessDrawClaims.by_move.length > 0}
-							<div class="unit-list">
-								{#each chessDrawClaims.by_move as claim}
-									<div class="unit-row">
-										<span
-											>Claim {claim.kind === 'threefold_repetition' ? 'threefold' : '50-move'} by declaring
-											<strong>{claim.san}</strong></span
-										>
-										<button
-											type="button"
-											on:click={() => chessClaimDrawAfterSan(claim.kind, claim.san)}>Claim</button
-										>
-									</div>
-								{/each}
 							</div>
 						{/if}
-					{/if}
-				</section>
-
-				<section>
-					<h2>Position</h2>
-					<div class="fen-current">
-						<input readonly value={currentFen} aria-label="Current FEN" />
-						<button type="button" on:click={() => copyText(currentFen)}>Copy</button>
-					</div>
-					<form on:submit|preventDefault={loadFen} class="fen-loader">
-						<input bind:value={fenDraft} spellcheck="false" aria-label="Load FEN" />
-						<button type="submit">Load FEN</button>
-					</form>
-				</section>
-
-				<section class="pgn-panel">
-					<div class="panel-heading-row">
-						<h2>PGN</h2>
-						<button type="button" on:click={() => copyText(currentPgn)}>Copy</button>
-					</div>
-					<textarea readonly value={currentPgn} rows="9" aria-label="Current PGN"></textarea>
-					<form on:submit|preventDefault={loadPgn} class="pgn-loader">
-						<textarea bind:value={pgnDraft} rows="6" spellcheck="false" aria-label="Load PGN"
-						></textarea>
-						<button type="submit">Load PGN</button>
-					</form>
-				</section>
-			{:else if game.ruleset !== 'go'}
-				<section>
-					<h2>Runtime proof</h2>
-					<p class="panel-muted">
-						This mode uses the same Monumla GameHandle, interaction choices, transactional history,
-						undo/redo and board renderer as chess.
-					</p>
-				</section>
+					</section>
+				</details>
 			{/if}
-		</aside>
-	</div>
-{:else if error}
-	<p class="runtime-error">{error}</p>
-{:else}
-	<p class="runtime-loading">
-		{loading ? 'Loading Monumla WASM runtime…' : 'Runtime unavailable.'}
-	</p>
-{/if}
+			{#if game.ruleset === 'chess'}
+				<details class="panel-details">
+					<summary>Game actions</summary>
+					<section>
+						{#if game.status.outcome}
+							<p class="panel-muted">
+								The game is finished. Undo the terminal action to continue locally.
+							</p>
+						{:else}
+							<div class="action-bar" aria-label="Chess game actions">
+								<button type="button" on:click={chessResign}>Resign</button>
+								{#if chessDrawClaims?.can_agree_draw}
+									<button type="button" on:click={chessAgreeDraw}>Draw by agreement</button>
+								{/if}
+								{#if chessDrawClaims?.current_threefold_repetition}
+									<button type="button" on:click={() => chessClaimDraw('threefold_repetition')}
+										>Claim threefold</button
+									>
+								{/if}
+								{#if chessDrawClaims?.current_fifty_move_rule}
+									<button type="button" on:click={() => chessClaimDraw('fifty_move_rule')}
+										>Claim 50-move draw</button
+									>
+								{/if}
+							</div>
+							{#if chessDrawClaims && chessDrawClaims.by_move.length > 0}
+								<div class="unit-list">
+									{#each chessDrawClaims.by_move as claim}
+										<div class="unit-row">
+											<span
+												>Claim {claim.kind === 'threefold_repetition' ? 'threefold' : '50-move'} by declaring
+												<strong>{claim.san}</strong></span
+											>
+											<button
+												type="button"
+												on:click={() => chessClaimDrawAfterSan(claim.kind, claim.san)}>Claim</button
+											>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						{/if}
+					</section>
+				</details>
 
-{#if error && game}
-	<p class="runtime-error">{error}</p>
-{/if}
+				<details class="panel-details">
+					<summary>Position · FEN</summary>
+					<section>
+						<div class="fen-current">
+							<input readonly value={currentFen} aria-label="Current FEN" />
+							<button type="button" on:click={() => copyText(currentFen)}>Copy</button>
+						</div>
+						<form on:submit|preventDefault={loadFen} class="fen-loader">
+							<input bind:value={fenDraft} spellcheck="false" aria-label="Load FEN" />
+							<button type="submit">Load FEN</button>
+						</form>
+					</section>
+				</details>
+
+				<details class="panel-details">
+					<summary>Game · PGN</summary>
+					<section class="pgn-panel">
+						<div class="panel-heading-row">
+							<h2>PGN</h2>
+							<button type="button" on:click={() => copyText(currentPgn)}>Copy</button>
+						</div>
+						<textarea readonly value={currentPgn} rows="9" aria-label="Current PGN"></textarea>
+						<form on:submit|preventDefault={loadPgn} class="pgn-loader">
+							<textarea bind:value={pgnDraft} rows="6" spellcheck="false" aria-label="Load PGN"
+							></textarea>
+							<button type="submit">Load PGN</button>
+						</form>
+					</section>
+				</details>
+			{/if}
+			<div class="rules-note">{currentRuleset.description}</div>
+		</aside>
+	</main>
+{:else}<p class="runtime-loading" role="status">
+		{loading ? 'Setting up your board…' : 'Board unavailable.'}
+	</p>{/if}
+{#if error}<p class="runtime-error" role="alert">{error}</p>{/if}

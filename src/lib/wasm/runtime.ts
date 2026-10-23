@@ -1,3 +1,5 @@
+import type { AnalysisView, BestAction, MoveAssessment, SearchSettings } from '$lib/search/types';
+
 export type RulesetId = 'chess' | 'checkers' | 'checkers-international' | 'go';
 export type GoScoring = 'territory' | 'area';
 
@@ -15,13 +17,13 @@ export type StateValueView =
 	| { type: 'list'; value: StateValueView[] }
 	| { type: 'map'; value: StateMapView };
 
-export type StateMapView = Record<string, StateValueView>;
+export type StateMapView = Record<string, StateValueView> | Map<string, StateValueView>;
 
 export function stateScalar(
 	data: StateMapView | null | undefined,
 	key: string
 ): string | number | boolean | null {
-	const value = data?.[key];
+	const value = data instanceof Map ? data.get(key) : data?.[key];
 	if (!value) return null;
 	switch (value.type) {
 		case 'bool':
@@ -147,6 +149,17 @@ export interface HistoryTurnView {
 }
 
 interface WasmHandle {
+	reviewTurn(ply: number, depth: number, nodes: number, timeMs: number): MoveAssessment;
+	searchSnapshot(): unknown;
+	turnInProgress(): boolean;
+	analyze(
+		maxDepth: number,
+		maxNodes: number,
+		timeMs: number,
+		lines: number,
+		progress: (analysis: AnalysisView) => void
+	): AnalysisView;
+	applyBestAction(best: BestAction): TransitionView;
 	ruleset(): string;
 	view(): GameView;
 	interaction(): InteractionView;
@@ -168,6 +181,7 @@ interface WasmHandle {
 }
 
 interface WasmModule {
+	from_search_snapshot(snapshot: unknown): WasmHandle;
 	default(): Promise<unknown>;
 	new_game(ruleset: string): WasmHandle;
 	new_go(size: number, scoring: string, handicap: number): WasmHandle;
@@ -211,6 +225,36 @@ export class LocalGame {
 	static async fromPgn(pgn: string): Promise<LocalGame> {
 		const wasm = await loadModule();
 		return new LocalGame(wasm.from_pgn(pgn));
+	}
+
+	static async fromSearchSnapshot(snapshot: unknown): Promise<LocalGame> {
+		const wasm = await loadModule();
+		return new LocalGame(wasm.from_search_snapshot(snapshot));
+	}
+
+	searchSnapshot(): unknown {
+		return this.handle.searchSnapshot();
+	}
+	turnInProgress(): boolean {
+		return this.handle.turnInProgress();
+	}
+
+	analyze(settings: SearchSettings, progress: (analysis: AnalysisView) => void): AnalysisView {
+		return this.handle.analyze(
+			settings.maxDepth,
+			settings.maxNodes,
+			settings.timeMs,
+			settings.lines,
+			progress
+		);
+	}
+
+	reviewTurn(ply: number, settings: SearchSettings): MoveAssessment {
+		return this.handle.reviewTurn(ply, settings.maxDepth, settings.maxNodes, settings.timeMs);
+	}
+
+	applyBestAction(best: BestAction): TransitionView {
+		return this.handle.applyBestAction(best);
 	}
 
 	ruleset(): RulesetId {
