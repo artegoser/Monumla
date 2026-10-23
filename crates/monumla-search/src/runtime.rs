@@ -230,6 +230,14 @@ impl RuntimeDomain {
         cache.insert(key, results.clone());
         Ok(results)
     }
+    /// Inferred control utility for diagnostics; no game-specific values.
+    pub fn inferred_value(&self, entity: &monumla_core::EntityState) -> Option<i32> {
+        self.weights
+            .lock()
+            .unwrap()
+            .get(&entity_features(entity))
+            .copied()
+    }
     fn learn(&self, position: &GameTimeline) -> Result<(), InteractionError> {
         let state = position.current();
         if state.entities.values().all(|e| {
@@ -244,11 +252,15 @@ impl RuntimeDomain {
         for entity in state.entities.values() {
             let mut probe = state.clone();
             probe.remove_entity(entity.id)?;
+            // Outcome rules may examine only the active controller. Query the
+            // removed entity's controller so every side's essential entities
+            // survive capability probes, independently of storage/ID order.
+            probe.set_active_players(vec![entity.controller])?;
             let outcome = self.registry.outcome(RuleContext::from_state(&probe, None));
             if outcome.as_ref().map_or(true, |outcome| {
-                outcome
-                    .as_ref()
-                    .is_some_and(|o| o.losers.contains(&entity.owner))
+                outcome.as_ref().is_some_and(|o| {
+                    o.losers.contains(&entity.controller) || o.losers.contains(&entity.owner)
+                })
             }) {
                 critical.insert(entity.id);
             }

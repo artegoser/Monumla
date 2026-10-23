@@ -62,6 +62,10 @@ pub fn from_search_snapshot(snapshot: JsValue) -> Result<GameHandle, JsValue> {
 
 #[wasm_bindgen]
 impl GameHandle {
+    #[wasm_bindgen(js_name=analysisPositionKey)]
+    pub fn analysis_position_key(&self) -> String {
+        self.position_key()
+    }
     #[wasm_bindgen(js_name=searchSnapshot)]
     pub fn search_snapshot(&self) -> Result<JsValue, JsValue> {
         to_js(&self.snapshot().map_err(js_error)?)
@@ -802,5 +806,72 @@ mod tests {
                 "{ruleset}"
             );
         }
+    }
+    #[test]
+    fn rejects_reported_bishop_sacrifice_in_imported_and_played_positions() {
+        let pgn = "1. Nc3 Nc6 2. e4 e5 3. Bc4 Bc5 4. Qg4 g5 5. Nf3 *";
+        let imported = ChessRuntime::from_pgn(pgn).unwrap();
+        let mut played = ChessRuntime::standard().unwrap();
+        for san in ["Nc3", "Nc6", "e4", "e5", "Bc4", "Bc5", "Qg4", "g5", "Nf3"] {
+            let (movement, _) = played
+                .rules
+                .resolve_san(played.timeline.current(), played.timeline.history(), san)
+                .unwrap();
+            let actor = played
+                .rules
+                .side_to_move(played.timeline.current())
+                .unwrap()
+                .player();
+            let mut turn = played.timeline.begin_turn(actor).unwrap();
+            played
+                .rules
+                .execute_move(&mut turn, Some(played.timeline.history()), movement, None)
+                .unwrap();
+            played.timeline.commit_turn(turn).unwrap();
+        }
+        played.rebuild_interaction().unwrap();
+        let mut models = Vec::new();
+        for runtime in [imported, played] {
+            let game = GameHandle {
+                inner: Runtime::Chess(runtime),
+            };
+            let domain = game.domain();
+            domain.prepare(game.timeline()).unwrap();
+            let model: BTreeMap<_, _> = game
+                .timeline()
+                .current()
+                .entities
+                .values()
+                .map(|e| {
+                    (
+                        (e.position, e.entity_type, e.owner),
+                        domain.inferred_value(e),
+                    )
+                })
+                .collect();
+            models.push(model);
+            let report = game
+                .analyze_position(
+                    SearchOptions {
+                        limits: SearchLimits {
+                            max_depth: 2,
+                            max_nodes: Some(100000),
+                        },
+                        multi_pv: 3,
+                        ..Default::default()
+                    },
+                    || false,
+                    |_| {},
+                )
+                .unwrap();
+            assert_ne!(
+                report.principal_variation.first().map(String::as_str),
+                Some("Bxf2+")
+            );
+        }
+        assert_eq!(
+            models[0], models[1],
+            "inferred values must not depend on entity IDs"
+        );
     }
 }
