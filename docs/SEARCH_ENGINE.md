@@ -1,46 +1,51 @@
-# Universal search: first implementation
+# Universal search
 
-`monumla_search` implements iterative-deepening alpha-beta search. It depends only on a `SearchDomain` trait: no pieces, boards, chess rules, draughts rules, or game-specific evaluation live in the algorithm. The two game crates supply their own adapters.
+`monumla-search` owns search, evaluation, move ordering, tactical continuations, and caching. Game crates provide their ordinary `InteractionRules` and outcome rules. They have no search modules and do not depend on `monumla-search`.
 
-A domain supplies its position, complete action, perspective, error type, terminal utility, static evaluation, node role, legal actions, and successor function. Scores always use the caller's fixed perspective. Explicit maximizing/minimizing roles allow extra turns and opposing coalitions without assuming alternating colors. A position can include any history required by its rules.
+`RuntimeDomain` is the single connection between the core runtime and the search algorithm. It enumerates complete turns through authoritative choices, including draft inputs, promotion options, and capture continuations. Selection cycles and duplicate completed turns are discarded. Returned actions contain the core `TurnInput`, so a browser worker can send them back for validation and replay through the same rules as a human move. `EntityActionPath` also lives in core; draughts rules use it for legal capture paths.
 
-```rust
-use monumla_core::GameTimeline;
-use monumla_search::{search, SearchLimits};
-use monumla_games_checkers::{search::DraughtsSearch, standard_state, WHITE};
+The WASM host registers the existing chess, Russian/international draughts, or Go rules. Its game-specific switches create ordinary rules and format notation; they do not implement search or evaluation. Go uses this same route, including pass and scoring-review choices. Resignation is discarded when a non-losing continuation exists, based on the declared outcome rather than an action name.
 
-let position = GameTimeline::new(standard_state())?;
-let result = search(&DraughtsSearch, &position, WHITE, SearchLimits {
-    max_depth: 4,
-    max_nodes: Some(10_000),
-})?;
-// result.best_action contains a complete turn, including every capture landing.
-```
+## Algorithm
 
-The result includes the best action, score, principal variation, completed depth, total visited nodes, and stopping reason. Node budgets apply across all iterations. `search_with_control` checks cancellation before each visited node; a host may supply a deadline or cancellation signal without requiring a native clock in WASM. Incomplete iterations never overwrite the last completed result. If interrupted before the first iteration finishes, the result explicitly has no score or best action. Depth zero only evaluates the position. An adapter with no actions in a nonterminal position returns an error rather than silently inventing a draw. The recursive implementation accepts depths up to 256.
+- Iterative deepening with alpha-beta pruning and principal variation search.
+- Aspiration windows, with full-window re-search when needed.
+- Bounded transposition storage with verified 128-bit keys, score bounds, and depth/generation replacement.
+- Principal variation, killer, history, and generic effect-based action ordering.
+- Bounded quiescence over entity removals, transformations, and control changes.
+- Up to eight ranked root continuations (the browser exposes one, three, or five).
+- Node budgets, cancellation, and progress after complete iterations.
 
-## Available adapters
+Incomplete iterations preserve the last completed primary result. Cancellation before the first completed iteration returns no score or best action. It never substitutes the first legal action. Scores use a fixed perspective; explicit maximizing/minimizing roles support extra turns and allied players. History participates in position identity, including action data, so repetition and superko contexts are preserved. History records are shared between cloned branches.
 
-- `monumla_games_checkers::search::DraughtsSearch`: both Russian and international rules, complete capture turns, promotions, draw counters, and history-based repetition. It reuses production interaction execution. Evaluation uses material and man advancement.
-- `monumla_games_chess::search::ChessSearch`: standard chess including castling, en passant, all promotion continuations, terminal outcomes, history, and optional draw claims, including claims by an intended move. Evaluation starts with material values; capture and promotion ordering stays in the game crate.
+The shared heuristic estimates entity control, centrality, and legal-choice mobility. At the start of a search it probes the ordinary rules to estimate movement capacity for entity types and their state. It contains no piece IDs, game-specific values, state-key names, or game-specific move generators. Terminal outcomes dominate heuristic scores; mate-distance adjustment prefers faster wins and slower losses. Heuristic values are not calibrated centipawns, Go territory, or win probabilities.
 
-Terminal wins/losses score ±100,000; draws score zero. These numbers are adapter policy, not search-core knowledge. Both adapters use independent `GameTimeline` successors and preserve the source timeline, including undo/redo state. Every action in a returned principal variation can be replayed through the adapter.
+This is finite search, not perfect play. A draw under perfect play does not imply that bounded self-play must draw. The heuristic has limited strategic knowledge, particularly in Go; it is not comparable in strength to Stockfish or specialist Go engines. The current algorithm targets deterministic, sequential, perfect-information games with two opposed utilities. Hidden information, chance, simultaneous turns, and independent multiplayer utilities need additional algorithms.
 
-Run the native example:
+## Browser
 
-```bash
+**Play** defaults to a computer opponent, which moves automatically. Choose a side or a local opponent; thinking time is under engine settings. Engine scores, suggestions, and assessments are hidden in Play.
+
+**Analysis** starts a background worker automatically and deepens until paused or a resource limit is reached. It shows the last completed score, ranked continuations, and ranked candidate arrows on the board, with matching colors and numbers. Selecting a line emphasizes its arrow. Settings control lines, arrows, evaluation, assessments, and coordinates. Evaluation is labeled as a generic heuristic. Entering Analysis starts a separate cancellable game review, beginning with the latest played move. It searches the best move and the played candidate from the same original position and compares their scores at the same completed depth. History entries and the last-move badge show the resulting assessments; tooltips give depth, score loss, and the preferred move. Shallow searches remain unassessed except when a large tactical loss is already visible. These are heuristic assessments, with no fabricated opening-book labels.
+
+Move navigation supports buttons, history entries, and left/right arrow keys. Position changes, imports, mode changes, and unfinished turns cancel obsolete workers. Each result is tied to the original position and is revalidated before application. Bot play retries with a longer budget when its first iteration cannot complete. Undo pauses computer play so it does not immediately replay the undone move. FEN/PGN controls and game actions are in collapsible sections.
+
+Workers keep the UI responsive; termination cancels synchronous WASM. Node/deadline checks occur between nodes, so one rule-generation call can exceed the nominal deadline. Browser analysis has a ten-minute, 50-million-node, depth-32 cap per run; resume starts a new run. The generic turn enumerator has a 128-input continuation guard and bounded action cache.
+
+## Verification
+
+```sh
+cargo test --workspace
+cargo run --release -p monumla-wasm --example analyze -- chess 2 10000
 cargo run --release -p monumla-wasm --example analyze -- checkers 4 10000
 cargo run --release -p monumla-wasm --example analyze -- checkers-international 4 10000
-cargo run --release -p monumla-wasm --example analyze -- chess 2 10000
-cargo run --release -p monumla-wasm --example analyze -- chess 2 10000 '7k/8/5KQ1/8/8/8/8/8 w - - 0 1'
+cargo run --release -p monumla-wasm --example analyze -- go 1 10000
+pnpm check
+pnpm test:browser
 ```
 
-## Current scope and next steps
+Tests compare abstract trees with exhaustive minimax, check caching and budgets, and search a new rules-only take-away game without a game search implementation. Host tests cover every built-in game, worker-style action replay, stale results, incomplete search, promotion continuations, mate, the reported chess midgame, the queen-hanging regression, and equal-depth move review. Browser tests cover automatic computer play, analysis-only hints, Go analysis, navigation, cancellation, settings, and desktop/mobile layout.
 
-This is a working search foundation, not a Stockfish-strength engine. The first algorithm handles deterministic, perfect-information games with two opposed utilities. A generic domain boundary does not make alpha-beta appropriate for hidden information, chance nodes, simultaneous actions, or independent multiplayer objectives. Those require additional algorithms. Go has no search adapter yet. Browser analysis controls and background workers are not included.
+## Playing strength
 
-Current successors clone timelines for correctness, and game evaluation is deliberately basic. There is no transposition table, quiescence search, aspiration window, learned evaluator, tablebase, or parallel search yet. Cancellation bounds visited nodes, not the time spent inside a game adapter's move-generation call. Native example FEN imports cannot reconstruct repetition history absent from FEN.
-
-Next milestones are measured performance and allocation work, a history-safe position-key contract and bounded transposition table, adapter-defined tactical extension hooks, stronger evaluators, and a cancellable background analysis host. These should retain the piece-independent domain boundary.
-
-Verification includes generated abstract trees compared against exhaustive minimax, pruning, extra-turn roles, fixed perspectives, deterministic results, integer score extremes, node budgets, cancellation, domain errors, replayable principal variations, real draughts capture chains and repetition, and chess mate, promotions, and draw claims.
+Use [matches against Stockfish](../benchmarks/stockfish/README.md) as the chess strength benchmark for the shared engine. The runner saves matched color pairs, settings, per-move statistics, and PGNs. Rule tests and search-tree tests remain correctness gates; they are not playing-strength measurements.
