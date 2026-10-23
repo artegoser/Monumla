@@ -1,0 +1,11 @@
+[Event "Monumla shared search benchmark"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "-"]
+[White "Stockfish 19"]
+[Black "Monumla"]
+[Result "1-0"]
+[SearchBudgetMs "1000"]
+[Termination "chess.checkmate"]
+
+1. e4 e5 2. Nf3 d5 3. exd5 Qxd5 4. Nc3 Qd6 5. d4 exd4 6. Nb5 Qe6+ 7. Be2 Bb4+ 8. c3 dxc3 9. Nxc7+ Ke7 10. O-O Qxe2 11. Qxe2+ Be6 12. Nxe6 fxe6 13. Ng5 cxb2 14. Qxe6+ Kd8 15. Bf4 bxa1=Q 16. Nf7# 1-0

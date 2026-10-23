@@ -29,8 +29,9 @@ Both runs use the same machine, Stockfish binary, starting-position color pair, 
 |---|---|---|
 | [Initial baseline](baseline-2026-10-23/report.md), `9db54e3` | 0–2 | Two checkmates, 38/21 plies |
 | [After probe fix](after-probe-fix-2026-10-23/report.md), `89e1bf6` | 0–2 | Two forfeits: no complete iteration, 18/13 plies |
+| [After quiescence optimization](after-quiescence-fix-2026-10-23/report.md), `9792e70` | 0–2 | Two checkmates, 38/31 plies; no forfeits |
 
-The match exposed capability probes becoming terminal after entities were removed, which undervalued some movement capabilities. The shared fix now passes knight-for-pawn and draughts-promotion regressions. It does **not** establish a strength gain: the updated run still loses and exposes the cost of generation/evaluation before the first completed iteration. The browser retries with longer budgets; this benchmark enforces its stated budget and records failure. The engine is not competitive with Stockfish at this setting.
+The match exposed capability probes becoming terminal after entities were removed, which undervalued some movement capabilities. The shared fix now passes knight-for-pawn and draughts-promotion regressions. It does **not** establish a strength gain: the updated run still loses and exposes the cost of generation/evaluation before the first completed iteration. The browser retries with longer budgets; this benchmark enforces its stated budget and records failure. The later shared quiescence optimization reads cached turn effects without cloning their states and uses lazy quiet-continuation witnesses for safe cutoffs. The third pair completed without forfeits, but still lost both games. [Profiles](after-quiescence-fix-2026-10-23/profile-comparison.md) record the measured work reduction. The engine is not competitive with Stockfish at this setting.
 
 ## Profiling a search deadline
 

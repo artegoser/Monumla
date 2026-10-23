@@ -65,9 +65,10 @@ pub trait SearchDomain {
     fn action_priority(&self, _position: &Self::Position, _action: &Self::Action) -> i32 {
         0
     }
-    /// Optional fast witness for the quiescence stand-pat rule. Some(true)
-    /// must prove that a non-tactical complete legal action exists. Unknown
-    /// domains keep the ordinary quiescence path by returning None.
+    /// Optional fast witness for the domain's quiescence stand-pat policy.
+    /// Some(true) must agree with `quiescence().stand_pat` (or with no tactical
+    /// continuation). A quiet move alone is insufficient if the domain forbids
+    /// standing pat for another reason. None keeps the ordinary path.
     fn allows_stand_pat(&self, _position: &Self::Position) -> Result<Option<bool>, Self::Error> {
         Ok(None)
     }
