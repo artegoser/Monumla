@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 mod search;
-pub use search::{native_analysis, AnalysisView, BestAction};
+pub use search::{native_analysis, AnalysisView, BestAction, SearchSession};
 #[cfg(not(target_arch = "wasm32"))]
 pub mod experiments;
 
@@ -14,7 +14,8 @@ use monumla_core::{
 };
 use monumla_games_checkers::{
     registry as checkers_registry, state_for_variant as checkers_state_for_variant,
-    CheckersInteractionRules, DraughtsVariant, BLACK as CHECKERS_BLACK, WHITE as CHECKERS_WHITE,
+    turn_notation as checkers_turn_notation, CheckersInteractionRules, DraughtsVariant,
+    BLACK as CHECKERS_BLACK, WHITE as CHECKERS_WHITE,
 };
 use monumla_games_chess::{
     standard_chess_state, ChessDrawClaim, ChessInteractionRules, ChessOutcome, ChessRules,
@@ -222,13 +223,21 @@ impl GameHandle {
 
     pub fn undo(&mut self) -> Result<JsValue, JsValue> {
         let before = self.visible_state().clone();
+        let record = self.timeline().history().previous_turn().cloned();
+        let partial = self.turn_in_progress();
         match &mut self.inner {
             Runtime::Chess(runtime) => runtime.undo().map_err(js_error)?,
             Runtime::Checkers(runtime) => runtime.undo().map_err(js_error)?,
             Runtime::Go(runtime) => runtime.undo().map_err(js_error)?,
         }
         let delta = StateDelta::between(&before, self.visible_state());
-        to_js(&self.transition_from_delta(delta).map_err(js_error)?)
+        let mut view = self.transition_from_delta(delta).map_err(js_error)?;
+        if !partial {
+            if let Some(record) = record {
+                view.changes = recorded_changes(&record, true);
+            }
+        }
+        to_js(&view)
     }
 
     pub fn redo(&mut self) -> Result<JsValue, JsValue> {
@@ -239,7 +248,11 @@ impl GameHandle {
             Runtime::Go(runtime) => runtime.redo().map_err(js_error)?,
         }
         let delta = StateDelta::between(&before, self.visible_state());
-        to_js(&self.transition_from_delta(delta).map_err(js_error)?)
+        let mut view = self.transition_from_delta(delta).map_err(js_error)?;
+        if let Some(record) = self.timeline().history().previous_turn() {
+            view.changes = recorded_changes(record, false);
+        }
+        to_js(&view)
     }
 
     pub fn fen(&self) -> Result<String, JsValue> {
@@ -1100,7 +1113,7 @@ fn go_history_view(history: &monumla_core::History, board_size: u16) -> Vec<Hist
         .map(|(index, turn)| HistoryTurnView {
             index: u32::try_from(index).unwrap_or(u32::MAX),
             actor: turn.actor.get(),
-            turn_number: u32::try_from(index + 1).unwrap_or(u32::MAX),
+            turn_number: u32::try_from(index / 2 + 1).unwrap_or(u32::MAX),
             actor_label: if turn.actor == monumla_games_go::BLACK {
                 "Black".into()
             } else if turn.actor == monumla_games_go::WHITE {
@@ -1114,6 +1127,24 @@ fn go_history_view(history: &monumla_core::History, board_size: u16) -> Vec<Hist
         .collect()
 }
 
+fn recorded_changes(turn: &monumla_core::TurnRecord, reverse: bool) -> Vec<ChangeView> {
+    if reverse {
+        turn.steps
+            .iter()
+            .rev()
+            .flat_map(|step| {
+                StateDelta::between(&step.after, &step.before)
+                    .changes
+                    .iter()
+                    .map(ChangeView::from)
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    } else {
+        changes_from_steps(&turn.steps)
+    }
+}
+
 fn generic_history_view(history: &monumla_core::History, ruleset: &str) -> Vec<HistoryTurnView> {
     history
         .turns()
@@ -1121,21 +1152,24 @@ fn generic_history_view(history: &monumla_core::History, ruleset: &str) -> Vec<H
         .enumerate()
         .filter(|(_, turn)| !turn.synthetic)
         .map(|(index, turn)| {
-            let notation = turn
-                .steps
-                .iter()
-                .map(|step| {
-                    step.action
-                        .kind
-                        .strip_prefix(&format!("{ruleset}."))
-                        .unwrap_or(&step.action.kind)
-                })
-                .collect::<Vec<_>>()
-                .join(" → ");
+            let notation = if ruleset.starts_with("checkers") {
+                checkers_turn_notation(turn)
+            } else {
+                turn.steps
+                    .iter()
+                    .map(|step| {
+                        step.action
+                            .kind
+                            .strip_prefix(&format!("{ruleset}."))
+                            .unwrap_or(&step.action.kind)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" → ")
+            };
             HistoryTurnView {
                 index: u32::try_from(index).unwrap_or(u32::MAX),
                 actor: turn.actor.get(),
-                turn_number: u32::try_from(index + 1).unwrap_or(u32::MAX),
+                turn_number: u32::try_from(index / 2 + 1).unwrap_or(u32::MAX),
                 actor_label: format!("P{}", turn.actor.get()),
                 notation,
                 actions: action_views(turn),
@@ -1732,6 +1766,54 @@ fn string_error(error: impl ToString) -> String {
 mod tests {
     use super::*;
 
+    #[test]
+    fn history_keeps_each_draughts_jump_in_both_directions() {
+        let mut state = checkers_state_for_variant(DraughtsVariant::Russian);
+        for id in state.entities.keys().copied().collect::<Vec<_>>() {
+            state.remove_entity(id).unwrap();
+        }
+        for (id, owner, x, y) in [
+            (1, CHECKERS_WHITE, 1, 1),
+            (2, CHECKERS_BLACK, 2, 2),
+            (3, CHECKERS_BLACK, 4, 4),
+            (4, CHECKERS_BLACK, 0, 6),
+        ] {
+            state
+                .add_entity(EntityState::new(
+                    monumla_core::EntityId::new(id),
+                    monumla_games_checkers::CHECKER,
+                    owner,
+                    Position::new(x, y),
+                ))
+                .unwrap();
+        }
+        let movement = monumla_games_checkers::legal_moves(&state, CHECKERS_WHITE)
+            .unwrap()
+            .into_iter()
+            .find(|m| m.landings.len() == 2)
+            .unwrap();
+        let turn = monumla_games_checkers::play_move(&state, &movement).unwrap();
+        let mut timeline = GameTimeline::new(state).unwrap();
+        timeline.commit_turn(turn).unwrap();
+        let record = timeline.history().previous_turn().unwrap();
+        let forward = recorded_changes(record, false);
+        let reverse = recorded_changes(record, true);
+        let moves = |changes: Vec<ChangeView>| {
+            changes
+                .into_iter()
+                .filter_map(|change| {
+                    if let ChangeView::EntityMoved { from, to, .. } = change {
+                        Some((from.x, from.y, to.x, to.y))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(moves(forward), [(1, 1, 3, 3), (3, 3, 5, 5)]);
+        assert_eq!(moves(reverse), [(5, 5, 3, 3), (3, 3, 1, 1)]);
+        assert_eq!(checkers_turn_notation(record), "b2xd4xf6");
+    }
     #[test]
     fn every_builtin_ruleset_exposes_a_playable_runtime() {
         for ruleset in ["chess", "checkers", "checkers-international", "go"] {

@@ -4,7 +4,14 @@ use crate::search::{AnalysisView, BestAction};
 use monumla_search::{SearchDomain, SearchOptions};
 use std::time::{Duration, Instant};
 
-pub struct Session(GameHandle);
+pub struct Session {
+    game: GameHandle,
+    domain: monumla_search::runtime::RuntimeDomain,
+    memory: monumla_search::SearchMemory<
+        monumla_search::runtime::RuntimeAction,
+        monumla_core::PlayerId,
+    >,
+}
 #[derive(Serialize)]
 pub struct Status {
     pub key: String,
@@ -30,13 +37,18 @@ impl Session {
         } else {
             GameHandle::new_ruleset(ruleset)?
         };
-        Ok(Self(game))
+        let domain = game.domain();
+        Ok(Self {
+            game,
+            domain,
+            memory: monumla_search::SearchMemory::new(16384),
+        })
     }
     pub fn status(&self) -> Result<Status, String> {
         Ok(Status {
-            key: self.0.analysis_position_key(),
+            key: self.game.analysis_position_key(),
             active: self
-                .0
+                .game
                 .timeline()
                 .current()
                 .turn
@@ -45,38 +57,48 @@ impl Session {
                 .map(|p| p.get())
                 .collect(),
             outcome: self
-                .0
+                .game
                 .domain()
-                .outcome(self.0.timeline())
+                .outcome(self.game.timeline())
                 .map_err(js_error_string)?,
-            plies: self.0.timeline().history().len(),
+            plies: self.game.timeline().history().len(),
         })
     }
-    pub fn analyze(&self, options: SearchOptions, time_ms: u64) -> Result<AnalysisView, String> {
+    pub fn analyze(
+        &mut self,
+        mut options: SearchOptions,
+        time_ms: u64,
+    ) -> Result<AnalysisView, String> {
         let start = Instant::now();
-        self.0.analyze_position(
+        options.late_move_reductions = true;
+        self.game.analyze_position_cached(
+            &self.domain,
+            &mut self.memory,
             options,
             || time_ms > 0 && start.elapsed() >= Duration::from_millis(time_ms),
             |_| {},
+            true,
         )
     }
     pub fn apply(&mut self, action: BestAction) -> Result<Status, String> {
-        self.0.apply_analyzed_action(action)?;
+        self.game.apply_analyzed_action(action)?;
         self.status()
     }
     /// Deterministic rule-generated opening, paired identically across versions.
     /// The runner checks keys to reject any rule/order incompatibility.
     pub fn opening(&mut self, seed: usize, plies: usize) -> Result<Status, String> {
         for ply in 0..plies {
-            let domain = self.0.domain();
+            let domain = self.game.domain();
             if domain
-                .outcome(self.0.timeline())
+                .outcome(self.game.timeline())
                 .map_err(js_error_string)?
                 .is_some()
             {
                 break;
             }
-            let actions = domain.actions(self.0.timeline()).map_err(js_error_string)?;
+            let actions = domain
+                .actions(self.game.timeline())
+                .map_err(js_error_string)?;
             if actions.is_empty() {
                 break;
             }
@@ -88,7 +110,7 @@ impl Session {
             for offset in 0..actions.len() {
                 let action = &actions[(index + offset) % actions.len()];
                 let next = domain
-                    .play(self.0.timeline(), action)
+                    .play(self.game.timeline(), action)
                     .map_err(js_error_string)?;
                 if domain.outcome(&next).map_err(js_error_string)?.is_none() {
                     chosen = Some(action.clone());
@@ -98,8 +120,8 @@ impl Session {
             let Some(action) = chosen else {
                 break;
             };
-            self.0.apply_analyzed_action(BestAction {
-                position_key: self.0.analysis_position_key(),
+            self.game.apply_analyzed_action(BestAction {
+                position_key: self.game.analysis_position_key(),
                 action,
             })?;
         }

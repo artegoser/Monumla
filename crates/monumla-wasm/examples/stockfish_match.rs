@@ -419,6 +419,8 @@ fn main() -> Result<()> {
                             max_nodes: Some(50_000_000),
                         },
                         transposition_entries: 16384,
+                        stop_on_forced_move: true,
+                        late_move_reductions: true,
                         ..Default::default()
                     },
                     || start.elapsed() >= Duration::from_millis(budget),

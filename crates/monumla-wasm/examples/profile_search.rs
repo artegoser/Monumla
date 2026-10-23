@@ -57,6 +57,9 @@ impl<D: SearchDomain> SearchDomain for Profile<D> {
     fn play(&self, p: &D::Position, a: &D::Action) -> Result<D::Position, D::Error> {
         self.measure("play", || self.domain.play(p, a))
     }
+    fn can_reduce(&self, p: &D::Position, a: &D::Action) -> bool {
+        self.measure("reducible", || self.domain.can_reduce(p, a))
+    }
     fn allows_stand_pat(&self, p: &D::Position) -> Result<Option<bool>, D::Error> {
         self.measure("quiet_witness", || self.domain.allows_stand_pat(p))
     }
@@ -135,6 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 max_nodes: Some(nodes),
             },
             transposition_entries: 16384,
+            late_move_reductions: true,
             ..Default::default()
         },
         || false,

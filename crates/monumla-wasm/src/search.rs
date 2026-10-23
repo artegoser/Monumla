@@ -3,7 +3,7 @@ use monumla_core::PlayerId;
 use monumla_search::{
     analyze, fingerprint,
     runtime::{RuntimeAction, RuntimeDomain},
-    SearchDomain, SearchLimits, SearchOptions, SearchResult, StopReason,
+    SearchDomain, SearchLimits, SearchMemory, SearchOptions, SearchResult, StopReason,
 };
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
@@ -43,6 +43,19 @@ pub struct AnalysisView {
     pub quiescence_nodes: u64,
     pub cutoffs: u64,
 }
+#[derive(Deserialize)]
+struct CachedLine {
+    score: i32,
+    moves: Vec<String>,
+}
+#[derive(Deserialize)]
+struct CachedAnalysis {
+    lines: Vec<CachedLine>,
+    perspective: u32,
+    depth: u16,
+    best_action: Option<BestAction>,
+}
+
 /// A comparison of the actual move and best move at the same completed depth.
 #[derive(Clone, Debug, Serialize)]
 pub struct MoveAssessment {
@@ -65,6 +78,15 @@ impl GameHandle {
     #[wasm_bindgen(js_name=analysisPositionKey)]
     pub fn analysis_position_key(&self) -> String {
         self.position_key()
+    }
+    #[wasm_bindgen(js_name=reviewCachedTurn)]
+    pub fn review_cached_turn(&self, index: u32, analysis: JsValue) -> Result<JsValue, JsValue> {
+        let analysis = serde_wasm_bindgen::from_value(analysis).map_err(js_error)?;
+        to_js(
+            &self
+                .cached_assessment(index as usize, analysis)
+                .map_err(js_error)?,
+        )
     }
     #[wasm_bindgen(js_name=searchSnapshot)]
     pub fn search_snapshot(&self) -> Result<JsValue, JsValue> {
@@ -194,19 +216,42 @@ impl GameHandle {
             },
         )
         .map_err(string_error)?;
+        // A completed root variation already measures this exact action at the
+        // same horizon. Reusing it avoids a contradictory second estimate.
+        for (depth, best) in &best_depths {
+            if let Some(line) = best
+                .variations
+                .iter()
+                .find(|line| line.actions.first() == Some(&played))
+            {
+                let mut candidate = best.clone();
+                candidate.score = Some(line.score);
+                candidate.best_action = Some(played.clone());
+                candidate.principal_variation = line.actions.clone();
+                played_depths.insert(*depth, candidate);
+            }
+        }
+        let already_measured = best_depths
+            .keys()
+            .next_back()
+            .is_some_and(|d| played_depths.contains_key(d));
         let deadline = now_ms() + time_ms;
-        monumla_search::analyze_action(
-            &domain,
-            &before,
-            actual.actor,
-            played.clone(),
-            options,
-            || now_ms() >= deadline,
-            |r| {
-                played_depths.insert(r.completed_depth, r.clone());
-            },
-        )
-        .map_err(string_error)?;
+        if !already_measured {
+            monumla_search::analyze_action(
+                &domain,
+                &before,
+                actual.actor,
+                played.clone(),
+                options,
+                || now_ms() >= deadline,
+                |r| {
+                    played_depths
+                        .entry(r.completed_depth)
+                        .or_insert_with(|| r.clone());
+                },
+            )
+            .map_err(string_error)?;
+        }
         let common = best_depths
             .iter()
             .rev()
@@ -222,46 +267,86 @@ impl GameHandle {
                 best_move: None,
             });
         };
-        let loss = best
-            .score
-            .zip(candidate.score)
-            .map(|(b, p)| b.saturating_sub(p).max(0));
         let is_best = best.best_action.as_ref() == Some(&played);
         let margin = best
             .variations
             .first()
             .zip(best.variations.get(1))
             .map_or(0, |(a, b)| a.score.saturating_sub(b.score));
-        let (symbol, label) = if loss.unwrap_or(0) >= 250 {
-            (Some("??"), "Blunder")
-        } else if depth < 2 {
-            (None, "Shallow estimate")
-        } else if loss.unwrap_or(0) >= 100 {
-            (Some("?"), "Mistake")
-        } else if loss.unwrap_or(0) >= 40 {
-            (Some("?!"), "Inaccuracy")
-        } else if is_best && depth >= 3 && margin >= 200 {
-            (Some("!!"), "Only clearly preferred move")
-        } else if is_best && depth >= 3 && margin >= 80 {
-            (Some("!"), "Strong move")
-        } else if is_best || loss == Some(0) {
-            (Some("✓"), "Best move")
-        } else {
-            (Some("·"), "Good move")
-        };
-        Ok(MoveAssessment {
+        Ok(assess_scores(
             depth,
-            best_score: best.score,
-            played_score: candidate.score,
-            loss,
-            symbol: symbol.map(str::to_owned),
-            label: label.into(),
-            best_move: best
-                .best_action
+            best.score,
+            candidate.score,
+            is_best,
+            margin,
+            best.best_action
                 .as_ref()
                 .map(|a| self.action_label(&domain, &before, a))
                 .transpose()?,
-        })
+        ))
+    }
+    fn cached_assessment(
+        &self,
+        index: usize,
+        analysis: CachedAnalysis,
+    ) -> Result<Option<MoveAssessment>, String> {
+        let actual = self
+            .timeline()
+            .history()
+            .turns()
+            .get(index)
+            .ok_or("Move outside history")?;
+        let mut before = self.timeline().clone();
+        while before.history().len() > index {
+            before.undo().ok_or("Cannot rewind history")?;
+        }
+        let key = format!("{}:{:032x}", self.ruleset(), fingerprint(&before));
+        if analysis
+            .best_action
+            .as_ref()
+            .map(|a| a.position_key.as_str())
+            != Some(key.as_str())
+        {
+            return Ok(None);
+        }
+        let notation = match &self.inner {
+            Runtime::Chess(r) => r
+                .rules
+                .san_for_turn(actual, before.history())
+                .map_err(string_error)?,
+            Runtime::Go(_) => go_turn_notation(actual, before.current().board.width()),
+            Runtime::Checkers(_) => checkers_turn_notation(actual),
+        };
+        let Some((index, line)) = analysis
+            .lines
+            .iter()
+            .enumerate()
+            .find(|(_, l)| l.moves.first() == Some(&notation))
+        else {
+            return Ok(None);
+        };
+        let Some(best) = analysis.lines.first() else {
+            return Ok(None);
+        };
+        let sign = if analysis.perspective == actual.actor.get() {
+            1
+        } else {
+            -1
+        };
+        let best_score = best.score * sign;
+        let played_score = line.score * sign;
+        let margin = analysis
+            .lines
+            .get(1)
+            .map_or(0, |second| best_score.saturating_sub(second.score * sign));
+        Ok(Some(assess_scores(
+            analysis.depth,
+            Some(best_score),
+            Some(played_score),
+            index == 0,
+            margin,
+            best.moves.first().cloned(),
+        )))
     }
     pub(super) fn domain(&self) -> RuntimeDomain {
         match &self.inner {
@@ -331,20 +416,41 @@ impl GameHandle {
         &self,
         options: SearchOptions,
         cancel: impl FnMut() -> bool,
+        progress: impl FnMut(&AnalysisView),
+    ) -> Result<AnalysisView, String> {
+        let domain = self.domain();
+        let mut memory = SearchMemory::new(options.transposition_entries);
+        self.analyze_position_cached(&domain, &mut memory, options, cancel, progress, false)
+    }
+    pub(super) fn analyze_position_cached(
+        &self,
+        domain: &RuntimeDomain,
+        memory: &mut SearchMemory<RuntimeAction, PlayerId>,
+        options: SearchOptions,
+        cancel: impl FnMut() -> bool,
         mut progress: impl FnMut(&AnalysisView),
+        stable_perspective: bool,
     ) -> Result<AnalysisView, String> {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
         }
-        let domain = self.domain();
-        let player = self
-            .timeline()
-            .current()
-            .turn
-            .active_players
-            .first()
-            .copied()
-            .unwrap_or(PlayerId::new(1));
+        let player = if stable_perspective {
+            self.timeline()
+                .current()
+                .players
+                .keys()
+                .next()
+                .copied()
+                .unwrap_or(PlayerId::new(1))
+        } else {
+            self.timeline()
+                .current()
+                .turn
+                .active_players
+                .first()
+                .copied()
+                .unwrap_or(PlayerId::new(1))
+        };
         let start = now_ms();
         let key = self.position_key();
         let convert = |result: &SearchResult<RuntimeAction>| -> Result<AnalysisView, String> {
@@ -363,7 +469,7 @@ impl GameHandle {
                     .map(PositionView::from)
                     .collect();
                 for action in &variation.actions {
-                    moves.push(self.action_label(&domain, &position, action)?);
+                    moves.push(self.action_label(domain, &position, action)?);
                     position = domain.play(&position, action).map_err(string_error)?;
                 }
                 lines.push(AnalysisLine {
@@ -391,6 +497,7 @@ impl GameHandle {
                     StopReason::NodeLimit => "node_limit",
                     StopReason::Cancelled => "time_limit",
                     StopReason::Terminal => "terminal",
+                    StopReason::ForcedMove => "forced_move",
                 }
                 .into(),
                 transposition_hits: result.statistics.transposition_hits,
@@ -398,11 +505,12 @@ impl GameHandle {
                 cutoffs: result.statistics.cutoffs,
             })
         };
-        let result = analyze(
-            &domain,
+        let result = monumla_search::analyze_cached(
+            domain,
             self.timeline(),
             player,
             options,
+            memory,
             cancel,
             |result| {
                 if let Ok(view) = convert(result) {
@@ -430,25 +538,13 @@ impl GameHandle {
                 .san_for_turn(turn, position.history())
                 .map_err(string_error),
             Runtime::Go(_) => Ok(go_turn_notation(turn, position.current().board.width())),
-            Runtime::Checkers(_) => {
-                let path = domain.action_path(position, action).map_err(string_error)?;
-                let capture = turn.before.entities.len() > turn.after.entities.len();
-                let format = |p: Position| {
-                    if position.current().board.width() == 10 {
-                        ((9 - p.y) * 5 + p.x / 2 + 1).to_string()
-                    } else {
-                        format!("{}{}", char::from(b'a' + p.x as u8), p.y + 1)
-                    }
-                };
-                Ok(path
-                    .into_iter()
-                    .map(format)
-                    .collect::<Vec<_>>()
-                    .join(if capture { "x" } else { "-" }))
-            }
+            Runtime::Checkers(_) => Ok(checkers_turn_notation(turn)),
         }
     }
-    pub(super) fn apply_analyzed_action(&mut self, best: BestAction) -> Result<Vec<StepRecord>, String> {
+    pub(super) fn apply_analyzed_action(
+        &mut self,
+        best: BestAction,
+    ) -> Result<Vec<StepRecord>, String> {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
         }
@@ -487,6 +583,114 @@ impl GameHandle {
             }
         }
         Ok(steps)
+    }
+}
+
+fn assess_scores(
+    depth: u16,
+    best_score: Option<i32>,
+    played_score: Option<i32>,
+    is_best: bool,
+    margin: i32,
+    best_move: Option<String>,
+) -> MoveAssessment {
+    let loss = best_score
+        .zip(played_score)
+        .map(|(b, p)| b.saturating_sub(p).max(0));
+    let (symbol, label) = if loss.unwrap_or(0) >= 250 {
+        (Some("??"), "Blunder")
+    } else if depth < 2 {
+        (None, "Shallow estimate")
+    } else if loss.unwrap_or(0) >= 100 {
+        (Some("?"), "Mistake")
+    } else if loss.unwrap_or(0) >= 40 {
+        (Some("?!"), "Inaccuracy")
+    } else if is_best && depth >= 3 && margin >= 200 {
+        (Some("!!"), "Only clearly preferred move")
+    } else if is_best && depth >= 3 && margin >= 80 {
+        (Some("!"), "Strong move")
+    } else if is_best || loss == Some(0) {
+        (Some("✓"), "Best move")
+    } else {
+        (Some("·"), "Good move")
+    };
+    MoveAssessment {
+        depth,
+        best_score,
+        played_score,
+        loss,
+        symbol: symbol.map(str::to_owned),
+        label: label.into(),
+        best_move,
+    }
+}
+
+/// A worker-owned search session. No JS pointers or game-specific search state.
+#[wasm_bindgen]
+pub struct SearchSession {
+    game: GameHandle,
+    domain: RuntimeDomain,
+    memory: SearchMemory<RuntimeAction, PlayerId>,
+}
+#[wasm_bindgen]
+impl SearchSession {
+    #[wasm_bindgen(constructor)]
+    pub fn new(snapshot: JsValue) -> Result<SearchSession, JsValue> {
+        let game = GameHandle::restore_snapshot(
+            serde_wasm_bindgen::from_value(snapshot).map_err(js_error)?,
+        )
+        .map_err(js_error)?;
+        let domain = game.domain();
+        Ok(Self {
+            game,
+            domain,
+            memory: SearchMemory::new(16384),
+        })
+    }
+    #[wasm_bindgen(js_name=setPosition)]
+    pub fn set_position(&mut self, snapshot: JsValue) -> Result<(), JsValue> {
+        let game = GameHandle::restore_snapshot(
+            serde_wasm_bindgen::from_value(snapshot).map_err(js_error)?,
+        )
+        .map_err(js_error)?;
+        if game.ruleset() != self.game.ruleset() {
+            self.domain = game.domain();
+            self.memory = SearchMemory::new(16384);
+        }
+        self.game = game;
+        Ok(())
+    }
+    pub fn chunk(
+        &mut self,
+        depth: u16,
+        nodes: u32,
+        time_ms: u32,
+        lines: u8,
+        forced: bool,
+    ) -> Result<JsValue, JsValue> {
+        let deadline = now_ms() + f64::from(time_ms.clamp(20, 1000));
+        let result = self
+            .game
+            .analyze_position_cached(
+                &self.domain,
+                &mut self.memory,
+                SearchOptions {
+                    limits: SearchLimits {
+                        max_depth: depth.clamp(1, 32),
+                        max_nodes: Some(u64::from(nodes.clamp(100, 50_000_000))),
+                    },
+                    transposition_entries: 16384,
+                    multi_pv: usize::from(lines.clamp(1, 5)),
+                    stop_on_forced_move: forced,
+                    late_move_reductions: true,
+                    ..Default::default()
+                },
+                || now_ms() >= deadline,
+                |_| {},
+                true,
+            )
+            .map_err(js_error)?;
+        to_js(&result)
     }
 }
 
@@ -805,6 +1009,78 @@ mod tests {
                 domain.evaluate(&upgraded, player).unwrap() > ordinary + 100,
                 "{ruleset}"
             );
+        }
+    }
+    #[test]
+    fn published_analysis_grades_played_candidates_without_searching_again() {
+        for ruleset in ["chess", "checkers", "checkers-international", "go"] {
+            let mut game = if ruleset == "go" {
+                GameHandle {
+                    inner: Runtime::Go(
+                        GoRuntime::new(GoConfig::aga(9, GoScoring::Area, 0).unwrap()).unwrap(),
+                    ),
+                }
+            } else {
+                GameHandle::new_ruleset(ruleset).unwrap()
+            };
+            let report = game
+                .analyze_position(
+                    SearchOptions {
+                        limits: SearchLimits {
+                            max_depth: 1,
+                            max_nodes: Some(10000),
+                        },
+                        multi_pv: 3,
+                        ..Default::default()
+                    },
+                    || false,
+                    |_| {},
+                )
+                .unwrap();
+            game.apply_analyzed_action(report.best_action.clone().unwrap())
+                .unwrap();
+            let cached = CachedAnalysis {
+                depth: report.depth,
+                perspective: report.perspective,
+                best_action: report.best_action,
+                lines: report
+                    .lines
+                    .into_iter()
+                    .map(|line| CachedLine {
+                        score: line.score,
+                        moves: line.moves,
+                    })
+                    .collect(),
+            };
+            let grade = game.cached_assessment(0, cached).unwrap().unwrap();
+            assert_eq!(grade.loss, Some(0), "{ruleset}");
+            assert_ne!(grade.label, "Mistake");
+            assert_ne!(grade.label, "Blunder");
+        }
+    }
+    #[test]
+    fn recommended_move_review_agrees_with_root_search() {
+        let game = GameHandle {
+            inner: Runtime::Chess(
+                ChessRuntime::from_pgn("1. Nc3 Nc6 2. e4 e5 3. Bc4 Bc5 4. Qg4 Qf6 *").unwrap(),
+            ),
+        };
+        let assessment = game
+            .assess_turn(
+                7,
+                SearchOptions {
+                    limits: SearchLimits {
+                        max_depth: 3,
+                        max_nodes: Some(10000),
+                    },
+                    multi_pv: 2,
+                    ..Default::default()
+                },
+                6000.,
+            )
+            .unwrap();
+        if assessment.best_move.as_deref() == Some("Qf6") {
+            assert_eq!(assessment.loss, Some(0));
         }
     }
     #[test]
