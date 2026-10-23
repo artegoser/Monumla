@@ -20,3 +20,14 @@ The deadline is checked between nodes. Rule generation, move validation, and not
 Search changes belong in `monumla-search`. Keep the abstract minimax, draughts, Go, and browser regressions passing. Chess gains do not by themselves establish Go or draughts strength; their branching factors and strategic demands differ.
 
 Protocol and release sources: [Stockfish UCI documentation](https://official-stockfish.github.io/docs/stockfish-wiki/UCI-Protocol-and-Stockfish-Commands.html), [official releases](https://github.com/official-stockfish/Stockfish/releases).
+
+## Recorded runs
+
+Both runs use the same machine, Stockfish binary, starting-position color pair, and 1000 ms nominal budget.
+
+| Search revision | Result for Monumla | Termination |
+|---|---|---|
+| [Initial baseline](baseline-2026-10-23/report.md), `9db54e3` | 0–2 | Two checkmates, 38/21 plies |
+| [After probe fix](after-probe-fix-2026-10-23/report.md), `89e1bf6` | 0–2 | Two forfeits: no complete iteration, 18/13 plies |
+
+The match exposed capability probes becoming terminal after entities were removed, which undervalued some movement capabilities. The shared fix now passes knight-for-pawn and draughts-promotion regressions. It does **not** establish a strength gain: the updated run still loses and exposes the cost of generation/evaluation before the first completed iteration. The browser retries with longer budgets; this benchmark enforces its stated budget and records failure. The engine is not competitive with Stockfish at this setting.

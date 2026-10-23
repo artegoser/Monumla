@@ -1,0 +1,11 @@
+[Event "Monumla shared search benchmark"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "-"]
+[White "Monumla"]
+[Black "Stockfish 19"]
+[Result "0-1"]
+[SearchBudgetMs "1000"]
+[Termination "Monumla forfeit: no completed search iteration"]
+
+1. Nc3 d5 2. Nf3 Nf6 3. Ne5 d4 4. Nb5 a6 5. Na3 Qd5 6. Nd3 e5 7. Nb1 Nc6 8. a4 Bd6 9. h4 e4 0-1
