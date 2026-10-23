@@ -191,6 +191,7 @@ pub trait InteractionRules {
     ) -> Result<InteractionFlow, InteractionError>;
 }
 
+#[derive(Clone)]
 pub struct InteractionDriver<R> {
     rules: R,
     turn: TurnSession,
@@ -285,4 +286,40 @@ impl<R: InteractionRules> InteractionDriver<R> {
 /// richer action record yet.
 pub fn recorded_step(kind: impl Into<String>) -> RecordedAction {
     RecordedAction::new(kind)
+}
+
+impl<R: InteractionRules + ?Sized> InteractionRules for std::sync::Arc<R> {
+    fn choices(
+        &self,
+        turn: &TurnSession,
+        draft: &StateMap,
+    ) -> Result<Vec<ChoiceSpec>, InteractionError> {
+        (**self).choices(turn, draft)
+    }
+    fn apply_choice(
+        &self,
+        turn: &mut TurnSession,
+        draft: &mut StateMap,
+        choice: &Choice,
+    ) -> Result<InteractionFlow, InteractionError> {
+        (**self).apply_choice(turn, draft, choice)
+    }
+}
+
+impl<R: InteractionRules + ?Sized> InteractionRules for std::rc::Rc<R> {
+    fn choices(
+        &self,
+        turn: &TurnSession,
+        draft: &StateMap,
+    ) -> Result<Vec<ChoiceSpec>, InteractionError> {
+        (**self).choices(turn, draft)
+    }
+    fn apply_choice(
+        &self,
+        turn: &mut TurnSession,
+        draft: &mut StateMap,
+        choice: &Choice,
+    ) -> Result<InteractionFlow, InteractionError> {
+        (**self).apply_choice(turn, draft, choice)
+    }
 }

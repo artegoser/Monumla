@@ -3,6 +3,7 @@ use crate::{
     Transaction,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RecordedAction {
@@ -40,11 +41,11 @@ pub struct TurnRecord {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct History {
-    turns: Vec<TurnRecord>,
+    turns: Vec<Arc<TurnRecord>>,
 }
 
 impl History {
-    pub fn turns(&self) -> &[TurnRecord] {
+    pub fn turns(&self) -> &[Arc<TurnRecord>] {
         &self.turns
     }
 
@@ -57,7 +58,7 @@ impl History {
     }
 
     pub fn previous_turn(&self) -> Option<&TurnRecord> {
-        self.turns.last()
+        self.turns.last().map(AsRef::as_ref)
     }
 
     pub fn last_step(&self) -> Option<&StepRecord> {
@@ -87,7 +88,8 @@ impl History {
     /// Returns a cloned history with one contiguous committed turn appended.
     /// Useful for rules that need to evaluate the immediate consequences of a
     /// candidate completed turn without mutating the real game timeline.
-    pub fn with_appended(&self, turn: TurnRecord) -> Result<Self, CoreError> {
+    pub fn with_appended(&self, turn: impl Into<Arc<TurnRecord>>) -> Result<Self, CoreError> {
+        let turn = turn.into();
         if let Some(previous) = self.turns.last() {
             if previous.after != turn.before {
                 return Err(CoreError::TurnStateMismatch);
@@ -98,11 +100,11 @@ impl History {
         Ok(next)
     }
 
-    fn push(&mut self, turn: TurnRecord) {
-        self.turns.push(turn);
+    fn push(&mut self, turn: impl Into<Arc<TurnRecord>>) {
+        self.turns.push(turn.into());
     }
 
-    fn pop(&mut self) -> Option<TurnRecord> {
+    fn pop(&mut self) -> Option<Arc<TurnRecord>> {
         self.turns.pop()
     }
 }
@@ -207,11 +209,11 @@ impl TurnSession {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GameTimeline {
     current: GameState,
     history: History,
-    redo: Vec<TurnRecord>,
+    redo: Vec<Arc<TurnRecord>>,
 }
 
 impl GameTimeline {
@@ -289,5 +291,25 @@ impl GameTimeline {
     pub fn entity_turns_ago(&self, entity: EntityId, turns_ago: usize) -> Option<&EntityState> {
         self.state_turns_ago(turns_ago)
             .and_then(|state| state.entities.get(&entity))
+    }
+}
+
+// History is part of position identity. Redo branches never affect legal play.
+impl std::hash::Hash for GameTimeline {
+    fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+        self.current.hash(hasher);
+        self.history.len().hash(hasher);
+        for turn in self.history.turns() {
+            turn.actor.hash(hasher);
+            turn.synthetic.hash(hasher);
+            turn.before.hash(hasher);
+            turn.after.hash(hasher);
+            for step in &turn.steps {
+                step.before.hash(hasher);
+                step.after.hash(hasher);
+                step.action.kind.hash(hasher);
+                step.action.data.hash(hasher);
+            }
+        }
     }
 }

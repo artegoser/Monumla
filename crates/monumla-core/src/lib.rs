@@ -1,6 +1,7 @@
 //! Generic Monumla game runtime primitives.
 #![forbid(unsafe_code)]
 
+mod action;
 mod board;
 mod error;
 mod history;
@@ -11,6 +12,7 @@ mod state;
 mod transaction;
 mod value;
 
+pub use action::{EntityActionPath, TurnInput};
 pub use board::{Board, Position};
 pub use error::CoreError;
 pub use history::{
@@ -18,8 +20,8 @@ pub use history::{
 };
 pub use ids::{AbilityId, ChoiceId, EntityId, EntityTypeId, PlayerId, TeamId};
 pub use interaction::{
-    recorded_step, Choice, ChoiceInput, ChoiceIssuer, ChoiceKind, ChoiceSpec, Interaction, InteractionDriver,
-    InteractionError, InteractionFlow, InteractionRules, InteractionUpdate,
+    recorded_step, Choice, ChoiceInput, ChoiceIssuer, ChoiceKind, ChoiceSpec, Interaction,
+    InteractionDriver, InteractionError, InteractionFlow, InteractionRules, InteractionUpdate,
 };
 pub use rules::{
     AbilityRule, EntityPresentation, EntityRule, EntityRuleContext, GameOutcome, GameRule,
@@ -705,10 +707,7 @@ mod tests {
     }
 
     impl OutcomeRule for FlagOutcomeRule {
-        fn evaluate(
-            &self,
-            context: RuleContext<'_>,
-        ) -> Result<Option<GameOutcome>, RuleError> {
+        fn evaluate(&self, context: RuleContext<'_>) -> Result<Option<GameOutcome>, RuleError> {
             let active = context
                 .state()
                 .ruleset_state
@@ -725,7 +724,6 @@ mod tests {
             Ok(Some(outcome))
         }
     }
-
 
     struct AddGlobalChoiceRule;
 
@@ -947,8 +945,16 @@ mod tests {
         let choice = issued.choices.remove(0);
         let issued_input = ChoiceInput::from(&choice);
 
-        assert_eq!(input.kind, ChoiceKind::SelectOption { key: "upgrade".into() });
-        assert_eq!(input.data.get("level").and_then(StateValue::as_u64), Some(2));
+        assert_eq!(
+            input.kind,
+            ChoiceKind::SelectOption {
+                key: "upgrade".into()
+            }
+        );
+        assert_eq!(
+            input.data.get("level").and_then(StateValue::as_u64),
+            Some(2)
+        );
         assert_eq!(choice.label.as_deref(), Some("Upgrade now"));
         assert_eq!(choice.asset_key.as_deref(), Some("test/upgrade"));
         assert_eq!(issued_input, input);
@@ -1037,7 +1043,9 @@ mod tests {
         let before = state.clone();
         let action = RecordedAction::new("move");
         let mut transaction = Transaction::new(&state);
-        transaction.move_entity(entity, Position::new(1, 0)).unwrap();
+        transaction
+            .move_entity(entity, Position::new(1, 0))
+            .unwrap();
         registry
             .react_game_rules(&before, &action, &mut transaction)
             .unwrap();

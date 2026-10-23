@@ -19,3 +19,4 @@ monumla-games-go.workspace = true
 serde.workspace = true
 serde-wasm-bindgen.workspace = true
 wasm-bindgen.workspace = true
+js-sys.workspace = true

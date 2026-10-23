@@ -11,7 +11,7 @@ pub type EntityStore = BTreeMap<EntityId, EntityState>;
 pub type PlayerStore = BTreeMap<PlayerId, PlayerState>;
 pub type TeamStore = BTreeMap<TeamId, TeamState>;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct EntityState {
     pub id: EntityId,
     pub entity_type: EntityTypeId,
@@ -44,7 +44,7 @@ impl EntityState {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct PlayerState {
     pub id: PlayerId,
     pub team: Option<TeamId>,
@@ -66,7 +66,7 @@ impl PlayerState {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct TeamState {
     pub id: TeamId,
     pub state: TeamData,
@@ -81,13 +81,13 @@ impl TeamState {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Hash, Serialize, Deserialize)]
 pub struct TurnState {
     pub active_players: Vec<PlayerId>,
     pub state: TurnData,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct GameState {
     pub board: Board,
     pub entities: EntityStore,

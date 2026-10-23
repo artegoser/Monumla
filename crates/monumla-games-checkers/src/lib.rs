@@ -4,10 +4,10 @@
 mod interaction;
 mod moves;
 mod outcome;
-pub mod search;
 
 pub use interaction::CheckersInteractionRules;
-pub use moves::{legal_moves, play_move, DraughtsMove};
+pub use monumla_core::EntityActionPath;
+pub use moves::{legal_moves, play_move};
 pub use outcome::CheckersOutcomeRule;
 
 use monumla_core::{

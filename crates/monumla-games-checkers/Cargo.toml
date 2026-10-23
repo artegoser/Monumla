@@ -9,4 +9,3 @@ publish = false
 
 [dependencies]
 monumla-core.workspace = true
-monumla-search.workspace = true

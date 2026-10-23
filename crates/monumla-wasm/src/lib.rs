@@ -1,6 +1,9 @@
 //! Browser boundary for the Monumla Rust runtime.
 #![forbid(unsafe_code)]
 
+mod search;
+pub use search::{native_analysis, AnalysisView};
+
 use monumla_core::{
     Choice, ChoiceId, ChoiceKind, EntityState, GameOutcome, GameState, GameTimeline,
     InteractionDriver, InteractionRules, InteractionUpdate, PlayerState, Position, PresentationCue,
@@ -1060,7 +1063,7 @@ fn last_chess_action_view(history: &monumla_core::History) -> Option<MoveEndpoin
         .iter()
         .rev()
         .filter(|turn| !turn.synthetic)
-        .find_map(movement_endpoints)
+        .find_map(|turn| movement_endpoints(turn))
 }
 
 fn movement_endpoints(turn: &monumla_core::TurnRecord) -> Option<MoveEndpointsView> {

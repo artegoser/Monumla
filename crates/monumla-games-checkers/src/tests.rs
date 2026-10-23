@@ -64,7 +64,7 @@ fn men_capture_backwards_and_captures_are_compulsory_for_both_variants() {
         let legal = legal_moves(&state, WHITE).unwrap();
         assert_eq!(
             legal,
-            vec![DraughtsMove {
+            vec![EntityActionPath {
                 actor,
                 landings: vec![Position::new(2, 2)],
                 captures: vec![EntityId::new(2)]

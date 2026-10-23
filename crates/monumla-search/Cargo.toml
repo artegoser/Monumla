@@ -9,3 +9,5 @@ description = "Game-independent search, analysis, and best-action selection."
 
 [dependencies]
 thiserror.workspace = true
+monumla-core.workspace = true
+serde.workspace = true

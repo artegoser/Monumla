@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct StateMap(BTreeMap<String, StateValue>);
 
@@ -136,5 +136,21 @@ impl From<Vec<StateValue>> for StateValue {
 impl From<StateMap> for StateValue {
     fn from(value: StateMap) -> Self {
         Self::Map(value)
+    }
+}
+
+// Canonicalize signed zero because f64 equality considers +0 and -0 equal.
+impl std::hash::Hash for StateValue {
+    fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+        std::mem::discriminant(self).hash(hasher);
+        match self {
+            Self::Bool(v) => v.hash(hasher),
+            Self::I64(v) => v.hash(hasher),
+            Self::U64(v) => v.hash(hasher),
+            Self::F64(v) => (if *v == 0.0 { 0 } else { v.to_bits() }).hash(hasher),
+            Self::String(v) => v.hash(hasher),
+            Self::List(v) => v.hash(hasher),
+            Self::Map(v) => v.hash(hasher),
+        }
     }
 }

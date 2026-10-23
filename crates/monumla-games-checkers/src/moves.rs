@@ -1,15 +1,9 @@
 use crate::{is_king, promotion_row, DraughtsVariant, CHECKER, FORCED, KING, PENDING, WHITE};
-use monumla_core::{EntityId, GameState, InteractionError, PlayerId, Position, StateValue};
+use monumla_core::{
+    EntityActionPath, EntityId, GameState, InteractionError, PlayerId, Position, StateValue,
+};
 
 const DIAGONALS: [(i16, i16); 4] = [(-1, 1), (1, 1), (-1, -1), (1, -1)];
-
-/// One complete turn, including every landing and victim in capture order.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DraughtsMove {
-    pub actor: EntityId,
-    pub landings: Vec<Position>,
-    pub captures: Vec<EntityId>,
-}
 
 pub(crate) fn pending(state: &GameState) -> Vec<EntityId> {
     match state.ruleset_state.get(PENDING) {
@@ -78,9 +72,9 @@ fn capture_steps(
 
 fn capture_paths(
     state: &GameState,
-    path: DraughtsMove,
+    path: EntityActionPath,
     captured: &mut Vec<EntityId>,
-    output: &mut Vec<DraughtsMove>,
+    output: &mut Vec<EntityActionPath>,
 ) -> Result<(), InteractionError> {
     let steps = capture_steps(state, path.actor, captured)?;
     if steps.is_empty() {
@@ -112,7 +106,7 @@ fn capture_paths(
 pub fn legal_moves(
     state: &GameState,
     player: PlayerId,
-) -> Result<Vec<DraughtsMove>, InteractionError> {
+) -> Result<Vec<EntityActionPath>, InteractionError> {
     let forced = forced(state);
     let mut captured = pending(state);
     let actors: Vec<_> = state
@@ -130,7 +124,7 @@ pub fn legal_moves(
     for &actor in &actors {
         capture_paths(
             state,
-            DraughtsMove {
+            EntityActionPath {
                 actor,
                 landings: Vec::new(),
                 captures: Vec::new(),
@@ -161,7 +155,7 @@ pub fn legal_moves(
                 if state.entity_at(to)?.is_some() {
                     break;
                 }
-                moves.push(DraughtsMove {
+                moves.push(EntityActionPath {
                     actor,
                     landings: vec![to],
                     captures: Vec::new(),
@@ -180,7 +174,7 @@ pub fn legal_moves(
 /// Invalid or incomplete paths never mutate the supplied position.
 pub fn play_move(
     state: &GameState,
-    movement: &DraughtsMove,
+    movement: &EntityActionPath,
 ) -> Result<monumla_core::TurnSession, InteractionError> {
     use monumla_core::{ChoiceKind, InteractionDriver, TurnSession};
     let player = state.entity(movement.actor)?.controller;

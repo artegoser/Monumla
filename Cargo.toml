@@ -22,7 +22,8 @@ monumla-core = { path = "crates/monumla-core" }
 monumla-games-chess = { path = "crates/monumla-games-chess" }
 monumla-games-checkers = { path = "crates/monumla-games-checkers" }
 monumla-games-go = { path = "crates/monumla-games-go" }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 serde-wasm-bindgen = "0.6"
 thiserror = "2.0"
 wasm-bindgen = "0.2"
+js-sys = "0.3"

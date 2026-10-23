@@ -12,7 +12,6 @@ mod outcome;
 mod perft;
 mod piece;
 mod pieces;
-pub mod search;
 
 pub use error::ChessError;
 pub use fen::{FenGame, STANDARD_FEN};
@@ -24,8 +23,8 @@ pub use interaction::ChessInteractionRules;
 pub use notation::PgnGame;
 pub use outcome::{ChessDrawClaim, ChessOutcome, ChessOutcomeRule, ChessStatus, PositionKey};
 pub use piece::{
-    ChessMoveKind, ChessPieceContext, ChessPieceKind, ChessPieceRule, PseudoMove, BISHOP, KING, KNIGHT, PAWN,
-    QUEEN, ROOK,
+    ChessMoveKind, ChessPieceContext, ChessPieceKind, ChessPieceRule, PseudoMove, BISHOP, KING,
+    KNIGHT, PAWN, QUEEN, ROOK,
 };
 pub use pieces::{Bishop, King, Knight, Pawn, Queen, Rook};
 
@@ -34,7 +33,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ChessSide {
     White,
-    Black,}
+    Black,
+}
 
 #[cfg(test)]
 mod tests {
@@ -110,7 +110,10 @@ mod tests {
             else {
                 return Ok(());
             };
-            transaction.entity_mut(actor)?.state.insert("game_rule_reacted", true);
+            transaction
+                .entity_mut(actor)?
+                .state
+                .insert("game_rule_reacted", true);
             Ok(())
         }
     }
@@ -369,7 +372,9 @@ mod tests {
         add_piece(&mut state, 4, KING, ChessSide::Black, Position::new(7, 7));
 
         assert!(!rules.in_check(&state, ChessSide::White).unwrap());
-        assert!(rules.is_square_attacked(&state, ChessSide::Black, Position::new(4, 1)).unwrap());
+        assert!(rules
+            .is_square_attacked(&state, ChessSide::Black, Position::new(4, 1))
+            .unwrap());
 
         let pseudo = destinations(&rules.pseudo_moves(&state, pinned_rook).unwrap());
         assert!(pseudo.contains(&Position::new(3, 1)));
@@ -390,9 +395,13 @@ mod tests {
         add_piece(&mut state, 4, KING, ChessSide::Black, Position::new(7, 7));
 
         let pseudo = rules.pseudo_moves(&state, king).unwrap();
-        assert!(pseudo.iter().any(|movement| movement.capture == Some(victim)));
+        assert!(pseudo
+            .iter()
+            .any(|movement| movement.capture == Some(victim)));
         let legal = rules.legal_moves(&state, king).unwrap();
-        assert!(!legal.iter().any(|movement| movement.to == Position::new(4, 1)));
+        assert!(!legal
+            .iter()
+            .any(|movement| movement.to == Position::new(4, 1)));
     }
 
     #[test]
@@ -406,7 +415,9 @@ mod tests {
         add_piece(&mut state, 5, KING, ChessSide::Black, Position::new(7, 7));
 
         assert!(rules.in_check(&state, ChessSide::White).unwrap());
-        let legal = rules.legal_moves_for_side(&state, ChessSide::White).unwrap();
+        let legal = rules
+            .legal_moves_for_side(&state, ChessSide::White)
+            .unwrap();
         assert!(!legal.is_empty());
         assert!(legal.iter().all(|movement| movement.actor == king));
     }
@@ -478,7 +489,10 @@ mod tests {
             .unwrap()
             .id;
 
-        assert_eq!(driver.choose(destination).unwrap(), InteractionUpdate::Finished);
+        assert_eq!(
+            driver.choose(destination).unwrap(),
+            InteractionUpdate::Finished
+        );
         assert_eq!(
             driver.turn().working.entity(pawn).unwrap().position,
             Position::new(4, 3)
@@ -504,7 +518,10 @@ mod tests {
                 .unwrap()
                 .id;
             driver.choose(choice).unwrap();
-            assert_eq!(ChessInteractionRules::selected_entity(driver.draft()), expected_selected);
+            assert_eq!(
+                ChessInteractionRules::selected_entity(driver.draft()),
+                expected_selected
+            );
         }
     }
 
@@ -528,7 +545,9 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(3, 4))
             .unwrap();
-        rules.execute_move(&mut black_turn, None, double, None).unwrap();
+        rules
+            .execute_move(&mut black_turn, None, double, None)
+            .unwrap();
         timeline.commit_turn(black_turn).unwrap();
 
         let ep = rules
@@ -569,7 +588,9 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(3, 3))
             .unwrap();
-        rules.execute_move(&mut white_turn, None, double, None).unwrap();
+        rules
+            .execute_move(&mut white_turn, None, double, None)
+            .unwrap();
         timeline.commit_turn(white_turn).unwrap();
 
         let moves = rules
@@ -601,7 +622,9 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(3, 4))
             .unwrap();
-        rules.execute_move(&mut black_turn, None, double, None).unwrap();
+        rules
+            .execute_move(&mut black_turn, None, double, None)
+            .unwrap();
         timeline.commit_turn(black_turn).unwrap();
 
         let mut white_turn = timeline.begin_turn(WHITE_PLAYER).unwrap();
@@ -631,7 +654,9 @@ mod tests {
         let legal = rules
             .legal_moves_with_history(timeline.current(), Some(timeline.history()), white_pawn)
             .unwrap();
-        assert!(!legal.iter().any(|movement| matches!(movement.kind, ChessMoveKind::EnPassant { .. })));
+        assert!(!legal
+            .iter()
+            .any(|movement| matches!(movement.kind, ChessMoveKind::EnPassant { .. })));
     }
 
     #[test]
@@ -655,13 +680,17 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(5, 4))
             .unwrap();
-        rules.execute_move(&mut black_turn, None, double, None).unwrap();
+        rules
+            .execute_move(&mut black_turn, None, double, None)
+            .unwrap();
         timeline.commit_turn(black_turn).unwrap();
 
         let legal = rules
             .legal_moves_with_history(timeline.current(), Some(timeline.history()), white_pawn)
             .unwrap();
-        assert!(!legal.iter().any(|movement| movement.to == Position::new(5, 5)));
+        assert!(!legal
+            .iter()
+            .any(|movement| movement.to == Position::new(5, 5)));
     }
 
     #[test]
@@ -691,10 +720,18 @@ mod tests {
             .unwrap();
         let mut turn = TurnSession::new(&state, WHITE_PLAYER).unwrap();
         rules.execute_move(&mut turn, None, castle, None).unwrap();
-        assert_eq!(turn.working.entity(king).unwrap().position, Position::new(6, 0));
-        assert_eq!(turn.working.entity(king_rook).unwrap().position, Position::new(5, 0));
+        assert_eq!(
+            turn.working.entity(king).unwrap().position,
+            Position::new(6, 0)
+        );
+        assert_eq!(
+            turn.working.entity(king_rook).unwrap().position,
+            Position::new(5, 0)
+        );
         assert!(crate::piece::has_moved(turn.working.entity(king).unwrap()));
-        assert!(crate::piece::has_moved(turn.working.entity(king_rook).unwrap()));
+        assert!(crate::piece::has_moved(
+            turn.working.entity(king_rook).unwrap()
+        ));
     }
 
     #[test]
@@ -770,7 +807,10 @@ mod tests {
                 _ => None,
             })
             .collect::<BTreeSet<_>>();
-        assert_eq!(option_keys, BTreeSet::from(["bishop", "knight", "queen", "rook"]));
+        assert_eq!(
+            option_keys,
+            BTreeSet::from(["bishop", "knight", "queen", "rook"])
+        );
         assert_eq!(driver.turn().steps.len(), 0);
 
         let knight = driver
@@ -783,7 +823,10 @@ mod tests {
         driver.choose(knight).unwrap();
         assert!(driver.is_finished());
         assert_eq!(driver.turn().steps.len(), 1);
-        assert_eq!(driver.turn().working.entity(pawn).unwrap().entity_type, KNIGHT);
+        assert_eq!(
+            driver.turn().working.entity(pawn).unwrap().entity_type,
+            KNIGHT
+        );
     }
 
     #[test]
@@ -919,7 +962,9 @@ mod tests {
             .unwrap();
         let mut turn = TurnSession::new(&state, WHITE_PLAYER).unwrap();
         let input = pieces::pawn::Pawn::promotion_input(BISHOP).unwrap();
-        rules.execute_move(&mut turn, None, movement, Some(&input)).unwrap();
+        rules
+            .execute_move(&mut turn, None, movement, Some(&input))
+            .unwrap();
         assert!(!turn.working.entities.contains_key(&victim));
         assert_eq!(turn.working.entity(pawn).unwrap().entity_type, BISHOP);
     }
@@ -976,9 +1021,27 @@ mod tests {
         assert_eq!(generic.losers, vec![BLACK_PLAYER]);
 
         let mut stalemate = empty_chess_state().unwrap();
-        add_piece(&mut stalemate, 1, KING, ChessSide::White, Position::new(5, 6));
-        add_piece(&mut stalemate, 2, QUEEN, ChessSide::White, Position::new(6, 5));
-        add_piece(&mut stalemate, 3, KING, ChessSide::Black, Position::new(7, 7));
+        add_piece(
+            &mut stalemate,
+            1,
+            KING,
+            ChessSide::White,
+            Position::new(5, 6),
+        );
+        add_piece(
+            &mut stalemate,
+            2,
+            QUEEN,
+            ChessSide::White,
+            Position::new(6, 5),
+        );
+        add_piece(
+            &mut stalemate,
+            3,
+            KING,
+            ChessSide::Black,
+            Position::new(7, 7),
+        );
         stalemate.set_active_players(vec![BLACK_PLAYER]).unwrap();
         let status = rules.status(&stalemate, &history).unwrap();
         assert!(!status.in_check);
@@ -993,7 +1056,9 @@ mod tests {
         let history = History::default();
         let mut resignation = standard_chess_state().unwrap();
         assert_eq!(
-            rules.resign(&mut resignation, &history, WHITE_PLAYER).unwrap(),
+            rules
+                .resign(&mut resignation, &history, WHITE_PLAYER)
+                .unwrap(),
             ChessOutcome::Resignation {
                 winner: BLACK_PLAYER,
                 loser: WHITE_PLAYER,
@@ -1030,11 +1095,16 @@ mod tests {
         commit_to(&mut timeline, &rules, black_pawn, Position::new(4, 4));
         let mut agreement = timeline.current().clone();
         assert_eq!(
-            rules.agree_draw(&mut agreement, timeline.history()).unwrap(),
+            rules
+                .agree_draw(&mut agreement, timeline.history())
+                .unwrap(),
             ChessOutcome::DrawAgreement
         );
         assert_eq!(
-            rules.status(&agreement, timeline.history()).unwrap().outcome,
+            rules
+                .status(&agreement, timeline.history())
+                .unwrap()
+                .outcome,
             Some(ChessOutcome::DrawAgreement)
         );
     }
@@ -1045,9 +1115,27 @@ mod tests {
 
         let rules = ChessRules::standard();
         let mut with_rights = empty_chess_state().unwrap();
-        add_piece(&mut with_rights, 1, KING, ChessSide::White, Position::new(4, 0));
-        let rook = add_piece(&mut with_rights, 2, ROOK, ChessSide::White, Position::new(7, 0));
-        add_piece(&mut with_rights, 3, KING, ChessSide::Black, Position::new(4, 7));
+        add_piece(
+            &mut with_rights,
+            1,
+            KING,
+            ChessSide::White,
+            Position::new(4, 0),
+        );
+        let rook = add_piece(
+            &mut with_rights,
+            2,
+            ROOK,
+            ChessSide::White,
+            Position::new(7, 0),
+        );
+        add_piece(
+            &mut with_rights,
+            3,
+            KING,
+            ChessSide::Black,
+            Position::new(4, 7),
+        );
         let no_history = History::default();
         let key_with_rights = rules.position_key(&with_rights, &no_history).unwrap();
         let mut without_rights = with_rights.clone();
@@ -1056,20 +1144,50 @@ mod tests {
         assert_ne!(key_with_rights, key_without_rights);
 
         let mut black_to_move = with_rights.clone();
-        black_to_move.set_active_players(vec![BLACK_PLAYER]).unwrap();
+        black_to_move
+            .set_active_players(vec![BLACK_PLAYER])
+            .unwrap();
         let black_key = rules.position_key(&black_to_move, &no_history).unwrap();
         assert_ne!(key_with_rights, black_key);
 
         let mut ep_state = empty_chess_state().unwrap();
-        add_piece(&mut ep_state, 10, KING, ChessSide::White, Position::new(4, 0));
-        add_piece(&mut ep_state, 11, PAWN, ChessSide::White, Position::new(4, 4));
-        add_piece(&mut ep_state, 12, KING, ChessSide::Black, Position::new(4, 7));
-        let black_pawn = add_piece(&mut ep_state, 13, PAWN, ChessSide::Black, Position::new(3, 6));
+        add_piece(
+            &mut ep_state,
+            10,
+            KING,
+            ChessSide::White,
+            Position::new(4, 0),
+        );
+        add_piece(
+            &mut ep_state,
+            11,
+            PAWN,
+            ChessSide::White,
+            Position::new(4, 4),
+        );
+        add_piece(
+            &mut ep_state,
+            12,
+            KING,
+            ChessSide::Black,
+            Position::new(4, 7),
+        );
+        let black_pawn = add_piece(
+            &mut ep_state,
+            13,
+            PAWN,
+            ChessSide::Black,
+            Position::new(3, 6),
+        );
         ep_state.set_active_players(vec![BLACK_PLAYER]).unwrap();
         let mut timeline = GameTimeline::new(ep_state).unwrap();
         commit_to(&mut timeline, &rules, black_pawn, Position::new(3, 4));
-        let with_ep = rules.position_key(timeline.current(), timeline.history()).unwrap();
-        let without_ep = rules.position_key(timeline.current(), &History::default()).unwrap();
+        let with_ep = rules
+            .position_key(timeline.current(), timeline.history())
+            .unwrap();
+        let without_ep = rules
+            .position_key(timeline.current(), &History::default())
+            .unwrap();
         assert_ne!(with_ep, without_ep);
     }
 
@@ -1091,7 +1209,9 @@ mod tests {
             commit_to(&mut timeline, &rules, white_knight, Position::new(1, 0));
             commit_to(&mut timeline, &rules, black_knight, Position::new(1, 7));
         }
-        let status = rules.status(timeline.current(), timeline.history()).unwrap();
+        let status = rules
+            .status(timeline.current(), timeline.history())
+            .unwrap();
         assert_eq!(status.repetition_count, 3);
         assert!(status.can_claim_threefold_repetition);
         assert_eq!(status.outcome, None);
@@ -1114,7 +1234,9 @@ mod tests {
             commit_to(&mut timeline, &rules, white_knight, Position::new(1, 0));
             commit_to(&mut timeline, &rules, black_knight, Position::new(1, 7));
         }
-        let status = rules.status(timeline.current(), timeline.history()).unwrap();
+        let status = rules
+            .status(timeline.current(), timeline.history())
+            .unwrap();
         assert_eq!(status.repetition_count, 5);
         assert_eq!(status.outcome, Some(ChessOutcome::FivefoldRepetition));
     }
@@ -1144,7 +1266,9 @@ mod tests {
             .record_result(&mut terminal, Some(WHITE_PLAYER))
             .unwrap();
         assert_eq!(
-            rules.repetition_count(&terminal, timeline.history()).unwrap(),
+            rules
+                .repetition_count(&terminal, timeline.history())
+                .unwrap(),
             before
         );
     }
@@ -1195,7 +1319,9 @@ mod tests {
         commit_to(&mut timeline, &rules, black_knight, Position::new(2, 5));
         commit_to(&mut timeline, &rules, white_knight, Position::new(1, 0));
 
-        let status = rules.status(timeline.current(), timeline.history()).unwrap();
+        let status = rules
+            .status(timeline.current(), timeline.history())
+            .unwrap();
         assert_eq!(status.repetition_count, 2);
         assert!(!status.can_claim_threefold_repetition);
 
@@ -1250,7 +1376,12 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(2, 2))
             .unwrap();
-        assert!(!rules.status(&state, &history).unwrap().can_claim_fifty_move_rule);
+        assert!(
+            !rules
+                .status(&state, &history)
+                .unwrap()
+                .can_claim_fifty_move_rule
+        );
         assert!(rules
             .claimable_draw_moves(&state, &history, ChessDrawClaim::FiftyMoveRule)
             .unwrap()
@@ -1375,5 +1506,4 @@ mod tests {
             Some(ChessOutcome::Checkmate { .. })
         ));
     }
-
 }

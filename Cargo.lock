@@ -62,7 +62,6 @@ name = "monumla-games-checkers"
 version = "0.1.0"
 dependencies = [
  "monumla-core",
- "monumla-search",
 ]
 
 [[package]]
@@ -70,7 +69,6 @@ name = "monumla-games-chess"
 version = "0.1.0"
 dependencies = [
  "monumla-core",
- "monumla-search",
  "serde",
  "thiserror",
 ]
@@ -86,6 +84,8 @@ dependencies = [
 name = "monumla-search"
 version = "0.1.0"
 dependencies = [
+ "monumla-core",
+ "serde",
  "thiserror",
 ]
 
@@ -93,6 +93,7 @@ dependencies = [
 name = "monumla-wasm"
 version = "0.1.0"
 dependencies = [
+ "js-sys",
  "monumla-core",
  "monumla-games-checkers",
  "monumla-games-chess",

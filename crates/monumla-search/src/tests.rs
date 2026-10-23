@@ -293,8 +293,267 @@ fn alpha_beta_matches_exhaustive_minimax_across_generated_trees_and_depths() {
 fn alpha_beta_prunes_and_results_are_deterministic() {
     let mut tree = trap();
     tree.0[2].score = 10;
-    let result = search(&tree, &0, true, limits(2)).unwrap();
+    let result = analyze(
+        &tree,
+        &0,
+        true,
+        SearchOptions {
+            limits: limits(2),
+            principal_variation_search: false,
+            ..SearchOptions::default()
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
     // Iteration one: 3 nodes. Full depth two without pruning: 7 nodes.
     assert!(result.nodes < 10);
-    assert_eq!(result, search(&tree, &0, true, limits(2)).unwrap());
+    assert!(result.statistics.cutoffs > 0);
+}
+
+struct Cached(Tree);
+impl SearchDomain for Cached {
+    type Position = usize;
+    type Action = usize;
+    type Perspective = bool;
+    type Error = &'static str;
+    fn terminal_score(&self, p: &usize, v: bool) -> Result<Option<i32>, Self::Error> {
+        self.0.terminal_score(p, v)
+    }
+    fn evaluate(&self, p: &usize, v: bool) -> Result<i32, Self::Error> {
+        self.0.evaluate(p, v)
+    }
+    fn role(&self, p: &usize, v: bool) -> Result<NodeRole, Self::Error> {
+        self.0.role(p, v)
+    }
+    fn actions(&self, p: &usize) -> Result<Vec<usize>, Self::Error> {
+        self.0.actions(p)
+    }
+    fn play(&self, p: &usize, a: &usize) -> Result<usize, Self::Error> {
+        self.0.play(p, a)
+    }
+    fn position_key(&self, p: &usize) -> Option<u128> {
+        Some(*p as u128)
+    }
+    fn action_key(&self, a: &usize) -> Option<u64> {
+        Some(*a as u64)
+    }
+}
+#[test]
+fn transpositions_reduce_work_and_collision_replacement_preserves_scores_and_pv() {
+    use NodeRole::*;
+    let domain = Cached(Tree(vec![
+        node(Maximize, 0, &[1, 2]),
+        node(Minimize, 0, &[3, 4]),
+        node(Minimize, 0, &[3, 4]),
+        node(Maximize, 0, &[5, 6]),
+        node(Maximize, 0, &[6, 7]),
+        node(Minimize, 5, &[]),
+        node(Minimize, 8, &[]),
+        node(Minimize, -2, &[]),
+    ]));
+    let options = SearchOptions {
+        limits: limits(3),
+        principal_variation_search: false,
+        aspiration_window: 0,
+        transposition_entries: 64,
+        ..SearchOptions::default()
+    };
+    let cached = analyze(&domain, &0, true, options, || false, |_| {}).unwrap();
+    let plain = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            transposition_entries: 0,
+            ..options
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(cached.score, Some(exhaustive(&domain.0, 0, 3)));
+    assert_eq!(cached.score, plain.score);
+    assert!(cached.statistics.transposition_hits > 0);
+    assert!(cached.nodes < plain.nodes);
+    let collision = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            transposition_entries: 1,
+            ..options
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(cached.score, collision.score);
+    for result in [cached, collision] {
+        let mut position = 0;
+        for action in result.principal_variation {
+            position = domain.play(&position, &action).unwrap();
+        }
+        assert_eq!(
+            domain.terminal_score(&position, true).unwrap(),
+            result.score
+        );
+    }
+}
+#[test]
+fn cached_bounds_and_pvs_match_exhaustive_search_on_generated_dags() {
+    for mut seed in 0..25 {
+        let mut nodes = Vec::new();
+        generated_tree(&mut seed, 4, &mut nodes);
+        // Share a subtree at the same depth, creating real transpositions.
+        let left = nodes[0].children[0];
+        let right = nodes[0].children[1];
+        nodes[right].children[0] = nodes[left].children[0];
+        let domain = Cached(Tree(nodes));
+        for capacity in [1, 8, 128] {
+            let result = analyze(
+                &domain,
+                &0,
+                true,
+                SearchOptions {
+                    limits: limits(4),
+                    transposition_entries: capacity,
+                    aspiration_window: 1,
+                    ..SearchOptions::default()
+                },
+                || false,
+                |_| {},
+            )
+            .unwrap();
+            assert_eq!(result.score, Some(exhaustive(&domain.0, 0, 4)));
+        }
+    }
+}
+struct Tactical(Tree);
+impl SearchDomain for Tactical {
+    type Position = usize;
+    type Action = usize;
+    type Perspective = bool;
+    type Error = &'static str;
+    fn terminal_score(&self, p: &usize, v: bool) -> Result<Option<i32>, Self::Error> {
+        self.0.terminal_score(p, v)
+    }
+    fn evaluate(&self, p: &usize, v: bool) -> Result<i32, Self::Error> {
+        self.0.evaluate(p, v)
+    }
+    fn role(&self, p: &usize, v: bool) -> Result<NodeRole, Self::Error> {
+        self.0.role(p, v)
+    }
+    fn actions(&self, p: &usize) -> Result<Vec<usize>, Self::Error> {
+        self.0.actions(p)
+    }
+    fn play(&self, p: &usize, a: &usize) -> Result<usize, Self::Error> {
+        self.0.play(p, a)
+    }
+    fn quiescence(&self, p: &usize) -> Result<Option<Quiescence<usize>>, Self::Error> {
+        Ok((*p == 1).then_some(Quiescence {
+            actions: vec![3],
+            stand_pat: false,
+        }))
+    }
+}
+#[test]
+fn quiescence_sees_forced_tactical_reply_instead_of_standing_pat() {
+    let domain = Tactical(trap());
+    let options = SearchOptions {
+        limits: limits(1),
+        ..SearchOptions::default()
+    };
+    let plain = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            quiescence_depth: 0,
+            ..options
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    let tactical = analyze(&domain, &0, true, options, || false, |_| {}).unwrap();
+    assert_eq!(plain.best_action, Some(1));
+    assert_eq!(tactical.best_action, Some(2));
+    assert_eq!(tactical.score, Some(3));
+    assert!(tactical.statistics.quiescence_nodes > 0);
+}
+#[test]
+fn progress_reports_only_completed_depths_and_budgets_include_research_and_tactics() {
+    let domain = Tactical(trap());
+    let mut depths = Vec::new();
+    let result = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            limits: limits(3),
+            aspiration_window: 1,
+            ..SearchOptions::default()
+        },
+        || false,
+        |r| depths.push((r.completed_depth, r.nodes, r.best_action)),
+    )
+    .unwrap();
+    assert_eq!(depths.iter().map(|d| d.0).collect::<Vec<_>>(), [1, 2, 3]);
+    assert!(depths.windows(2).all(|d| d[0].1 < d[1].1));
+    assert_eq!(result.best_action, depths.last().unwrap().2);
+    for budget in 0..30 {
+        let result = search(
+            &domain,
+            &0,
+            true,
+            SearchLimits {
+                max_depth: 4,
+                max_nodes: Some(budget),
+            },
+        )
+        .unwrap();
+        assert!(result.nodes <= budget);
+    }
+}
+#[test]
+fn invalid_memory_and_extension_limits_are_rejected() {
+    for options in [
+        SearchOptions {
+            transposition_entries: 1_048_577,
+            ..SearchOptions::default()
+        },
+        SearchOptions {
+            quiescence_depth: 65,
+            ..SearchOptions::default()
+        },
+        SearchOptions {
+            aspiration_window: -1,
+            ..SearchOptions::default()
+        },
+    ] {
+        assert_eq!(
+            analyze(&trap(), &0, true, options, || false, |_| {}),
+            Err(SearchError::InvalidOptions)
+        );
+    }
+}
+
+#[test]
+fn played_candidate_is_searched_at_the_same_root_and_depth() {
+    let tree = trap();
+    let options = SearchOptions {
+        limits: limits(2),
+        ..Default::default()
+    };
+    let best = analyze(&tree, &0, true, options, || false, |_| {}).unwrap();
+    let played = analyze_action(&tree, &0, true, 1, options, || false, |_| {}).unwrap();
+    assert_eq!(best.score, Some(2));
+    assert_eq!(played.score, Some(-8));
+    assert_eq!(played.principal_variation, [1, 3]);
+    assert_eq!(played.completed_depth, best.completed_depth);
+    assert_eq!(
+        analyze_action(&tree, &0, true, 99, options, || false, |_| {}),
+        Err(SearchError::NoActions)
+    );
 }

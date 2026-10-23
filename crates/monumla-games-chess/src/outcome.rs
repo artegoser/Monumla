@@ -1,6 +1,5 @@
 use crate::{
-    piece::has_moved,
-    pieces::pawn::en_passant_moves_from_previous, ChessError, ChessPieceContext,
+    piece::has_moved, pieces::pawn::en_passant_moves_from_previous, ChessError, ChessPieceContext,
     ChessRules, ChessSide, BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK,
 };
 use monumla_core::{
@@ -37,7 +36,6 @@ pub enum ChessOutcome {
     RecordedWin { winner: PlayerId, loser: PlayerId },
     RecordedDraw,
 }
-
 
 #[derive(Clone)]
 pub struct ChessOutcomeRule {
@@ -131,7 +129,9 @@ impl ChessRules {
     }
 
     pub fn set_halfmove_clock(&self, state: &mut GameState, value: u16) {
-        state.ruleset_state.insert(HALF_MOVE_CLOCK, u64::from(value));
+        state
+            .ruleset_state
+            .insert(HALF_MOVE_CLOCK, u64::from(value));
     }
 
     pub fn fullmove_number(&self, state: &GameState) -> u32 {
@@ -268,7 +268,12 @@ impl ChessRules {
         let side = self.side_to_move(state)?;
         let mut claimable = Vec::new();
         for movement in self.legal_moves_for_side_with_history(state, Some(history), side)? {
-            let choices = self.move_choices(state, Some(history), movement, &monumla_core::StateMap::new())?;
+            let choices = self.move_choices(
+                state,
+                Some(history),
+                movement,
+                &monumla_core::StateMap::new(),
+            )?;
             if choices.is_empty() {
                 if self.projected_move_satisfies_claim(state, history, claim, movement, None)? {
                     claimable.push((movement, None));
@@ -282,7 +287,9 @@ impl ChessRules {
                     .and_then(StateValue::as_u64)
                     .and_then(|value| u32::try_from(value).ok())
                     .map(EntityTypeId::new);
-                if self.projected_move_satisfies_claim(state, history, claim, movement, promotion)? {
+                if self
+                    .projected_move_satisfies_claim(state, history, claim, movement, promotion)?
+                {
                     claimable.push((movement, promotion));
                 }
             }
@@ -353,11 +360,19 @@ impl ChessRules {
         })
     }
 
-    pub fn position_key(&self, state: &GameState, history: &History) -> Result<PositionKey, ChessError> {
+    pub fn position_key(
+        &self,
+        state: &GameState,
+        history: &History,
+    ) -> Result<PositionKey, ChessError> {
         self.position_key_after(state, previous_chess_move(history))
     }
 
-    pub fn repetition_count(&self, state: &GameState, history: &History) -> Result<usize, ChessError> {
+    pub fn repetition_count(
+        &self,
+        state: &GameState,
+        history: &History,
+    ) -> Result<usize, ChessError> {
         let target = self.position_key(state, history)?;
         if history.is_empty() {
             return Ok(1);
@@ -530,7 +545,9 @@ impl ChessRules {
                     .insert(EXPLICIT_LOSER, u64::from(loser.get()));
             }
             ChessOutcome::DrawAgreement => {
-                state.ruleset_state.insert(EXPLICIT_OUTCOME, "draw_agreement");
+                state
+                    .ruleset_state
+                    .insert(EXPLICIT_OUTCOME, "draw_agreement");
             }
             ChessOutcome::ThreefoldRepetition => {
                 state
@@ -552,13 +569,18 @@ impl ChessRules {
                     .insert(EXPLICIT_LOSER, u64::from(loser.get()));
             }
             ChessOutcome::RecordedDraw => {
-                state.ruleset_state.insert(EXPLICIT_OUTCOME, "recorded_draw");
+                state
+                    .ruleset_state
+                    .insert(EXPLICIT_OUTCOME, "recorded_draw");
             }
             _ => {}
         }
     }
 
-    pub(crate) fn explicit_outcome(&self, state: &GameState) -> Result<Option<ChessOutcome>, ChessError> {
+    pub(crate) fn explicit_outcome(
+        &self,
+        state: &GameState,
+    ) -> Result<Option<ChessOutcome>, ChessError> {
         let Some(kind) = state
             .ruleset_state
             .get(EXPLICIT_OUTCOME)
@@ -612,11 +634,18 @@ impl ChessRules {
 }
 
 fn turn_records_chess_move(turn: &TurnRecord) -> bool {
-    turn.steps.iter().any(|step| step.action.kind == "chess_move")
+    turn.steps
+        .iter()
+        .any(|step| step.action.kind == "chess_move")
 }
 
 fn previous_chess_move(history: &History) -> Option<&TurnRecord> {
-    history.turns().iter().rev().find(|turn| turn_records_chess_move(turn))
+    history
+        .turns()
+        .iter()
+        .rev()
+        .find(|turn| turn_records_chess_move(turn))
+        .map(AsRef::as_ref)
 }
 
 fn square_color(position: Position) -> bool {

@@ -22,7 +22,7 @@ impl fmt::Display for Position {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct Board {
     width: u16,
     height: u16,

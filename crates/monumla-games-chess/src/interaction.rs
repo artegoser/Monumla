@@ -1,8 +1,17 @@
 use crate::{ChessError, ChessRules, ChessSide, PseudoMove};
 use monumla_core::{
-    Choice, ChoiceInput, ChoiceKind, ChoiceSpec, EntityId, History, InteractionError, InteractionFlow,
-    InteractionRules, RuleContext, StateMap, TurnSession,
+    Choice, ChoiceInput, ChoiceKind, ChoiceSpec, EntityId, History, InteractionError,
+    InteractionFlow, InteractionRules, RuleContext, StateMap, TurnSession,
 };
+
+use std::{cell::RefCell, collections::BTreeMap};
+
+#[derive(Default)]
+struct InteractionCache {
+    state: Option<monumla_core::GameState>,
+    terminal: Option<bool>,
+    moves: BTreeMap<EntityId, Vec<PseudoMove>>,
+}
 
 const SELECTED_ENTITY: &str = "chess.selected_entity";
 const PENDING_X: &str = "chess.pending_x";
@@ -11,6 +20,7 @@ const PENDING_Y: &str = "chess.pending_y";
 pub struct ChessInteractionRules {
     rules: ChessRules,
     history: Option<History>,
+    cache: RefCell<Box<InteractionCache>>,
 }
 
 impl ChessInteractionRules {
@@ -18,6 +28,7 @@ impl ChessInteractionRules {
         Self {
             rules: rules.clone(),
             history: None,
+            cache: RefCell::default(),
         }
     }
 
@@ -25,6 +36,7 @@ impl ChessInteractionRules {
         Self {
             rules: rules.clone(),
             history: Some(history.clone()),
+            cache: RefCell::default(),
         }
     }
 
@@ -77,9 +89,40 @@ impl ChessInteractionRules {
         turn: &TurnSession,
         entity: EntityId,
     ) -> Result<Vec<PseudoMove>, InteractionError> {
-        self.rules
+        self.refresh_cache(&turn.working);
+        if let Some(moves) = self.cache.borrow().moves.get(&entity) {
+            return Ok(moves.clone());
+        }
+        let moves = self
+            .rules
             .legal_moves_with_history(&turn.working, self.history.as_ref(), entity)
-            .map_err(Self::rule_error)
+            .map_err(Self::rule_error)?;
+        self.cache.borrow_mut().moves.insert(entity, moves.clone());
+        Ok(moves)
+    }
+
+    fn refresh_cache(&self, state: &monumla_core::GameState) {
+        if self.cache.borrow().state.as_ref() != Some(state) {
+            **self.cache.borrow_mut() = InteractionCache {
+                state: Some(state.clone()),
+                ..Default::default()
+            };
+        }
+    }
+
+    fn terminal(&self, turn: &TurnSession, history: &History) -> Result<bool, InteractionError> {
+        self.refresh_cache(&turn.working);
+        if let Some(terminal) = self.cache.borrow().terminal {
+            return Ok(terminal);
+        }
+        let terminal = self
+            .rules
+            .status(&turn.working, history)
+            .map_err(Self::rule_error)?
+            .outcome
+            .is_some();
+        self.cache.borrow_mut().terminal = Some(terminal);
+        Ok(terminal)
     }
 
     fn movement_to(
@@ -118,19 +161,15 @@ impl InteractionRules for ChessInteractionRules {
         let side = self.side_to_move(turn)?;
         let empty_history = History::default();
         let history = self.history.as_ref().unwrap_or(&empty_history);
-        if self
-            .rules
-            .status(&turn.working, history)
-            .map_err(Self::rule_error)?
-            .outcome
-            .is_some()
-        {
+        if self.terminal(turn, history)? {
             return Ok(Vec::new());
         }
 
         if let Some(target) = Self::pending_target(draft) {
             let actor = Self::selected_entity(draft).ok_or_else(|| {
-                InteractionError::RuleViolation("pending continuation has no selected entity".into())
+                InteractionError::RuleViolation(
+                    "pending continuation has no selected entity".into(),
+                )
             })?;
             let movement = self.movement_to(turn, actor, target)?;
             let choices = self
@@ -190,7 +229,9 @@ impl InteractionRules for ChessInteractionRules {
                 continue;
             }
             choices.push(ChoiceSpec::entity(entity.id));
-            choices.extend(destinations);
+            if Self::selected_entity(draft).map_or(true, |selected| selected == entity.id) {
+                choices.extend(destinations);
+            }
         }
 
         self.rules
@@ -219,7 +260,9 @@ impl InteractionRules for ChessInteractionRules {
 
         if let Some(target) = Self::pending_target(draft) {
             let actor = Self::selected_entity(draft).ok_or_else(|| {
-                InteractionError::RuleViolation("pending continuation has no selected entity".into())
+                InteractionError::RuleViolation(
+                    "pending continuation has no selected entity".into(),
+                )
             })?;
             let movement = self.movement_to(turn, actor, target)?;
             let input = ChoiceInput::from(choice);
