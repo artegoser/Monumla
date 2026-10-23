@@ -1,6 +1,10 @@
 use crate::{Board, CoreError, EntityId, EntityTypeId, PlayerId, Position, StateMap, TeamId};
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    ops::{Deref, DerefMut},
+    sync::{Arc, OnceLock},
+};
 
 pub type EntityData = StateMap;
 pub type PlayerData = StateMap;
@@ -88,7 +92,7 @@ pub struct TurnState {
 }
 
 #[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
-pub struct GameState {
+pub struct GameStateData {
     pub board: Board,
     pub entities: EntityStore,
     pub players: PlayerStore,
@@ -97,20 +101,65 @@ pub struct GameState {
     pub ruleset_state: RulesetState,
 }
 
+/// Immutable snapshots share storage. The first write isolates the branch.
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct GameState(Arc<StateSnapshot>);
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(transparent)]
+struct StateSnapshot {
+    data: GameStateData,
+    #[serde(skip)]
+    digest: OnceLock<u128>,
+}
+impl PartialEq for StateSnapshot {
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
+impl std::hash::Hash for StateSnapshot {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data.hash(state);
+    }
+}
+impl Deref for GameState {
+    type Target = GameStateData;
+    fn deref(&self) -> &GameStateData {
+        &self.0.data
+    }
+}
+impl DerefMut for GameState {
+    fn deref_mut(&mut self) -> &mut GameStateData {
+        let snapshot = Arc::make_mut(&mut self.0);
+        snapshot.digest.take();
+        &mut snapshot.data
+    }
+}
+
 impl GameState {
+    /// Memoized content identity. Every mutable projection invalidates the cache.
+    pub fn semantic_digest(&self) -> u128 {
+        *self
+            .0
+            .digest
+            .get_or_init(|| crate::fingerprint(&self.0.data))
+    }
     pub fn new(width: u16, height: u16) -> Result<Self, CoreError> {
         Ok(Self::from_board(Board::new(width, height)?))
     }
 
     pub fn from_board(board: Board) -> Self {
-        Self {
-            board,
-            entities: EntityStore::new(),
-            players: PlayerStore::new(),
-            teams: TeamStore::new(),
-            turn: TurnState::default(),
-            ruleset_state: RulesetState::new(),
-        }
+        Self(Arc::new(StateSnapshot {
+            data: GameStateData {
+                board,
+                entities: EntityStore::new(),
+                players: PlayerStore::new(),
+                teams: TeamStore::new(),
+                turn: TurnState::default(),
+                ruleset_state: RulesetState::new(),
+            },
+            digest: OnceLock::new(),
+        }))
     }
 
     pub fn add_team(&mut self, team: TeamState) -> Result<(), CoreError> {
@@ -291,5 +340,57 @@ impl GameState {
         } else {
             Err(CoreError::PlayerNotFound(player))
         }
+    }
+}
+
+#[cfg(test)]
+mod snapshot_tests {
+    use super::*;
+    #[test]
+    fn branches_isolate_board_entities_and_direct_field_edits() {
+        let mut original = GameState::new(4, 4).unwrap();
+        original
+            .add_player(PlayerState::new(PlayerId::new(1)))
+            .unwrap();
+        original
+            .add_entity(EntityState::new(
+                EntityId::new(1),
+                EntityTypeId::new(1),
+                PlayerId::new(1),
+                Position::new(0, 0),
+            ))
+            .unwrap();
+        let before = original.semantic_digest();
+        let mut branch = original.clone();
+        assert_eq!(branch.semantic_digest(), before);
+        branch
+            .move_entity(EntityId::new(1), Position::new(2, 2))
+            .unwrap();
+        branch
+            .entities
+            .get_mut(&EntityId::new(1))
+            .unwrap()
+            .state
+            .insert("changed", true);
+        assert_ne!(branch.semantic_digest(), before);
+        assert_eq!(original.semantic_digest(), before);
+        assert_eq!(
+            original.entity(EntityId::new(1)).unwrap().position,
+            Position::new(0, 0)
+        );
+        assert!(!original
+            .entity(EntityId::new(1))
+            .unwrap()
+            .state
+            .contains_key("changed"));
+        original.validate().unwrap();
+        branch.validate().unwrap();
+        let digest = branch.semantic_digest();
+        branch.ruleset_state.insert("phase", "next");
+        assert_ne!(
+            branch.semantic_digest(),
+            digest,
+            "direct public-field mutation must invalidate identity"
+        );
     }
 }

@@ -226,6 +226,31 @@ impl GameTimeline {
         })
     }
 
+    /// Content identity with shared state digests; all committed history remains significant.
+    pub fn semantic_digest(&self) -> u128 {
+        struct Identity<'a>(&'a GameTimeline);
+        impl std::hash::Hash for Identity<'_> {
+            fn hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+                let timeline = self.0;
+                timeline.current.semantic_digest().hash(hasher);
+                timeline.history.len().hash(hasher);
+                for turn in timeline.history.turns() {
+                    turn.actor.hash(hasher);
+                    turn.synthetic.hash(hasher);
+                    turn.before.semantic_digest().hash(hasher);
+                    turn.after.semantic_digest().hash(hasher);
+                    for step in &turn.steps {
+                        step.before.semantic_digest().hash(hasher);
+                        step.after.semantic_digest().hash(hasher);
+                        step.action.kind.hash(hasher);
+                        step.action.data.hash(hasher);
+                    }
+                }
+            }
+        }
+        crate::fingerprint(&Identity(self))
+    }
+
     pub fn current(&self) -> &GameState {
         &self.current
     }
@@ -311,5 +336,33 @@ impl std::hash::Hash for GameTimeline {
                 step.action.data.hash(hasher);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod digest_tests {
+    use super::*;
+    #[test]
+    fn identical_boards_with_different_history_have_distinct_identity() {
+        let mut state = GameState::new(1, 1).unwrap();
+        let player = PlayerId::new(1);
+        state.add_player(crate::PlayerState::new(player)).unwrap();
+        state.set_active_players(vec![player]).unwrap();
+        let mut timeline = GameTimeline::new(state).unwrap();
+        let initial = timeline.semantic_digest();
+        let mut turn = timeline.begin_turn(player).unwrap();
+        turn.apply_step(RecordedAction::new("pass"), |_| Ok(()))
+            .unwrap();
+        timeline.commit_turn(turn).unwrap();
+        let after = timeline.semantic_digest();
+        assert_ne!(after, initial);
+        timeline.undo().unwrap();
+        assert_eq!(
+            timeline.semantic_digest(),
+            initial,
+            "redo must not affect legal position identity"
+        );
+        timeline.redo().unwrap();
+        assert_eq!(timeline.semantic_digest(), after);
     }
 }

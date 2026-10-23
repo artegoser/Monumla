@@ -155,6 +155,18 @@ impl std::hash::Hash for StateValue {
     }
 }
 
+/// Deterministic in-process identity, independent of pointer addresses.
+/// Not a portable file hash or a cryptographic digest.
+pub fn fingerprint(value: &impl std::hash::Hash) -> u128 {
+    use std::hash::{Hash, Hasher};
+    let mut low = std::collections::hash_map::DefaultHasher::new();
+    value.hash(&mut low);
+    let mut high = std::collections::hash_map::DefaultHasher::new();
+    0x9e37_79b9_7f4a_7c15_u64.hash(&mut high);
+    value.hash(&mut high);
+    u128::from(low.finish()) | (u128::from(high.finish()) << 64)
+}
+
 #[cfg(test)]
 mod sharing_tests {
     use super::*;

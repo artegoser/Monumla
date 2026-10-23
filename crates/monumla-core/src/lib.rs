@@ -32,7 +32,7 @@ pub use state::{
     RulesetState, TeamData, TeamState, TeamStore, TurnData, TurnState,
 };
 pub use transaction::{PresentationCue, StateChange, StateDelta, Transaction, TransactionOutcome};
-pub use value::{StateMap, StateValue};
+pub use value::{fingerprint, StateMap, StateValue};
 
 #[cfg(test)]
 mod tests {
