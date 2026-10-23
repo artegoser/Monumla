@@ -1,11 +1,11 @@
 use crate::{
-    piece::set_has_moved, pieces::king::castling_moves, Bishop, ChessError, ChessMoveKind, ChessPieceContext,
-    ChessPieceRule, ChessSide, King, Knight, Pawn, PseudoMove, Queen, Rook, BISHOP, KING, KNIGHT,
-    PAWN, QUEEN, ROOK,
+    piece::set_has_moved, pieces::king::castling_moves, Bishop, ChessError, ChessMoveKind,
+    ChessPieceContext, ChessPieceRule, ChessSide, King, Knight, Pawn, PseudoMove, Queen, Rook,
+    BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK,
 };
 use monumla_core::{
-    Choice, ChoiceInput, ChoiceSpec, EntityId, EntityPresentation, EntityState, EntityTypeId, GameRule,
-    GameRuleSet, GameState, History, InteractionFlow, PlayerId, PlayerState, Position,
+    Choice, ChoiceInput, ChoiceSpec, EntityId, EntityPresentation, EntityState, EntityTypeId,
+    GameRule, GameRuleSet, GameState, History, InteractionFlow, PlayerId, PlayerState, Position,
     RecordedAction, RuleContext, StateMap, TeamId, TeamState, TurnSession,
 };
 use std::{collections::BTreeMap, sync::Arc};
@@ -67,7 +67,6 @@ impl ChessSide {
             Self::Black => 7,
         }
     }
-
 }
 
 pub fn empty_chess_state() -> Result<GameState, ChessError> {
@@ -255,9 +254,7 @@ impl ChessRules {
         draft: &mut StateMap,
         choice: &Choice,
     ) -> Result<Option<InteractionFlow>, ChessError> {
-        Ok(self
-            .game_rules
-            .apply_choice(history, turn, draft, choice)?)
+        Ok(self.game_rules.apply_choice(history, turn, draft, choice)?)
     }
 
     pub fn pseudo_moves(
@@ -346,7 +343,8 @@ impl ChessRules {
         entity: EntityId,
     ) -> Result<Vec<PseudoMove>, ChessError> {
         let actor = state.entity(entity)?;
-        let side = ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
+        let side =
+            ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
         let mut legal = Vec::new();
 
         for movement in self.pseudo_moves_with_history(state, history, entity)? {
@@ -398,23 +396,42 @@ impl ChessRules {
         movement: PseudoMove,
         input: Option<&ChoiceInput>,
     ) -> Result<(), ChessError> {
-        self.game_rules
-            .validate(RuleContext::from_turn(turn, history))?;
         let empty_history = History::default();
-        let status_history = history.unwrap_or(&empty_history);
-        if self.status(&turn.working, status_history)?.outcome.is_some() {
+        if self
+            .status(&turn.working, history.unwrap_or(&empty_history))?
+            .outcome
+            .is_some()
+        {
             return Err(ChessError::GameFinished);
         }
-        let actor = turn.working.entity(movement.actor)?;
-        let side = ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
-        let actor_type = actor.entity_type;
-        let is_capture = movement.capture.is_some();
-        let piece_context = ChessPieceContext::with_history(&turn.working, history, movement.actor)?;
-        let piece_rule = self.piece_rule(actor_type)?;
-        let legal = self.legal_moves_with_history(&turn.working, history, movement.actor)?;
-        if !legal.contains(&movement) {
+        if !self
+            .legal_moves_with_history(&turn.working, history, movement.actor)?
+            .contains(&movement)
+        {
             return Err(ChessError::IllegalMove(movement.actor, movement.to));
         }
+        self.execute_validated_move(turn, history, movement, input)
+    }
+
+    /// Interaction choices already proved legality for this exact working state.
+    /// Keep reactions and input validation; avoid generating the same legal set again.
+    pub(crate) fn execute_validated_move(
+        &self,
+        turn: &mut TurnSession,
+        history: Option<&History>,
+        movement: PseudoMove,
+        input: Option<&ChoiceInput>,
+    ) -> Result<(), ChessError> {
+        self.game_rules
+            .validate(RuleContext::from_turn(turn, history))?;
+        let actor = turn.working.entity(movement.actor)?;
+        let side =
+            ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
+        let actor_type = actor.entity_type;
+        let is_capture = movement.capture.is_some();
+        let piece_context =
+            ChessPieceContext::with_history(&turn.working, history, movement.actor)?;
+        let piece_rule = self.piece_rule(actor_type)?;
         let local_choices = piece_rule.move_choices(piece_context, &movement)?;
         let allowed_inputs = self.game_rules.transform_choices(
             RuleContext::from_turn(turn, history),

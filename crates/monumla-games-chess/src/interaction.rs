@@ -146,7 +146,7 @@ impl ChessInteractionRules {
         input: Option<&ChoiceInput>,
     ) -> Result<InteractionFlow, InteractionError> {
         self.rules
-            .execute_move(turn, self.history.as_ref(), movement, input)
+            .execute_validated_move(turn, self.history.as_ref(), movement, input)
             .map_err(Self::rule_error)?;
         Ok(InteractionFlow::FinishTurn)
     }
