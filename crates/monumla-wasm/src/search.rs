@@ -263,7 +263,7 @@ impl GameHandle {
                 .transpose()?,
         })
     }
-    fn domain(&self) -> RuntimeDomain {
+    pub(super) fn domain(&self) -> RuntimeDomain {
         match &self.inner {
             Runtime::Chess(runtime) => {
                 let rules = runtime.rules.clone();
@@ -327,7 +327,7 @@ impl GameHandle {
         }
         Ok(game)
     }
-    fn analyze_position(
+    pub(super) fn analyze_position(
         &self,
         options: SearchOptions,
         cancel: impl FnMut() -> bool,
@@ -448,7 +448,7 @@ impl GameHandle {
             }
         }
     }
-    fn apply_analyzed_action(&mut self, best: BestAction) -> Result<Vec<StepRecord>, String> {
+    pub(super) fn apply_analyzed_action(&mut self, best: BestAction) -> Result<Vec<StepRecord>, String> {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
         }

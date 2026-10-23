@@ -34,3 +34,6 @@ vite.config.ts.timestamp-*
 # Browser verification
 /test-results
 /playwright-report
+
+# Local Python benchmark caches
+/scripts/bench/__pycache__/

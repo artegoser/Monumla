@@ -2,7 +2,9 @@
 #![forbid(unsafe_code)]
 
 mod search;
-pub use search::{native_analysis, AnalysisView};
+pub use search::{native_analysis, AnalysisView, BestAction};
+#[cfg(not(target_arch = "wasm32"))]
+pub mod experiments;
 
 use monumla_core::{
     Choice, ChoiceId, ChoiceKind, EntityState, GameOutcome, GameState, GameTimeline,

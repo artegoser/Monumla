@@ -24,12 +24,18 @@ struct Config {
     time_ms: u64,
     max_plies: usize,
     out: PathBuf,
+    elo: Option<u32>,
+    clock_ms: Option<u64>,
+    increment_ms: u64,
 }
 impl Config {
     fn parse() -> Result<Self> {
         let mut c = Self {
             stockfish: "stockfish".into(),
             games: 6,
+            elo: None,
+            clock_ms: None,
+            increment_ms: 1000,
             time_ms: 1000,
             max_plies: 160,
             out: "target/monumla-bench/stockfish/latest".into(),
@@ -40,6 +46,9 @@ impl Config {
             match key.as_str() {
                 "--stockfish" => c.stockfish = value,
                 "--games" => c.games = value.parse()?,
+                "--elo" => c.elo = Some(value.parse()?),
+                "--clock-ms" => c.clock_ms = Some(value.parse()?),
+                "--increment-ms" => c.increment_ms = value.parse()?,
                 "--movetime-ms" => c.time_ms = value.parse()?,
                 "--max-plies" => c.max_plies = value.parse()?,
                 "--out" => c.out = value.into(),
@@ -54,6 +63,9 @@ impl Config {
         {
             return Err("Use an even game count (2..1000), 20..60000 ms, and 2..500 plies".into());
         }
+        if c.clock_ms.is_some_and(|v| !(1000..=3_600_000).contains(&v)) || c.increment_ms > 60000 {
+            return Err("Clock must be 1000..3600000 ms; increment 0..60000 ms".into());
+        }
         Ok(c)
     }
 }
@@ -62,6 +74,7 @@ struct Opponent {
     input: ChildStdin,
     output: Receiver<String>,
     name: String,
+    options: Vec<String>,
 }
 impl Opponent {
     fn new(path: &str) -> Result<Self> {
@@ -88,9 +101,13 @@ impl Opponent {
             input,
             output,
             name: "Stockfish".into(),
+            options: Vec::new(),
         };
         engine.send("uci")?;
         for line in engine.until("uciok", Duration::from_secs(30))? {
+            if line.starts_with("option name ") {
+                engine.options.push(line.clone());
+            }
             if let Some(name) = line.strip_prefix("id name ") {
                 engine.name = name.to_owned();
             }
@@ -107,6 +124,34 @@ impl Opponent {
         }
         engine.ready()?;
         Ok(engine)
+    }
+    fn limit_strength(&mut self, elo: u32) -> Result<()> {
+        let option = self
+            .options
+            .iter()
+            .find(|s| s.starts_with("option name UCI_Elo "))
+            .ok_or("Opponent does not advertise UCI_Elo")?;
+        let words: Vec<_> = option.split_whitespace().collect();
+        let bound = |key| -> Result<u32> {
+            Ok(words
+                .windows(2)
+                .find(|p| p[0] == key)
+                .ok_or("UCI_Elo missing bounds")?[1]
+                .parse()?)
+        };
+        if !(bound("min")?..=bound("max")?).contains(&elo) {
+            return Err("Elo outside advertised opponent bounds".into());
+        }
+        if !self
+            .options
+            .iter()
+            .any(|s| s.starts_with("option name UCI_LimitStrength "))
+        {
+            return Err("Opponent does not advertise UCI_LimitStrength".into());
+        }
+        self.send("setoption name UCI_LimitStrength value true")?;
+        self.send(&format!("setoption name UCI_Elo value {elo}"))?;
+        self.ready()
     }
     fn send(&mut self, command: &str) -> Result<()> {
         writeln!(self.input, "{command}")?;
@@ -136,9 +181,21 @@ impl Opponent {
         self.send("ucinewgame")?;
         self.ready()
     }
-    fn best(&mut self, moves: &[String], time_ms: u64) -> Result<(String, u16, u64)> {
+    fn best(
+        &mut self,
+        moves: &[String],
+        time_ms: u64,
+        clocks: Option<[u64; 2]>,
+        increment: u64,
+    ) -> Result<(String, u16, u64)> {
         self.send(&format!("position startpos moves {}", moves.join(" ")))?;
-        self.send(&format!("go movetime {time_ms}"))?;
+        if let Some([white, black]) = clocks {
+            self.send(&format!(
+                "go wtime {white} btime {black} winc {increment} binc {increment}"
+            ))?;
+        } else {
+            self.send(&format!("go movetime {time_ms}"))?;
+        }
         let lines = self.until("bestmove ", Duration::from_millis(time_ms + 10000))?;
         let mut depth = 0;
         let mut nodes = 0;
@@ -269,6 +326,19 @@ fn main() -> Result<()> {
     let c = Config::parse()?;
     fs::create_dir_all(&c.out)?;
     let mut opponent = Opponent::new(&c.stockfish)?;
+    if let Some(elo) = c.elo {
+        opponent.limit_strength(elo)?;
+    }
+    fs::write(c.out.join("uci-options.txt"), opponent.options.join("\n"))?;
+    fs::write(
+        c.out.join("settings.tsv"),
+        format!(
+            "opponent\t{}\nelo\t{:?}\nclock_ms\t{:?}\nincrement_ms\t{}\nmovetime_ms\t{}\n",
+            opponent.name, c.elo, c.clock_ms, c.increment_ms, c.time_ms
+        ),
+    )?;
+    let mut scores = fs::File::create(c.out.join("games.tsv"))?;
+    writeln!(scores, "pair\tgame\tside\tscore\tresult\ttermination")?;
     let revision = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
     let revision = String::from_utf8_lossy(&revision.stdout).trim().to_owned();
     let dirty = !Command::new("git")
@@ -297,6 +367,7 @@ fn main() -> Result<()> {
             apply_uci(&rules, &mut timeline, uci)?;
             moves.push(uci.to_owned());
         }
+        let mut clocks = [c.clock_ms.unwrap_or(0); 2];
         let our_side = PlayerId::new(if game % 2 == 0 { 1 } else { 2 });
         let mut result = "*";
         let mut reason = "ply limit".to_owned();
@@ -315,6 +386,18 @@ fn main() -> Result<()> {
                 break;
             }
             let player = status.side_to_move.player();
+            let side_index = if player.get() == 1 { 0 } else { 1 };
+            let budget = if c.clock_ms.is_some() {
+                if player == our_side {
+                    (clocks[side_index] / 30 + c.increment_ms * 3 / 4)
+                        .max(20)
+                        .min(clocks[side_index].saturating_sub(20).max(1))
+                } else {
+                    clocks[side_index]
+                }
+            } else {
+                c.time_ms
+            };
             let start = Instant::now();
             let (uci, san, depth, nodes, stop) = if player == our_side {
                 let mut registry = RuleRegistry::new();
@@ -338,7 +421,7 @@ fn main() -> Result<()> {
                         transposition_entries: 16384,
                         ..Default::default()
                     },
-                    || start.elapsed() >= Duration::from_millis(c.time_ms),
+                    || start.elapsed() >= Duration::from_millis(budget),
                     |_| {},
                 )?;
                 let Some(action) = report.best_action else {
@@ -357,10 +440,27 @@ fn main() -> Result<()> {
                     format!("{:?}", report.stop_reason),
                 )
             } else {
-                let (uci, depth, nodes) = opponent.best(&moves, c.time_ms)?;
+                let (uci, depth, nodes) =
+                    opponent.best(&moves, budget, c.clock_ms.map(|_| clocks), c.increment_ms)?;
                 let san = apply_uci(&rules, &mut timeline, &uci)?;
                 (uci, san, depth, nodes, "movetime".into())
             };
+            if c.clock_ms.is_some() {
+                let elapsed = start.elapsed().as_millis() as u64;
+                if elapsed >= clocks[side_index] {
+                    result = if player.get() == 1 { "0-1" } else { "1-0" };
+                    reason = format!(
+                        "{} time forfeit",
+                        if player == our_side {
+                            "Monumla"
+                        } else {
+                            "Opponent"
+                        }
+                    );
+                    break;
+                }
+                clocks[side_index] = clocks[side_index] - elapsed + c.increment_ms;
+            }
             let engine = if player == our_side {
                 "Monumla"
             } else {
@@ -410,6 +510,25 @@ fn main() -> Result<()> {
         } else {
             2
         }] += 1;
+        writeln!(
+            scores,
+            "{}\t{}\t{}\t{}\t{}\t{}",
+            game / 2,
+            game + 1,
+            our_side.get(),
+            if result == "*" {
+                "NA"
+            } else if result == "1/2-1/2" {
+                "0.5"
+            } else if our_win {
+                "1"
+            } else {
+                "0"
+            },
+            result,
+            reason
+        )?;
+        scores.flush()?;
         let mut tags = BTreeMap::new();
         tags.insert("Event".into(), "Monumla shared search benchmark".into());
         tags.insert(
@@ -431,7 +550,7 @@ fn main() -> Result<()> {
         tags.insert("Termination".into(), reason.clone());
         tags.insert("SearchBudgetMs".into(), c.time_ms.to_string());
         let mut pgn = rules.to_pgn_with_tags(STANDARD_FEN, timeline.history(), &tags)?;
-        if reason.starts_with("Monumla forfeit") {
+        if result != "*" {
             pgn = pgn.replace("[Result \"*\"]", &format!("[Result \"{result}\"]"));
             if let Some(index) = pgn.rfind('*') {
                 pgn.replace_range(index..index + 1, result);
@@ -462,6 +581,11 @@ fn main() -> Result<()> {
         );
     }
     let report = format!("# Monumla vs {}\n\nSource: `{revision}` (dirty workspace: {dirty}).\n\nEqual nominal search budget: {} ms/move; one thread each. Stockfish: Hash 16 MB, Skill Level 20, UCI_LimitStrength false, no pondering or opening book. Monumla: shared RuntimeDomain, depth cap 32, 50M-node cap, 16384 transposition slots, default quiescence and ordering, one PV. No game-specific evaluator or search. Matched opening pairs swap colors.\n\nMonumla: **{} wins, {} draws, {} losses, {} unfinished**. Unfinished games at the ply cap are not draws. This small sample is a baseline, not an Elo estimate. Deadlines are checked between nodes; generation and move/notation overhead can exceed the nominal budget. See moves.tsv for actual elapsed time and search depth.\n\n| Game | Monumla | Result | Plies | Termination |\n|---|---|---|---|---|\n{game_rows}", opponent.name, c.time_ms, results[0], results[1], results[2], results[3]);
+    let report = if c.elo.is_some() || c.clock_ms.is_some() {
+        format!("# Monumla vs {}\n\nSource `{revision}`, dirty: {dirty}.\nOpponent Elo setting: {:?}; clock {:?} ms + {} ms increment; fallback fixed budget {} ms/move. One thread each; Hash 16 MB; no pondering; paired openings. Monumla uses the shared RuntimeDomain, depth cap 32, 50M nodes, 16384 TT entries. Whole move time is charged in clock mode.\n\nW/D/L/unfinished: {:?}. Unfinished games are excluded, never draws. See games.tsv, settings.tsv and moves.tsv. An Elo setting is a reference pool label, not a measured human rating. Stockfish calibrates UCI_Elo at 120s+1s; other controls are uncalibrated. Use paired score intervals before drawing strength conclusions.\n\n| Game | Monumla | Result | Plies | Termination |\n|---|---|---|---|---|\n{game_rows}", opponent.name, c.elo, c.clock_ms, c.increment_ms, c.time_ms, results)
+    } else {
+        report
+    };
     fs::write(c.out.join("report.md"), report)?;
     Ok(())
 }
