@@ -8,7 +8,7 @@ Use an official Stockfish binary, record its version and checksum, and run a rel
 cargo run --release -p monumla-wasm --example stockfish_match -- \
   --stockfish /path/to/stockfish \
   --games 6 --movetime-ms 1000 --max-plies 160 \
-  --out benchmarks/stockfish/my-run
+  --out target/monumla-bench/stockfish/my-run
 ```
 
 Games come in pairs with the same opening and opposite Monumla colors. The small built-in suite cycles through the starting position, an Italian opening, and a Queen's Gambit opening. Stockfish uses one thread, 16 MB hash, skill 20, full strength, one PV, and no pondering. Both engines receive the same nominal search time per move. Moves from both engines are checked by ordinary chess rules, including castling, en passant, and promotions. Full move history is supplied to both engines.
@@ -21,23 +21,15 @@ Search changes belong in `monumla-search`. Keep the abstract minimax, draughts, 
 
 Protocol and release sources: [Stockfish UCI documentation](https://official-stockfish.github.io/docs/stockfish-wiki/UCI-Protocol-and-Stockfish-Commands.html), [official releases](https://github.com/official-stockfish/Stockfish/releases).
 
-## Recorded runs
+## Recorded results
 
-Both runs use the same machine, Stockfish binary, starting-position color pair, and 1000 ms nominal budget.
-
-| Search revision | Result for Monumla | Termination |
-|---|---|---|
-| [Initial baseline](baseline-2026-10-23/report.md), `9db54e3` | 0–2 | Two checkmates, 38/21 plies |
-| [After probe fix](after-probe-fix-2026-10-23/report.md), `89e1bf6` | 0–2 | Two forfeits: no complete iteration, 18/13 plies |
-| [After quiescence optimization](after-quiescence-fix-2026-10-23/report.md), `9792e70` | 0–2 | Two checkmates, 38/31 plies; no forfeits |
-
-The match exposed capability probes becoming terminal after entities were removed, which undervalued some movement capabilities. The shared fix now passes knight-for-pawn and draughts-promotion regressions. It does **not** establish a strength gain: the updated run still loses and exposes the cost of generation/evaluation before the first completed iteration. The browser retries with longer budgets; this benchmark enforces its stated budget and records failure. The later shared quiescence optimization reads cached turn effects without cloning their states and uses lazy quiet-continuation witnesses for safe cutoffs. The third pair completed without forfeits, but still lost both games. [Profiles](after-quiescence-fix-2026-10-23/profile-comparison.md) record the measured work reduction. The engine is not competitive with Stockfish at this setting.
+[The compact results summary](../RESULTS.md) records previous observations. Generated reports, PGNs, profiles, models, and per-run logs live under ignored `target/monumla-bench/`; they are not committed. Keep only small, intentionally selected regression positions in `benchmarks/positions/`.
 
 ## Profiling a search deadline
 
 ```sh
 cargo run --release -p monumla-wasm --example profile_search -- \
-  benchmarks/stockfish/after-probe-fix-2026-10-23/game-002.pgn 1 10000
+  benchmarks/positions/chess/central-knights.pgn 1 10000
 cargo run --release -p monumla-wasm --example profile_search -- - 2 10000
 ```
 

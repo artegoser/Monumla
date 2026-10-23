@@ -1,0 +1,4 @@
+[Event "User tactical regression"]
+[Result "*"]
+
+1. Nc3 Nc6 2. e4 e5 3. Bc4 Bc5 4. Qg4 g5 5. Nf3 *

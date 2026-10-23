@@ -32,7 +32,7 @@ impl Config {
             games: 6,
             time_ms: 1000,
             max_plies: 160,
-            out: "benchmarks/stockfish/latest".into(),
+            out: "target/monumla-bench/stockfish/latest".into(),
         };
         let mut args = std::env::args().skip(1);
         while let Some(key) = args.next() {
