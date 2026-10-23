@@ -747,4 +747,60 @@ mod tests {
             assert_eq!(game.timeline().history().len(), 1);
         }
     }
+    #[test]
+    fn capability_probes_do_not_undervalue_knights_in_terminal_isolations() {
+        for pgn in ["1. Nc3 d5 *", "1. e4 Nc6 2. d4 *"] {
+            let game = GameHandle {
+                inner: Runtime::Chess(ChessRuntime::from_pgn(pgn).unwrap()),
+            };
+            let report = game
+                .analyze_position(
+                    SearchOptions {
+                        limits: SearchLimits {
+                            max_depth: 1,
+                            max_nodes: Some(5000),
+                        },
+                        ..Default::default()
+                    },
+                    || false,
+                    |_| {},
+                )
+                .unwrap();
+            assert!(
+                !matches!(
+                    report.principal_variation.first().map(String::as_str),
+                    Some("Nxd5" | "Nxd4")
+                ),
+                "{pgn}: {:?}",
+                report.principal_variation
+            );
+        }
+    }
+    #[test]
+    fn shared_capability_probes_value_draughts_promotion_without_piece_knowledge() {
+        for ruleset in ["checkers", "checkers-international"] {
+            let game = GameHandle::new_ruleset(ruleset).unwrap();
+            let domain = game.domain();
+            domain.prepare(game.timeline()).unwrap();
+            let player = PlayerId::new(1);
+            let ordinary = domain.evaluate(game.timeline(), player).unwrap();
+            let mut upgraded = game.timeline().current().clone();
+            let id = upgraded
+                .entities
+                .values()
+                .find(|e| e.controller == player)
+                .unwrap()
+                .id;
+            upgraded
+                .entity_mut(id)
+                .unwrap()
+                .state
+                .insert(monumla_games_checkers::KING, true);
+            let upgraded = GameTimeline::new(upgraded).unwrap();
+            assert!(
+                domain.evaluate(&upgraded, player).unwrap() > ordinary + 100,
+                "{ruleset}"
+            );
+        }
+    }
 }

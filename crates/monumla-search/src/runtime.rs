@@ -168,6 +168,26 @@ impl RuntimeDomain {
                 }
             }
             isolated.set_active_players(vec![entity.controller])?;
+            // Removing other entities may itself end the game. Preserve enough
+            // context for ordinary rules to expose the sample's capabilities.
+            // Prefer another controller before adding supporting entities.
+            let mut helpers: Vec<_> = state
+                .entities
+                .values()
+                .filter(|e| !isolated.entities.contains_key(&e.id))
+                .collect();
+            helpers.sort_by_key(|e| (e.controller == entity.controller, e.id));
+            let mut helpers = helpers.into_iter();
+            while !matches!(
+                self.registry
+                    .outcome(RuleContext::from_state(&isolated, None)),
+                Ok(None)
+            ) {
+                let Some(helper) = helpers.next() else {
+                    break;
+                };
+                isolated.add_entity(helper.clone())?;
+            }
             let mut mobility = 0;
             for point in [
                 entity.position,
