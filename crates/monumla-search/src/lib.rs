@@ -26,7 +26,7 @@ pub struct Quiescence<A> {
 pub trait SearchDomain {
     type Position;
     type Action: Clone + PartialEq;
-    type Perspective: Copy;
+    type Perspective: Copy + PartialEq;
     type Error;
     fn prepare(&self, _position: &Self::Position) -> Result<(), Self::Error> {
         Ok(())
@@ -65,6 +65,11 @@ pub trait SearchDomain {
     fn action_priority(&self, _position: &Self::Position, _action: &Self::Action) -> i32 {
         0
     }
+    /// Conservative opt-in for quiet ordinary actions eligible for selective search.
+    fn can_reduce(&self, _position: &Self::Position, _action: &Self::Action) -> bool {
+        false
+    }
+
     /// Optional fast witness for the domain's quiescence stand-pat policy.
     /// Some(true) must agree with `quiescence().stand_pat` (or with no tactical
     /// continuation). A quiet move alone is insufficient if the domain forbids
@@ -117,16 +122,22 @@ pub struct SearchOptions {
     pub aspiration_window: i32,
     pub principal_variation_search: bool,
     pub multi_pv: usize,
+    /// Bot play can return the only legal complete action without evaluating a choice.
+    pub stop_on_forced_move: bool,
+    /// Verify promising reduced probes at full depth; never reduce forced or principal actions.
+    pub late_move_reductions: bool,
 }
 impl Default for SearchOptions {
     fn default() -> Self {
         Self {
             limits: SearchLimits::default(),
-            quiescence_depth: 8,
+            quiescence_depth: 4,
             transposition_entries: 65_536,
             aspiration_window: 50,
             principal_variation_search: true,
             multi_pv: 1,
+            stop_on_forced_move: false,
+            late_move_reductions: false,
         }
     }
 }
@@ -136,6 +147,7 @@ pub enum StopReason {
     NodeLimit,
     Cancelled,
     Terminal,
+    ForcedMove,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SearchStatistics {
@@ -171,6 +183,55 @@ pub enum SearchError<E> {
     InvalidOptions,
     #[error("rules returned no legal actions for a nonterminal position")]
     NoActions,
+}
+
+/// Bounded reusable work. Keep one memory with one rules/evaluation model.
+/// Perspective or quiescence-policy changes invalidate cached scores.
+pub struct SearchMemory<A, P> {
+    table: Table<A>,
+    quiet_table: Table<A>,
+    killers: Vec<Vec<A>>,
+    history: HashMap<u64, u32>,
+    results: HashMap<u128, SearchResult<A>>,
+    perspective: Option<P>,
+    policy: Option<(u8, usize, bool)>,
+    capacity: usize,
+}
+impl<A: Clone, P> SearchMemory<A, P> {
+    pub fn new(capacity: usize) -> Self {
+        let capacity = capacity.min(1_048_576);
+        Self {
+            table: Table::new(capacity),
+            quiet_table: Table::new(capacity / 4),
+            killers: vec![Vec::new(); 322],
+            history: HashMap::new(),
+            results: HashMap::new(),
+            perspective: None,
+            policy: None,
+            capacity,
+        }
+    }
+}
+/// Continue completed iterations and reuse partial subtree work after a deadline.
+pub fn analyze_cached<D: SearchDomain>(
+    domain: &D,
+    position: &D::Position,
+    perspective: D::Perspective,
+    options: SearchOptions,
+    memory: &mut SearchMemory<D::Action, D::Perspective>,
+    cancel: impl FnMut() -> bool,
+    progress: impl FnMut(&SearchResult<D::Action>),
+) -> Result<SearchResult<D::Action>, SearchError<D::Error>> {
+    analyze_roots(
+        domain,
+        position,
+        perspective,
+        options,
+        memory,
+        cancel,
+        None,
+        progress,
+    )
 }
 
 pub fn search<D: SearchDomain>(
@@ -217,6 +278,7 @@ pub fn analyze<D: SearchDomain>(
         position,
         perspective,
         options,
+        &mut SearchMemory::new(options.transposition_entries),
         cancel,
         None,
         progress,
@@ -239,17 +301,20 @@ pub fn analyze_action<D: SearchDomain>(
         position,
         perspective,
         options,
+        &mut SearchMemory::new(options.transposition_entries),
         cancel,
         Some(vec![action]),
         progress,
     )
 }
 
+#[allow(clippy::too_many_arguments)] // One internal entry point for both ordinary and restricted-root search.
 fn analyze_roots<D: SearchDomain>(
     domain: &D,
     position: &D::Position,
     perspective: D::Perspective,
     options: SearchOptions,
+    memory: &mut SearchMemory<D::Action, D::Perspective>,
     cancel: impl FnMut() -> bool,
     allowed_root: Option<Vec<D::Action>>,
     mut progress: impl FnMut(&SearchResult<D::Action>),
@@ -265,6 +330,54 @@ fn analyze_roots<D: SearchDomain>(
     {
         return Err(SearchError::InvalidOptions);
     }
+    if memory.perspective != Some(perspective)
+        || memory.policy
+            != Some((
+                options.quiescence_depth,
+                options.multi_pv,
+                options.late_move_reductions,
+            ))
+        || memory.capacity != options.transposition_entries
+    {
+        *memory = SearchMemory::new(options.transposition_entries);
+        memory.perspective = Some(perspective);
+        memory.policy = Some((
+            options.quiescence_depth,
+            options.multi_pv,
+            options.late_move_reductions,
+        ));
+    }
+    let root_key = if allowed_root.is_none() {
+        domain.position_key(position)
+    } else {
+        None
+    };
+    let retained = root_key
+        .and_then(|key| memory.results.get(&key))
+        .filter(|r| r.completed_depth <= options.limits.max_depth)
+        .cloned();
+    // No evaluation is required when a bot has no decision to make. Terminal
+    // positions still follow the normal outcome path, never an arbitrary fallback.
+    if options.stop_on_forced_move
+        && domain
+            .terminal_score(position, perspective)
+            .map_err(SearchError::Domain)?
+            .is_none()
+    {
+        let actions = domain.actions(position).map_err(SearchError::Domain)?;
+        if actions.len() == 1 {
+            return Ok(SearchResult {
+                best_action: actions.first().cloned(),
+                score: None,
+                principal_variation: actions,
+                completed_depth: 0,
+                nodes: 0,
+                stop_reason: StopReason::ForcedMove,
+                statistics: SearchStatistics::default(),
+                variations: Vec::new(),
+            });
+        }
+    }
     domain.prepare(position).map_err(SearchError::Domain)?;
     let mut context = Context {
         domain,
@@ -273,9 +386,7 @@ fn analyze_roots<D: SearchDomain>(
         cancel,
         nodes: 0,
         statistics: SearchStatistics::default(),
-        table: Table::new(options.transposition_entries),
-        killers: vec![Vec::new(); 322],
-        history: HashMap::new(),
+        memory,
         generation: 0,
         excluded_root: Vec::new(),
         allowed_root,
@@ -290,7 +401,16 @@ fn analyze_roots<D: SearchDomain>(
         statistics: SearchStatistics::default(),
         variations: Vec::new(),
     };
-    let start = u16::from(options.limits.max_depth != 0);
+    if let Some(previous) = retained {
+        result = previous;
+    }
+    let carried_nodes = result.nodes;
+    let carried_statistics = result.statistics;
+    let start = if result.score.is_some() {
+        result.completed_depth.saturating_add(1)
+    } else {
+        u16::from(options.limits.max_depth != 0)
+    };
     'iterations: for depth in start..=options.limits.max_depth {
         context.generation = depth;
         let mut width = i64::from(options.aspiration_window);
@@ -351,6 +471,10 @@ fn analyze_roots<D: SearchDomain>(
             }
         }
         context.excluded_root.clear();
+        if let Some(reason) = interrupted {
+            result.stop_reason = reason;
+            break 'iterations;
+        }
         result.variations = variations;
         result.completed_depth = depth;
         result.best_action = line.actions.first().cloned();
@@ -365,13 +489,21 @@ fn analyze_roots<D: SearchDomain>(
         if line.terminal {
             break;
         }
-        if let Some(reason) = interrupted {
-            result.stop_reason = reason;
-            break;
-        }
     }
-    result.nodes = context.nodes;
-    result.statistics = context.statistics;
+    result.nodes = carried_nodes.saturating_add(context.nodes);
+    result.statistics = SearchStatistics {
+        quiescence_nodes: carried_statistics.quiescence_nodes + context.statistics.quiescence_nodes,
+        transposition_hits: carried_statistics.transposition_hits
+            + context.statistics.transposition_hits,
+        cutoffs: carried_statistics.cutoffs + context.statistics.cutoffs,
+        researches: carried_statistics.researches + context.statistics.researches,
+    };
+    if let Some(key) = root_key {
+        if context.memory.results.len() >= 32 && !context.memory.results.contains_key(&key) {
+            context.memory.results.clear();
+        }
+        context.memory.results.insert(key, result.clone());
+    }
     Ok(result)
 }
 
@@ -396,9 +528,7 @@ struct Context<'a, D: SearchDomain, F> {
     cancel: F,
     nodes: u64,
     statistics: SearchStatistics,
-    table: Table<D::Action>,
-    killers: Vec<Vec<D::Action>>,
-    history: HashMap<u64, u32>,
+    memory: &'a mut SearchMemory<D::Action, D::Perspective>,
     generation: u16,
     excluded_root: Vec<D::Action>,
     allowed_root: Option<Vec<D::Action>>,
@@ -429,14 +559,14 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
     ) {
         actions.sort_by_cached_key(|action| {
             let priority = self.domain.action_priority(position, action);
-            let killer = self.killers[usize::from(ply)]
+            let killer = self.memory.killers[usize::from(ply)]
                 .iter()
                 .position(|a| a == action)
                 .map_or(0, |i| 2 - i);
             let history = self
                 .domain
                 .action_key(action)
-                .and_then(|key| self.history.get(&key))
+                .and_then(|key| self.memory.history.get(&key))
                 .copied()
                 .unwrap_or(0);
             std::cmp::Reverse((
@@ -450,16 +580,16 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
     }
     fn record_cutoff(&mut self, action: &D::Action, ply: u16, depth: u16) {
         self.statistics.cutoffs += 1;
-        let killers = &mut self.killers[usize::from(ply)];
+        let killers = &mut self.memory.killers[usize::from(ply)];
         if !killers.contains(action) {
             killers.insert(0, action.clone());
             killers.truncate(2);
         }
         if let Some(key) = self.domain.action_key(action) {
-            if self.history.len() >= 8192 && !self.history.contains_key(&key) {
-                self.history.clear();
+            if self.memory.history.len() >= 8192 && !self.memory.history.contains_key(&key) {
+                self.memory.history.clear();
             }
-            let count = self.history.entry(key).or_default();
+            let count = self.memory.history.entry(key).or_default();
             *count = count.saturating_add(u32::from(depth).pow(2));
         }
     }
@@ -473,15 +603,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         preferred: &[D::Action],
     ) -> Result<Line<D::Action>, Abort<D::Error>> {
         if depth == 0 {
-            return self.quiet(
-                position,
-                self.options
-                    .quiescence_depth
-                    .min(self.generation.min(64) as u8),
-                ply,
-                alpha,
-                beta,
-            );
+            return self.quiet(position, self.options.quiescence_depth, ply, alpha, beta);
         }
         self.tick()?;
         if let Some(score) = self
@@ -499,7 +621,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         } else {
             self.domain.position_key(position)
         };
-        let cached = key.and_then(|key| self.table.get(key)).cloned();
+        let cached = key.and_then(|key| self.memory.table.get(key)).cloned();
         if let Some(entry) = &cached {
             self.statistics.transposition_hits += 1;
             if entry.depth >= depth {
@@ -541,8 +663,9 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         );
         let original_alpha = alpha;
         let original_beta = beta;
+        let forced = actions.len() == 1;
         let mut best: Option<Line<D::Action>> = None;
-        for action in actions {
+        for (index, action) in actions.into_iter().enumerate() {
             let child = self.domain.play(position, &action)?;
             let follow = if preferred.first() == Some(&action) {
                 &preferred[1..]
@@ -560,7 +683,30 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             } else {
                 (alpha, beta)
             };
-            let mut line = self.visit(&child, depth - 1, ply + 1, a, b, follow)?;
+            let reduced = self.options.late_move_reductions
+                && ply > 0
+                && depth >= 3
+                && index >= 4
+                && !forced
+                && follow.is_empty()
+                && i64::from(b) - i64::from(a) == 1
+                && self.domain.can_reduce(position, &action);
+            let mut line = self.visit(
+                &child,
+                depth - 1 - u16::from(reduced),
+                ply + 1,
+                a,
+                b,
+                follow,
+            )?;
+            let improves_bound = match role {
+                NodeRole::Maximize => line.score > alpha,
+                NodeRole::Minimize => line.score < beta,
+            };
+            if reduced && improves_bound {
+                self.statistics.researches += 1;
+                line = self.visit(&child, depth - 1, ply + 1, a, b, follow)?;
+            }
             if probe && line.score > alpha && line.score < beta {
                 self.statistics.researches += 1;
                 line = self.visit(&child, depth - 1, ply + 1, alpha, beta, follow)?;
@@ -597,7 +743,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             } else {
                 Bound::Exact
             };
-            self.table.store(Entry {
+            self.memory.table.store(Entry {
                 key,
                 depth,
                 score: self.domain.score_to_cache(best.score, ply),
@@ -628,6 +774,29 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 terminal: true,
             });
         }
+        let quiet_key = self
+            .domain
+            .position_key(position)
+            .map(|key| fingerprint(&(key, depth)));
+        if let Some(entry) = quiet_key.and_then(|key| self.memory.quiet_table.get(key)) {
+            let score = self.domain.score_from_cache(entry.score, ply);
+            if entry.depth == u16::from(depth)
+                && match entry.bound {
+                    Bound::Exact => true,
+                    Bound::Lower => score >= beta,
+                    Bound::Upper => score <= alpha,
+                }
+            {
+                self.statistics.transposition_hits += 1;
+                return Ok(Line {
+                    score,
+                    actions: entry.line.clone(),
+                    terminal: false,
+                });
+            }
+        }
+        let original_alpha = alpha;
+        let original_beta = beta;
         let evaluation = self.domain.evaluate(position, self.perspective)?;
         if depth > 0 {
             let cutoff = match self.domain.role(position, self.perspective)? {
@@ -703,18 +872,25 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 break;
             }
         }
-        Ok(best.expect("standing pat or tactical response"))
+        let best = best.expect("standing pat or tactical response");
+        if let Some(key) = quiet_key {
+            self.memory.quiet_table.store(Entry {
+                key,
+                depth: u16::from(depth),
+                score: self.domain.score_to_cache(best.score, ply),
+                bound: if best.score <= original_alpha {
+                    Bound::Upper
+                } else if best.score >= original_beta {
+                    Bound::Lower
+                } else {
+                    Bound::Exact
+                },
+                line: best.actions.clone(),
+                generation: self.generation,
+            });
+        }
+        Ok(best)
     }
 }
 
-/// A deterministic in-process 128-bit fingerprint; domains decide which facts
-/// participate. This is position identity for caching, not a portable file hash.
-pub fn fingerprint(value: &impl std::hash::Hash) -> u128 {
-    use std::hash::{Hash, Hasher};
-    let mut low = std::collections::hash_map::DefaultHasher::new();
-    value.hash(&mut low);
-    let mut high = std::collections::hash_map::DefaultHasher::new();
-    0x9e37_79b9_7f4a_7c15_u64.hash(&mut high);
-    value.hash(&mut high);
-    u128::from(low.finish()) | (u128::from(high.finish()) << 64)
-}
+pub use monumla_core::fingerprint;

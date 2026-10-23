@@ -102,7 +102,7 @@ impl RuntimeDomain {
         action: &RuntimeAction,
     ) -> Result<TurnSession, InteractionError> {
         if let Some(turn) = &action.turn {
-            if action.position_key == Some(fingerprint(position)) {
+            if action.position_key == Some(position.semantic_digest()) {
                 return Ok((**turn).clone());
             }
         }
@@ -138,7 +138,7 @@ impl RuntimeDomain {
         position: &GameTimeline,
         mut finish: impl FnMut(RuntimeAction) -> Result<bool, InteractionError>,
     ) -> Result<(), InteractionError> {
-        let key = fingerprint(position);
+        let key = position.semantic_digest();
         let mut stack = vec![(self.driver(position)?, Vec::new())];
         let mut visited = HashSet::new();
         let mut outcomes = HashSet::new();
@@ -154,7 +154,11 @@ impl RuntimeDomain {
                 .iter()
                 .map(|s| (&s.action.kind, &s.action.data))
                 .collect();
-            let draft_key = fingerprint(&(&driver.turn().working, driver.draft(), steps));
+            let draft_key = fingerprint(&(
+                driver.turn().working.semantic_digest(),
+                driver.draft(),
+                steps,
+            ));
             if !visited.insert(draft_key) {
                 continue;
             }
@@ -170,7 +174,7 @@ impl RuntimeDomain {
                         .iter()
                         .map(|step| (&step.action.kind, &step.action.data))
                         .collect();
-                    let outcome_key = fingerprint(&(&turn.working, semantic));
+                    let outcome_key = fingerprint(&(turn.working.semantic_digest(), semantic));
                     if outcomes.insert(outcome_key)
                         && !finish(RuntimeAction {
                             input: TurnInput { choices },
@@ -446,7 +450,7 @@ impl SearchDomain for RuntimeDomain {
         )
     }
     fn actions(&self, position: &GameTimeline) -> Result<Vec<RuntimeAction>, Self::Error> {
-        let key = fingerprint(position);
+        let key = position.semantic_digest();
         if let Some(actions) = self.cache.lock().unwrap().get(&key) {
             return Ok(actions.clone());
         }
@@ -472,7 +476,7 @@ impl SearchDomain for RuntimeDomain {
         Ok(child)
     }
     fn position_key(&self, position: &GameTimeline) -> Option<u128> {
-        Some(fingerprint(position))
+        Some(position.semantic_digest())
     }
     fn action_key(&self, action: &RuntimeAction) -> Option<u64> {
         let parts: Vec<_> = action
@@ -485,27 +489,56 @@ impl SearchDomain for RuntimeDomain {
     }
     fn action_priority(&self, _position: &GameTimeline, action: &RuntimeAction) -> i32 {
         action.turn.as_ref().map_or(0, |turn| {
-            let removed = turn
-                .steps
-                .iter()
-                .flat_map(|s| &s.delta.changes)
-                .filter(|c| matches!(c, StateChange::EntityRemoved { .. }))
-                .count() as i32;
-            let changes = turn
-                .steps
-                .iter()
-                .flat_map(|s| &s.delta.changes)
-                .filter(|c| matches!(c, StateChange::EntityTypeChanged { .. }))
-                .count() as i32;
-            removed * 1000 + changes * 100
+            let weights = self.weights.lock().unwrap();
+            let utility = |entity: &monumla_core::EntityState| {
+                weights
+                    .get(&entity_features(entity))
+                    .copied()
+                    .unwrap_or(100)
+            };
+            let mut gain = 0;
+            let mut cost = 0;
+            for change in turn.steps.iter().flat_map(|step| &step.delta.changes) {
+                match change {
+                    StateChange::EntityRemoved { entity } => {
+                        gain += if allied(&turn.before, entity.controller, turn.actor) {
+                            -utility(entity)
+                        } else {
+                            utility(entity)
+                        };
+                    }
+                    StateChange::EntityMoved { entity, .. } => {
+                        if let Some(entity) = turn.before.entities.get(entity) {
+                            cost = cost.max(utility(entity));
+                        }
+                    }
+                    StateChange::EntityTypeChanged { .. } => {
+                        gain += 100;
+                    }
+                    _ => {}
+                }
+            }
+            if gain == 0 {
+                0
+            } else {
+                gain * 16 - cost
+            }
         })
+    }
+    fn can_reduce(&self, _position: &GameTimeline, action: &RuntimeAction) -> bool {
+        !Self::tactical(action)
+            && action.turn.as_ref().is_some_and(|turn| {
+                turn.steps.len() == 1
+                    && !turn.working.turn.active_players.contains(&turn.actor)
+                    && turn.before.entities != turn.working.entities
+            })
     }
     fn allows_stand_pat(&self, position: &GameTimeline) -> Result<Option<bool>, Self::Error> {
         let cached = self
             .cache
             .lock()
             .unwrap()
-            .get(&fingerprint(position))
+            .get(&position.semantic_digest())
             .cloned();
         if let Some(actions) = cached {
             for action in &actions {
@@ -527,7 +560,7 @@ impl SearchDomain for RuntimeDomain {
             }
         })?;
         if !witness {
-            self.cache_actions(position, fingerprint(position), complete)?;
+            self.cache_actions(position, position.semantic_digest(), complete)?;
         }
         Ok(Some(witness))
     }

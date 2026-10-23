@@ -332,6 +332,9 @@ impl SearchDomain for Cached {
     fn play(&self, p: &usize, a: &usize) -> Result<usize, Self::Error> {
         self.0.play(p, a)
     }
+    fn can_reduce(&self, _: &usize, _: &usize) -> bool {
+        true
+    }
     fn allows_stand_pat(&self, _: &usize) -> Result<Option<bool>, Self::Error> {
         // This abstract tree has no tactical continuations; exercise the fast
         // path while comparing the cached search with exhaustive minimax.
@@ -561,4 +564,135 @@ fn played_candidate_is_searched_at_the_same_root_and_depth() {
         analyze_action(&tree, &0, true, 99, options, || false, |_| {}),
         Err(SearchError::NoActions)
     );
+}
+
+#[test]
+fn cached_analysis_resumes_completed_depth_and_invalidates_perspective() {
+    let domain = Cached(trap());
+    let mut memory = SearchMemory::new(64);
+    let options = SearchOptions {
+        limits: limits(1),
+        transposition_entries: 64,
+        ..Default::default()
+    };
+    let first = analyze_cached(&domain, &0, true, options, &mut memory, || false, |_| {}).unwrap();
+    let mut depths = Vec::new();
+    let resumed = analyze_cached(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            limits: limits(2),
+            ..options
+        },
+        &mut memory,
+        || false,
+        |r| depths.push(r.completed_depth),
+    )
+    .unwrap();
+    assert_eq!(depths, [2]);
+    assert_eq!(resumed.score, Some(2));
+    assert!(resumed.nodes > first.nodes);
+    let returned = analyze_cached(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            limits: limits(2),
+            ..options
+        },
+        &mut memory,
+        || true,
+        |_| panic!("completed work must not restart"),
+    )
+    .unwrap();
+    assert_eq!(returned.score, resumed.score);
+    assert_eq!(returned.nodes, resumed.nodes);
+    let flipped = analyze_cached(
+        &domain,
+        &0,
+        false,
+        SearchOptions {
+            limits: limits(2),
+            ..options
+        },
+        &mut memory,
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(flipped.score, Some(-2));
+}
+
+#[test]
+fn forced_bot_move_needs_no_evaluation_or_deep_search() {
+    use NodeRole::*;
+    let domain = Cached(Tree(vec![
+        node(Maximize, 0, &[1]),
+        node(Minimize, 0, &[2, 3]),
+        node(Maximize, 9, &[]),
+        node(Maximize, -3, &[]),
+    ]));
+    let result = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            limits: SearchLimits {
+                max_depth: 256,
+                max_nodes: Some(0),
+            },
+            stop_on_forced_move: true,
+            ..Default::default()
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(result.best_action, Some(1));
+    assert_eq!(result.stop_reason, StopReason::ForcedMove);
+    assert_eq!(result.nodes, 0);
+    assert_eq!(
+        result.score, None,
+        "forced play must not invent a depth-zero evaluation"
+    );
+}
+
+#[test]
+fn promising_late_probe_is_verified_at_full_depth() {
+    use NodeRole::*;
+    let domain = Cached(Tree(vec![
+        node(Maximize, 0, &[1, 2]),
+        node(Minimize, 0, &[]),
+        node(Minimize, 0, &[3, 4, 5, 6, 7]),
+        node(Maximize, 5, &[]),
+        node(Maximize, 5, &[]),
+        node(Maximize, 5, &[]),
+        node(Maximize, 5, &[]),
+        node(Maximize, 5, &[8]),
+        node(Minimize, -1, &[9]),
+        node(Maximize, -5, &[]),
+    ]));
+    let options = SearchOptions {
+        limits: limits(4),
+        aspiration_window: 0,
+        late_move_reductions: true,
+        ..Default::default()
+    };
+    let result = analyze(&domain, &0, true, options, || false, |_| {}).unwrap();
+    let full = analyze(
+        &domain,
+        &0,
+        true,
+        SearchOptions {
+            late_move_reductions: false,
+            ..options
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(result.score, full.score);
+    assert_eq!(result.best_action, Some(1));
+    assert!(result.statistics.researches > 0);
 }
