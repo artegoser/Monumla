@@ -133,6 +133,103 @@ impl RuntimeDomain {
         }
         Ok(path)
     }
+    fn enumerate(
+        &self,
+        position: &GameTimeline,
+        mut finish: impl FnMut(RuntimeAction) -> Result<bool, InteractionError>,
+    ) -> Result<(), InteractionError> {
+        let key = fingerprint(position);
+        let mut stack = vec![(self.driver(position)?, Vec::new())];
+        let mut visited = HashSet::new();
+        let mut outcomes = HashSet::new();
+        while let Some((driver, path)) = stack.pop() {
+            if path.len() > 128 {
+                return Err(InteractionError::RuleViolation(
+                    "Turn continuation exceeds the search safety limit".into(),
+                ));
+            }
+            let steps: Vec<_> = driver
+                .turn()
+                .steps
+                .iter()
+                .map(|s| (&s.action.kind, &s.action.data))
+                .collect();
+            let draft_key = fingerprint(&(&driver.turn().working, driver.draft(), steps));
+            if !visited.insert(draft_key) {
+                continue;
+            }
+            for choice in &driver.interaction().choices {
+                let mut child = driver.clone();
+                let mut choices = path.clone();
+                choices.push(ChoiceInput::from(choice));
+                child.choose(choice.id)?;
+                if child.is_finished() {
+                    let turn = child.into_turn()?;
+                    let semantic: Vec<_> = turn
+                        .steps
+                        .iter()
+                        .map(|step| (&step.action.kind, &step.action.data))
+                        .collect();
+                    let outcome_key = fingerprint(&(&turn.working, semantic));
+                    if outcomes.insert(outcome_key)
+                        && !finish(RuntimeAction {
+                            input: TurnInput { choices },
+                            position_key: Some(key),
+                            turn: Some(Arc::new(turn)),
+                        })?
+                    {
+                        return Ok(());
+                    }
+                } else {
+                    stack.push((child, choices));
+                }
+            }
+        }
+        Ok(())
+    }
+    fn losing_declaration(
+        &self,
+        position: &GameTimeline,
+        action: &RuntimeAction,
+    ) -> Result<bool, InteractionError> {
+        let turn = action
+            .turn
+            .as_ref()
+            .expect("enumerated action has a cached turn");
+        if turn.before.entities != turn.working.entities {
+            return Ok(false);
+        }
+        let outcome = self
+            .registry
+            .outcome(RuleContext::from_turn(turn, Some(position.history())))
+            .map_err(|e| InteractionError::RuleViolation(e.to_string()))?;
+        Ok(outcome.is_some_and(|o| o.losers.contains(&turn.actor)))
+    }
+    fn cache_actions(
+        &self,
+        position: &GameTimeline,
+        key: u128,
+        results: Vec<RuntimeAction>,
+    ) -> Result<Vec<RuntimeAction>, InteractionError> {
+        // Immediate losing declarations (for example resignation) are dominated
+        // when an ordinary legal continuation exists. This uses outcomes only.
+        let mut losing = Vec::new();
+        let mut live = Vec::new();
+        for action in results {
+            if self.losing_declaration(position, &action)? {
+                losing.push(action);
+            } else {
+                live.push(action);
+            }
+        }
+        let results = if live.is_empty() { losing } else { live };
+        let mut cache = self.cache.lock().unwrap();
+        if cache.len() >= 16 || cache.values().map(Vec::len).sum::<usize>() + results.len() > 2048 {
+            cache.clear();
+        }
+        cache.insert(key, results.clone());
+        Ok(results)
+    }
     fn learn(&self, position: &GameTimeline) -> Result<(), InteractionError> {
         let state = position.current();
         if state.entities.values().all(|e| {
@@ -235,10 +332,12 @@ impl RuntimeDomain {
         *self.weights.lock().unwrap() = weights;
         Ok(())
     }
-    fn tactical(&self, position: &GameTimeline, action: &RuntimeAction) -> bool {
-        self.action_turn(position, action).is_ok_and(|turn| {
-            turn.steps.iter().any(|step| {
-                step.delta.changes.iter().any(|change| {
+    fn tactical(action: &RuntimeAction) -> bool {
+        action.turn.as_ref().is_some_and(|turn| {
+            turn.steps
+                .iter()
+                .flat_map(|step| &step.delta.changes)
+                .any(|change| {
                     matches!(
                         change,
                         StateChange::EntityRemoved { .. }
@@ -246,7 +345,6 @@ impl RuntimeDomain {
                             | StateChange::EntityControllerChanged { .. }
                     )
                 })
-            })
         })
     }
 }
@@ -343,80 +441,14 @@ impl SearchDomain for RuntimeDomain {
         if self.outcome(position)?.is_some() {
             return Ok(Vec::new());
         }
-        let mut stack = vec![(self.driver(position)?, Vec::new())];
-        let mut visited = HashSet::new();
         let mut results = Vec::new();
-        let mut outcomes = HashSet::new();
-        while let Some((driver, path)) = stack.pop() {
-            if path.len() > 128 {
-                return Err(InteractionError::RuleViolation(
-                    "Turn continuation exceeds the search safety limit".into(),
-                ));
-            }
-            let steps: Vec<_> = driver
-                .turn()
-                .steps
-                .iter()
-                .map(|s| (&s.action.kind, &s.action.data))
-                .collect();
-            let draft_key = fingerprint(&(&driver.turn().working, driver.draft(), steps));
-            if !visited.insert(draft_key) {
-                continue;
-            }
-            for choice in &driver.interaction().choices {
-                let mut child = driver.clone();
-                let mut choices = path.clone();
-                choices.push(ChoiceInput::from(choice));
-                child.choose(choice.id)?;
-                if child.is_finished() {
-                    let turn = child.into_turn()?;
-                    let semantic: Vec<_> = turn
-                        .steps
-                        .iter()
-                        .map(|step| (&step.action.kind, &step.action.data))
-                        .collect();
-                    let outcome_key = fingerprint(&(&turn.working, semantic));
-                    if outcomes.insert(outcome_key) {
-                        results.push(RuntimeAction {
-                            input: TurnInput { choices },
-                            position_key: Some(key),
-                            turn: Some(Arc::new(turn)),
-                        });
-                    }
-                } else {
-                    stack.push((child, choices));
-                }
-            }
-        }
-        // Immediate losing declarations (for example resignation) are dominated
-        // when an ordinary legal continuation exists. This uses outcomes only.
-        let player = active(position.current())?;
-        let mut losing = Vec::new();
-        let mut live = Vec::new();
-        for action in results {
-            let turn = action.turn.as_ref().unwrap();
-            if turn.before.entities != turn.working.entities {
-                live.push(action);
-                continue;
-            }
-            let outcome = self
-                .registry
-                .outcome(RuleContext::from_turn(turn, Some(position.history())))
-                .map_err(|e| InteractionError::RuleViolation(e.to_string()))?;
-            if outcome.is_some_and(|o| o.losers.contains(&player)) {
-                losing.push(action);
-            } else {
-                live.push(action);
-            }
-        }
-        let results = if live.is_empty() { losing } else { live };
-        let mut cache = self.cache.lock().unwrap();
-        if cache.len() >= 16 || cache.values().map(Vec::len).sum::<usize>() + results.len() > 2048 {
-            cache.clear();
-        }
-        cache.insert(key, results.clone());
-        Ok(results)
+        self.enumerate(position, |action| {
+            results.push(action);
+            Ok(true)
+        })?;
+        self.cache_actions(position, key, results)
     }
+
     fn play(
         &self,
         position: &GameTimeline,
@@ -439,8 +471,8 @@ impl SearchDomain for RuntimeDomain {
             .collect();
         Some(fingerprint(&parts) as u64)
     }
-    fn action_priority(&self, position: &GameTimeline, action: &RuntimeAction) -> i32 {
-        self.action_turn(position, action).map_or(0, |turn| {
+    fn action_priority(&self, _position: &GameTimeline, action: &RuntimeAction) -> i32 {
+        action.turn.as_ref().map_or(0, |turn| {
             let removed = turn
                 .steps
                 .iter()
@@ -456,16 +488,44 @@ impl SearchDomain for RuntimeDomain {
             removed * 1000 + changes * 100
         })
     }
+    fn allows_stand_pat(&self, position: &GameTimeline) -> Result<Option<bool>, Self::Error> {
+        let cached = self
+            .cache
+            .lock()
+            .unwrap()
+            .get(&fingerprint(position))
+            .cloned();
+        if let Some(actions) = cached {
+            for action in &actions {
+                if !Self::tactical(action) && !self.losing_declaration(position, action)? {
+                    return Ok(Some(true));
+                }
+            }
+            return Ok(Some(false));
+        }
+        let mut witness = false;
+        let mut complete = Vec::new();
+        self.enumerate(position, |action| {
+            if !Self::tactical(&action) && !self.losing_declaration(position, &action)? {
+                witness = true;
+                Ok(false)
+            } else {
+                complete.push(action);
+                Ok(true)
+            }
+        })?;
+        if !witness {
+            self.cache_actions(position, fingerprint(position), complete)?;
+        }
+        Ok(Some(witness))
+    }
     fn quiescence(
         &self,
         position: &GameTimeline,
     ) -> Result<Option<Quiescence<RuntimeAction>>, Self::Error> {
         let all = self.actions(position)?;
         let count = all.len();
-        let actions: Vec<_> = all
-            .into_iter()
-            .filter(|a| self.tactical(position, a))
-            .collect();
+        let actions: Vec<_> = all.into_iter().filter(Self::tactical).collect();
         if actions.is_empty() {
             Ok(None)
         } else {
@@ -695,5 +755,107 @@ mod tests {
             domain.position_key(&with_history),
             domain.position_key(&position)
         );
+    }
+    struct WitnessRules {
+        calls: Rc<std::cell::Cell<usize>>,
+        quiet: bool,
+    }
+    impl InteractionRules for WitnessRules {
+        fn choices(
+            &self,
+            _: &TurnSession,
+            _: &StateMap,
+        ) -> Result<Vec<ChoiceSpec>, InteractionError> {
+            let mut choices = vec![ChoiceSpec::option(if self.quiet {
+                "quiet"
+            } else {
+                "resign"
+            })];
+            choices.extend((0..40).map(|n| ChoiceSpec::option(format!("capture-{n}"))));
+            Ok(choices)
+        }
+        fn apply_choice(
+            &self,
+            turn: &mut TurnSession,
+            _: &mut StateMap,
+            choice: &Choice,
+        ) -> Result<InteractionFlow, InteractionError> {
+            self.calls.set(self.calls.get() + 1);
+            let monumla_core::ChoiceKind::SelectOption { key } = &choice.kind else {
+                unreachable!()
+            };
+            turn.apply_step(RecordedAction::new(key.clone()), |state| {
+                if key.starts_with("capture-") {
+                    state.remove_entity(monumla_core::EntityId::new(2))?;
+                } else if key == "resign" {
+                    state.ruleset_state.insert("loser", 1_u64);
+                }
+                state.set_active_players(vec![PlayerId::new(2)])
+            })?;
+            Ok(InteractionFlow::FinishTurn)
+        }
+    }
+    struct WitnessOutcome;
+    impl OutcomeRule for WitnessOutcome {
+        fn evaluate(&self, context: RuleContext<'_>) -> Result<Option<GameOutcome>, RuleError> {
+            Ok(context
+                .state()
+                .ruleset_state
+                .contains_key("loser")
+                .then(|| {
+                    GameOutcome::new("declaration")
+                        .with_loser(PlayerId::new(1))
+                        .with_winner(PlayerId::new(2))
+                }))
+        }
+    }
+    fn witness_game(quiet: bool) -> (RuntimeDomain, GameTimeline, Rc<std::cell::Cell<usize>>) {
+        let (_, position) = game();
+        let mut state = position.current().clone();
+        state.board = monumla_core::Board::new(2, 2).unwrap();
+        for id in 1..=2 {
+            state
+                .add_entity(monumla_core::EntityState::new(
+                    monumla_core::EntityId::new(id),
+                    monumla_core::EntityTypeId::new(1),
+                    PlayerId::new(id),
+                    Position::new((id - 1) as u16, (id - 1) as u16),
+                ))
+                .unwrap();
+        }
+        let calls = Rc::new(std::cell::Cell::new(0));
+        let count = calls.clone();
+        let mut registry = RuleRegistry::new();
+        registry.register_outcome(WitnessOutcome);
+        (
+            RuntimeDomain::new(registry, move |_| {
+                Ok(Rc::new(WitnessRules {
+                    calls: count.clone(),
+                    quiet,
+                }))
+            }),
+            GameTimeline::new(state).unwrap(),
+            calls,
+        )
+    }
+    #[test]
+    fn quiet_witness_stops_early_and_never_caches_an_incomplete_action_list() {
+        let (domain, position, calls) = witness_game(true);
+        let before = position.clone();
+        assert_eq!(domain.allows_stand_pat(&position).unwrap(), Some(true));
+        assert_eq!(calls.get(), 1);
+        assert_eq!(domain.actions(&position).unwrap().len(), 41);
+        assert_eq!(calls.get(), 42);
+        assert_eq!(domain.allows_stand_pat(&position).unwrap(), Some(true));
+        assert_eq!(calls.get(), 42);
+        assert_eq!(position, before);
+    }
+    #[test]
+    fn a_losing_declaration_is_not_a_quiet_witness_for_forced_captures() {
+        let (domain, position, _) = witness_game(false);
+        assert_eq!(domain.allows_stand_pat(&position).unwrap(), Some(false));
+        assert_eq!(domain.actions(&position).unwrap().len(), 40);
+        assert!(!domain.quiescence(&position).unwrap().unwrap().stand_pat);
+        assert_eq!(domain.allows_stand_pat(&position).unwrap(), Some(false));
     }
 }

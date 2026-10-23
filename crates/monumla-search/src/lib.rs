@@ -65,6 +65,12 @@ pub trait SearchDomain {
     fn action_priority(&self, _position: &Self::Position, _action: &Self::Action) -> i32 {
         0
     }
+    /// Optional fast witness for the quiescence stand-pat rule. Some(true)
+    /// must prove that a non-tactical complete legal action exists. Unknown
+    /// domains keep the ordinary quiescence path by returning None.
+    fn allows_stand_pat(&self, _position: &Self::Position) -> Result<Option<bool>, Self::Error> {
+        Ok(None)
+    }
     fn quiescence(
         &self,
         _position: &Self::Position,
@@ -622,6 +628,20 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             });
         }
         let evaluation = self.domain.evaluate(position, self.perspective)?;
+        if depth > 0 {
+            let cutoff = match self.domain.role(position, self.perspective)? {
+                NodeRole::Maximize => evaluation >= beta,
+                NodeRole::Minimize => evaluation <= alpha,
+            };
+            if cutoff && self.domain.allows_stand_pat(position)? == Some(true) {
+                self.statistics.cutoffs += 1;
+                return Ok(Line {
+                    score: evaluation,
+                    actions: Vec::new(),
+                    terminal: false,
+                });
+            }
+        }
         let Some(mut tactical) = (if depth > 0 {
             self.domain.quiescence(position)?
         } else {

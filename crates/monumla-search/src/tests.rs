@@ -332,6 +332,11 @@ impl SearchDomain for Cached {
     fn play(&self, p: &usize, a: &usize) -> Result<usize, Self::Error> {
         self.0.play(p, a)
     }
+    fn allows_stand_pat(&self, _: &usize) -> Result<Option<bool>, Self::Error> {
+        // This abstract tree has no tactical continuations; exercise the fast
+        // path while comparing the cached search with exhaustive minimax.
+        Ok(Some(true))
+    }
     fn position_key(&self, p: &usize) -> Option<u128> {
         Some(*p as u128)
     }

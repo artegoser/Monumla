@@ -12,7 +12,7 @@ The WASM host registers the existing chess, Russian/international draughts, or G
 - Aspiration windows, with full-window re-search when needed.
 - Bounded transposition storage with verified 128-bit keys, score bounds, and depth/generation replacement.
 - Principal variation, killer, history, and generic effect-based action ordering.
-- Bounded quiescence over entity removals, transformations, and control changes.
+- Bounded quiescence over entity removals, transformations, and control changes. A lazy complete-turn witness permits early stand-pat cutoffs only when a non-losing quiet continuation exists; compulsory captures keep the full tactical path. Cached turn effects are inspected without cloning their states.
 - Up to eight ranked root continuations (the browser exposes one, three, or five).
 - Node budgets, cancellation, and progress after complete iterations.
 

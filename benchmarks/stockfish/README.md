@@ -31,3 +31,13 @@ Both runs use the same machine, Stockfish binary, starting-position color pair, 
 | [After probe fix](after-probe-fix-2026-10-23/report.md), `89e1bf6` | 0–2 | Two forfeits: no complete iteration, 18/13 plies |
 
 The match exposed capability probes becoming terminal after entities were removed, which undervalued some movement capabilities. The shared fix now passes knight-for-pawn and draughts-promotion regressions. It does **not** establish a strength gain: the updated run still loses and exposes the cost of generation/evaluation before the first completed iteration. The browser retries with longer budgets; this benchmark enforces its stated budget and records failure. The engine is not competitive with Stockfish at this setting.
+
+## Profiling a search deadline
+
+```sh
+cargo run --release -p monumla-wasm --example profile_search -- \
+  benchmarks/stockfish/after-probe-fix-2026-10-23/game-002.pgn 1 10000
+cargo run --release -p monumla-wasm --example profile_search -- - 2 10000
+```
+
+The profiler reports calls and time by shared search hook, on the final board in a PGN (ignoring a recorded result); `-` selects the starting position. It runs a fixed-depth/node search without a wall-clock deadline, so the cost of completing an iteration can be measured. It delegates every search operation to the normal runtime domain and does not substitute an evaluator or generator.
