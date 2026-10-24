@@ -169,8 +169,8 @@ impl ChessRules {
             });
         }
 
-        let legal = self.legal_moves_for_side_with_history(state, Some(history), side)?;
-        let outcome = if legal.is_empty() {
+        let legal = self.has_legal_move(state, Some(history), side)?;
+        let outcome = if !legal {
             if in_check {
                 Some(ChessOutcome::Checkmate {
                     winner: side.opponent().player(),

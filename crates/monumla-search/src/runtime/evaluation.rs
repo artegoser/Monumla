@@ -159,10 +159,8 @@ impl RuntimeDomain {
             };
         }
         drop(weights);
-        let rules = (self.factory)(position)?;
-        let turn = position.begin_turn(active(state)?)?;
-        let choices = rules.choices(&turn, &monumla_core::StateMap::new())?;
-        let mobility = (choices.len().min(60) as i32).min(80);
+        let choices = self.driver(position)?.interaction().choices.len();
+        let mobility = (choices.min(60) as i32).min(80);
         score += if allied(state, active(state)?, perspective) {
             mobility
         } else {

@@ -57,6 +57,8 @@ impl std::fmt::Debug for RuntimeAction {
 pub struct RuntimeDomain {
     registry: RuleRegistry,
     factory: Rc<Factory>,
+    drivers: Mutex<HashMap<u128, InteractionDriver<Rc<dyn InteractionRules>>>>,
+    outcomes: Mutex<HashMap<u128, Option<GameOutcome>>>,
     cache: Mutex<HashMap<u128, Vec<RuntimeAction>>>,
     weights: Mutex<HashMap<u128, i32>>,
     pub information_memory: std::cell::RefCell<crate::InformationMemory<RuntimeAction>>,
@@ -69,6 +71,8 @@ impl RuntimeDomain {
         Self {
             registry,
             factory: Rc::new(factory),
+            drivers: Mutex::new(HashMap::new()),
+            outcomes: Mutex::new(HashMap::new()),
             cache: Mutex::new(HashMap::new()),
             weights: Mutex::new(HashMap::new()),
             information_memory: std::cell::RefCell::new(crate::InformationMemory::new()),
@@ -78,20 +82,43 @@ impl RuntimeDomain {
         &self,
         position: &GameTimeline,
     ) -> Result<Option<GameOutcome>, InteractionError> {
-        self.registry
+        let key = position.semantic_digest();
+        if let Some(outcome) = self.outcomes.lock().unwrap().get(&key) {
+            return Ok(outcome.clone());
+        }
+        let outcome = self
+            .registry
             .outcome(RuleContext::from_state(
                 position.current(),
                 Some(position.history()),
             ))
-            .map_err(|e| InteractionError::RuleViolation(e.to_string()))
+            .map_err(|e| InteractionError::RuleViolation(e.to_string()))?;
+        let mut outcomes = self.outcomes.lock().unwrap();
+        if outcomes.len() >= 256 {
+            outcomes.clear();
+        }
+        outcomes.insert(key, outcome.clone());
+        Ok(outcome)
     }
     fn driver(
         &self,
         position: &GameTimeline,
     ) -> Result<InteractionDriver<Rc<dyn InteractionRules>>, InteractionError> {
+        let key = position.semantic_digest();
+        if let Some(driver) = self.drivers.lock().unwrap().get(&key) {
+            return Ok(driver.clone());
+        }
         let player = active(position.current())?;
-        InteractionDriver::new((self.factory)(position)?, position.begin_turn(player)?)
+        let driver =
+            InteractionDriver::new((self.factory)(position)?, position.begin_turn(player)?)?;
+        let mut drivers = self.drivers.lock().unwrap();
+        if drivers.len() >= 16 {
+            drivers.clear();
+        }
+        drivers.insert(key, driver.clone());
+        Ok(driver)
     }
+
     fn replay(
         &self,
         position: &GameTimeline,

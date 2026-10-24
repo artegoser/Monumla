@@ -1,3 +1,4 @@
+mod legality;
 use monumla_core::{
     Choice, ChoiceKind, ChoiceSpec, EntityId, EntityPresentation, EntityRule, EntityRuleContext,
     EntityState, EntityTypeId, GameOutcome, GameState, History, InteractionError, InteractionFlow,
@@ -573,6 +574,7 @@ fn apply_placement(
     })
 }
 
+#[cfg(test)]
 fn placement_is_legal(
     state: &GameState,
     seen: &BTreeSet<(PlayerId, BoardKey)>,
@@ -889,8 +891,9 @@ impl GoInteractionRules {
         player: PlayerId,
     ) -> Result<Vec<ChoiceSpec>, InteractionError> {
         let mut choices = Vec::new();
+        let facts = legality::PlacementFacts::new(state)?;
         for position in state.board.positions() {
-            if placement_is_legal(state, &self.seen_positions, player, position)? {
+            if facts.legal(state, &self.seen_positions, player, position)? {
                 choices.push(ChoiceSpec::position(position));
             }
         }
@@ -968,11 +971,6 @@ impl GoInteractionRules {
     ) -> Result<InteractionFlow, InteractionError> {
         match &choice.kind {
             ChoiceKind::SelectPosition { position } => {
-                if !placement_is_legal(&turn.working, &self.seen_positions, player, *position)? {
-                    return Err(InteractionError::RuleViolation(
-                        "illegal Go placement".into(),
-                    ));
-                }
                 let mut action = RecordedAction::new("go.place");
                 action.data.insert("x", u64::from(position.x));
                 action.data.insert("y", u64::from(position.y));
@@ -1823,3 +1821,6 @@ mod tests {
         assert_ne!(board_key_rule(&a).unwrap(), board_key_rule(&b).unwrap());
     }
 }
+
+#[cfg(test)]
+mod legality_tests;

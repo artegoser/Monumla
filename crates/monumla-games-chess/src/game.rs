@@ -342,26 +342,55 @@ impl ChessRules {
         history: Option<&History>,
         entity: EntityId,
     ) -> Result<Vec<PseudoMove>, ChessError> {
+        let mut legal = Vec::new();
+        self.visit_legal_moves(state, history, entity, |movement| {
+            legal.push(movement);
+            true
+        })?;
+        Ok(legal)
+    }
+    /// Stop once the caller has the required legal witness. Full generation and
+    /// mate/stalemate checks use the same legality predicate.
+    fn visit_legal_moves(
+        &self,
+        state: &GameState,
+        history: Option<&History>,
+        entity: EntityId,
+        mut visit: impl FnMut(PseudoMove) -> bool,
+    ) -> Result<bool, ChessError> {
         let actor = state.entity(entity)?;
         let side =
             ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
-        let mut legal = Vec::new();
-
+        let mut found = false;
         for movement in self.pseudo_moves_with_history(state, history, entity)? {
             if let Some(captured) = movement.capture {
                 if state.entity(captured)?.entity_type == KING {
                     continue;
                 }
             }
-
             let mut candidate = state.clone();
             self.apply_move_unchecked(&mut candidate, &movement)?;
             if !self.in_check(&candidate, side)? {
-                legal.push(movement);
+                found = true;
+                if !visit(movement) {
+                    break;
+                }
             }
         }
-
-        Ok(legal)
+        Ok(found)
+    }
+    pub(crate) fn has_legal_move(
+        &self,
+        state: &GameState,
+        history: Option<&History>,
+        side: ChessSide,
+    ) -> Result<bool, ChessError> {
+        for entity in state.entities.values().filter(|e| e.owner == side.player()) {
+            if self.visit_legal_moves(state, history, entity.id, |_| false)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub fn legal_moves_for_side(
