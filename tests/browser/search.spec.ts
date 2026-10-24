@@ -240,6 +240,7 @@ test('analysis navigation retains evaluation, restores cached depth and keeps co
 	await analysis(page);
 	const panel = page.getByLabel('Position analysis');
 	await expect(panel).toHaveAttribute('data-analysis-depth', /[2-9]/, { timeout: 30000 });
+	await page.getByLabel('Pause search').click();
 	const score = await page.getByLabel('Position evaluation').innerText();
 	const retainedDepth = Number(await panel.getAttribute('data-analysis-depth'));
 	const bar = await page.locator('.evaluation-bar > div').getAttribute('style');
@@ -275,6 +276,7 @@ test('analysis navigation retains evaluation, restores cached depth and keeps co
 	await expect(panel).toHaveAttribute('data-analysis-pending', 'false');
 	const returned = await controlsTop();
 	expect(Math.abs(returned - before)).toBeLessThanOrEqual(1);
+	await page.getByLabel('Resume search').click();
 	await page.evaluate(() =>
 		(window as unknown as { releaseAnalysis: () => void }).releaseAnalysis()
 	);
@@ -416,4 +418,50 @@ test('right click marks a circle without filling or hiding the piece', async ({ 
 	});
 	expect(circle).toEqual({ radius: '50%', border: 'solid' });
 	await expect(page.locator('.piece-node').first()).toBeVisible();
+});
+
+test('live analysis reports a provisional deeper iteration without promoting its completed depth', async ({
+	page
+}) => {
+	await open(page);
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	const panel = page.getByLabel('Position analysis');
+	await expect(panel).toHaveAttribute('data-provisional', 'true', { timeout: 30000 });
+	await expect
+		.poll(async () => {
+			const completed = Number(await panel.getAttribute('data-analysis-depth'));
+			const searching = Number(await panel.getAttribute('data-searching-depth'));
+			return searching > completed;
+		})
+		.toBe(true);
+	await expect(panel.locator('.analysis-summary')).toContainText('Provisional');
+});
+
+test('review totals remain fixed when navigating the same game backwards', async ({ page }) => {
+	await open(page);
+	await page.getByRole('combobox', { name: 'Opponent', exact: true }).selectOption('local');
+	for (let i = 0; i < 3; i++) await humanMove(page);
+	await analysis(page);
+	const review = page.getByLabel('Game review');
+	await expect(review).toContainText('/3', { timeout: 30000 });
+	await page.getByRole('button', { name: 'Undo', exact: true }).click();
+	await expect(review).toContainText('/3');
+	await page.getByRole('button', { name: 'Redo', exact: true }).click();
+	await expect(review).toContainText('/3');
+});
+
+test('shared search can choose a draw claim and the ordinary action finishes the game', async ({
+	page
+}) => {
+	await open(page);
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await page.getByText('Position · FEN', { exact: true }).click();
+	await page.getByLabel('Load FEN', { exact: true }).fill('7k/8/8/8/8/8/8/K6q w - - 100 51');
+	await page.getByRole('button', { name: 'Load FEN', exact: true }).click();
+	await expect(page.locator('.best-lines button').first()).toContainText(
+		'Fifty-move draw claimed',
+		{ timeout: 30000 }
+	);
+	await page.getByRole('button', { name: 'Claim fifty-move draw', exact: true }).first().click();
+	await expect(page.locator('.board-status')).toContainText('Draw · 50-move rule');
 });

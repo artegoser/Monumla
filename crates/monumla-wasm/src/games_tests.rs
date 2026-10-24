@@ -268,6 +268,16 @@ fn hidden_review_sends_only_pre_move_knowledge_and_does_not_grade_luck() {
     let index_b = b.timeline().history().len() - 1;
     let snapshot_a = a.snapshot_for_review(index_a).unwrap();
     let snapshot_b = b.snapshot_for_review(index_b).unwrap();
+    // Reviewing a retained future move must expose the same pre-move observation,
+    // without changing the actual board or leaking its private outcome.
+    let Runtime::Rules(runtime) = &mut a.inner else { panic!() };
+    runtime.timeline.undo().unwrap();
+    runtime.rebuild_interaction().unwrap();
+    let current = a.timeline().clone();
+    let future = a.snapshot_for_review(index_a).unwrap();
+    assert_eq!(future.timeline, snapshot_a.timeline);
+    assert_eq!(future.review_input, snapshot_a.review_input);
+    assert_eq!(a.timeline(), &current);
     assert_eq!(snapshot_a.timeline, snapshot_b.timeline);
     assert_eq!(snapshot_a.review_input, snapshot_b.review_input);
     assert!(snapshot_a.timeline.history().is_empty());

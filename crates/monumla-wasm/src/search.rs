@@ -32,7 +32,19 @@ pub struct AnalysisLine {
     pub path: Vec<PositionView>,
 }
 #[derive(Clone, Debug, Serialize)]
+pub struct LiveAnalysis {
+    pub depth: u16,
+    pub root_done: usize,
+    pub root_total: usize,
+    pub line_index: usize,
+    pub current_move: Option<String>,
+    pub bound: String,
+    pub line: Option<AnalysisLine>,
+}
+#[derive(Clone, Debug, Serialize)]
 pub struct AnalysisView {
+    pub position_key: String,
+    pub iteration: Option<LiveAnalysis>,
     pub lines: Vec<AnalysisLine>,
     pub score: Option<i32>,
     pub perspective: u32,
@@ -436,11 +448,16 @@ impl GameHandle {
     }
     fn snapshot_for_review(&self, index: usize) -> Result<Snapshot, String> {
         let domain = self.domain();
-        if !domain.has_hidden_information() {
-            return self.snapshot();
+        let mut timeline = self.timeline().clone();
+        while timeline.history().len() <= index {
+            timeline.redo().ok_or("Move outside history")?;
         }
-        let turn = self
-            .timeline()
+        if !domain.has_hidden_information() {
+            let mut snapshot = self.snapshot()?;
+            snapshot.timeline = timeline;
+            return Ok(snapshot);
+        }
+        let turn = timeline
             .history()
             .turns()
             .get(index)
@@ -546,13 +563,22 @@ impl GameHandle {
         };
         let start = now_ms();
         let key = self.position_key();
+        let rendered =
+            std::cell::RefCell::new(Vec::<(i32, Vec<RuntimeAction>, AnalysisLine)>::new());
+        let labels = std::cell::RefCell::new(Vec::<(RuntimeAction, String)>::new());
         let convert = |result: &SearchResult<RuntimeAction>| -> Result<AnalysisView, String> {
-            let mut lines = Vec::new();
-            for variation in &result.variations {
+            let render = |score: i32, actions: &[RuntimeAction]| -> Result<AnalysisLine, String> {
+                if let Some((_, _, line)) = rendered
+                    .borrow()
+                    .iter()
+                    .find(|(value, path, _)| *value == score && path == actions)
+                {
+                    return Ok(line.clone());
+                }
+
                 let mut position = root.clone();
                 let mut moves = Vec::new();
-                let path = variation
-                    .actions
+                let path = actions
                     .first()
                     .map(|a| {
                         if hidden {
@@ -577,7 +603,7 @@ impl GameHandle {
                     .into_iter()
                     .map(PositionView::from)
                     .collect();
-                for action in &variation.actions {
+                for action in actions {
                     if hidden {
                         moves.push(
                             action
@@ -602,14 +628,64 @@ impl GameHandle {
                         position = domain.play(&position, action).map_err(string_error)?;
                     }
                 }
-                lines.push(AnalysisLine {
-                    score: variation.score,
-                    moves,
-                    path,
-                });
-            }
+                let line = AnalysisLine { score, moves, path };
+                let mut cache = rendered.borrow_mut();
+                if cache.len() == 64 {
+                    cache.remove(0);
+                }
+                cache.push((score, actions.to_vec(), line.clone()));
+                Ok(line)
+            };
+            let lines = result
+                .variations
+                .iter()
+                .map(|v| render(v.score, &v.actions))
+                .collect::<Result<Vec<_>, _>>()?;
+            let iteration = result
+                .iteration
+                .as_ref()
+                .map(|live| -> Result<LiveAnalysis, String> {
+                    Ok(LiveAnalysis {
+                        depth: live.depth,
+                        root_done: live.root_done,
+                        root_total: live.root_total,
+                        line_index: live.line_index,
+                        current_move: live
+                            .current_action
+                            .as_ref()
+                            .map(|action| -> Result<String, String> {
+                                if let Some((_, label)) =
+                                    labels.borrow().iter().find(|(a, _)| a == action)
+                                {
+                                    return Ok(label.clone());
+                                }
+                                let label = self.action_label(domain, &root, action)?;
+                                let mut cache = labels.borrow_mut();
+                                if cache.len() == 64 {
+                                    cache.remove(0);
+                                }
+                                cache.push((action.clone(), label.clone()));
+                                Ok(label)
+                            })
+                            .transpose()?,
+                        bound: match live.bound {
+                            monumla_search::ScoreBound::Exact => "exact",
+                            monumla_search::ScoreBound::Lower => "lower",
+                            monumla_search::ScoreBound::Upper => "upper",
+                            monumla_search::ScoreBound::Estimate => "estimate",
+                        }
+                        .into(),
+                        line: live
+                            .score
+                            .map(|score| render(score, &live.principal_variation))
+                            .transpose()?,
+                    })
+                })
+                .transpose()?;
             let elapsed_ms = (now_ms() - start).max(0.0);
             Ok(AnalysisView {
+                position_key: key.clone(),
+                iteration,
                 principal_variation: lines.first().map(|v| v.moves.clone()).unwrap_or_default(),
                 lines,
                 score: result.score,
@@ -650,6 +726,7 @@ impl GameHandle {
             progress(&view);
             return Ok(view);
         }
+        let mut last_progress = now_ms() - 100.0;
         let result = monumla_search::analyze_cached(
             domain,
             self.timeline(),
@@ -658,6 +735,10 @@ impl GameHandle {
             memory,
             cancel,
             |result| {
+                if result.iteration.is_some() && now_ms() - last_progress < 500.0 {
+                    return;
+                }
+                last_progress = now_ms();
                 if let Ok(view) = convert(result) {
                     progress(&view);
                 }
@@ -666,7 +747,7 @@ impl GameHandle {
         .map_err(string_error)?;
         convert(&result)
     }
-    fn action_label(
+    pub(super) fn action_label(
         &self,
         domain: &RuntimeDomain,
         position: &GameTimeline,
@@ -678,10 +759,7 @@ impl GameHandle {
             .previous_turn()
             .ok_or("Action did not finish a turn")?;
         match &self.inner {
-            Runtime::Chess(r) => r
-                .rules
-                .san_for_turn(turn, position.history())
-                .map_err(string_error),
+            Runtime::Chess(r) => chess_turn_notation(&r.rules, turn, position.history()),
             Runtime::Go(_) => Ok(go_turn_notation(turn, position.current().board.width())),
             Runtime::Checkers(_) => Ok(checkers_turn_notation(turn)),
             Runtime::Rules(r) => Ok(match r.kind {
@@ -822,29 +900,63 @@ impl SearchSession {
         lines: u8,
         forced: bool,
     ) -> Result<JsValue, JsValue> {
-        let deadline = now_ms() + f64::from(time_ms.clamp(20, 1000));
-        let result = self
-            .game
-            .analyze_position_cached(
-                &self.domain,
-                &mut self.memory,
-                SearchOptions {
-                    limits: SearchLimits {
-                        max_depth: depth.clamp(1, 32),
-                        max_nodes: Some(u64::from(nodes.clamp(100, 50_000_000))),
-                    },
-                    transposition_entries: 16384,
-                    multi_pv: usize::from(lines.clamp(1, 5)),
-                    stop_on_forced_move: forced,
-                    late_move_reductions: true,
-                    ..Default::default()
-                },
-                || now_ms() >= deadline,
-                |_| {},
-                true,
-            )
+        to_js(
+            &self
+                .run_chunk(depth, nodes, time_ms, lines, forced, |_| {})
+                .map_err(js_error)?,
+        )
+    }
+    #[wasm_bindgen(js_name=chunkWithProgress)]
+    pub fn chunk_with_progress(
+        &mut self,
+        depth: u16,
+        nodes: u32,
+        time_ms: u32,
+        lines: u8,
+        forced: bool,
+        progress: js_sys::Function,
+    ) -> Result<JsValue, JsValue> {
+        let report = self
+            .run_chunk(depth, nodes, time_ms, lines, forced, |view| {
+                if let Ok(value) = to_js(view) {
+                    let _ = progress.call1(&JsValue::NULL, &value);
+                }
+            })
             .map_err(js_error)?;
-        to_js(&result)
+        to_js(&report)
+    }
+}
+
+impl SearchSession {
+    fn run_chunk(
+        &mut self,
+        depth: u16,
+        nodes: u32,
+        time_ms: u32,
+        lines: u8,
+        forced: bool,
+        progress: impl FnMut(&AnalysisView),
+    ) -> Result<AnalysisView, String> {
+        let deadline = now_ms() + f64::from(time_ms.clamp(20, 1000));
+        self.game.analyze_position_cached(
+            &self.domain,
+            &mut self.memory,
+            SearchOptions {
+                report_partial: true,
+                limits: SearchLimits {
+                    max_depth: depth.clamp(1, 32),
+                    max_nodes: Some(u64::from(nodes.clamp(100, 50_000_000))),
+                },
+                transposition_entries: 16384,
+                multi_pv: usize::from(lines.clamp(1, 5)),
+                stop_on_forced_move: forced,
+                late_move_reductions: true,
+                ..Default::default()
+            },
+            || now_ms() >= deadline,
+            progress,
+            true,
+        )
     }
 }
 
@@ -966,6 +1078,27 @@ mod tests {
         game.apply_analyzed_action(report.best_action.unwrap())
             .unwrap();
         assert!(game.game_view().unwrap().status.outcome.is_some());
+    }
+    #[test]
+    fn immediate_win_beats_a_free_capture() {
+        let game = GameHandle {
+            inner: Runtime::Chess(ChessRuntime::from_fen("7k/5K2/6Q1/8/8/8/8/6q1 w - - 0 1").unwrap()),
+        };
+        for depth in [1, 2, 3] {
+            let report = analyze_game(&game, depth);
+            assert!(report.score.unwrap() > 90_000);
+            assert!(report.lines[0].moves[0].ends_with('#'));
+            assert_ne!(report.lines[0].moves[0], "Qxg1");
+        }
+    }
+    #[test]
+    fn a_losing_side_can_choose_a_claimable_draw_through_shared_search() {
+        let mut game = GameHandle { inner: Runtime::Chess(ChessRuntime::from_fen("7k/8/8/8/8/8/8/K6q w - - 100 51").unwrap()) };
+        let report = analyze_game(&game, 1);
+        assert_eq!(report.score, Some(0));
+        assert!(report.lines[0].moves[0].contains("draw claimed"));
+        game.apply_analyzed_action(report.best_action.unwrap()).unwrap();
+        assert_eq!(game.game_view().unwrap().status.outcome.unwrap().key, "chess.fifty_move_rule");
     }
     #[test]
     fn midgame_from_report_completes_iterations_and_keeps_searching() {

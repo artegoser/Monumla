@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import PlacementGame from '$lib/games/PlacementGame.svelte';
 	import AnalysisPanel from '$lib/search/AnalysisPanel.svelte';
+	import { displayLines, displayScore } from '$lib/search/presentation';
 	import type { AnalysisView, BestAction, MoveAssessment } from '$lib/search/types';
 	import MoveBadge from '$lib/search/MoveBadge.svelte';
 	import { describeAssessment, assessmentLegend } from '$lib/search/assessment';
@@ -91,8 +92,8 @@
 	let fullHistory: HistoryTurnView[] = [];
 	let reviewResults: Record<string, MoveAssessment> = {};
 	let analyzedPositions: Record<string, AnalysisView> = {};
-	$: beforeKeys = history.map((_, i) => positionId(history.slice(0, i)));
-	$: reviewKeys = history.map((_, i) => positionId(history.slice(0, i + 1)));
+	$: beforeKeys = fullHistory.map((_, i) => positionId(fullHistory.slice(0, i)));
+	$: reviewKeys = fullHistory.map((_, i) => positionId(fullHistory.slice(0, i + 1)));
 	$: whiteSide = game?.ruleset === 'go' ? 2 : 1;
 	$: bottomSide = orientation === 'white' ? whiteSide : whiteSide === 1 ? 2 : 1;
 	$: topSide = bottomSide === 1 ? 2 : 1;
@@ -117,16 +118,16 @@
 		) {
 			analyzedPositions = { ...analyzedPositions, [positionId()]: value };
 		}
-		if (value?.score != null)
-			lastWhiteScore = value.score * (value.perspective === whiteSide ? 1 : -1);
+		const score = displayScore(value);
+		if (score != null && value) lastWhiteScore = score * (value.perspective === whiteSide ? 1 : -1);
 	}
 	function assessment(index: number, results: Record<string, MoveAssessment>) {
 		const result = results[positionId(fullHistory.slice(0, index + 1))];
-		if (!result?.symbol) return null;
+		if (!result) return null;
 		return {
 			...result,
 			symbol: result.symbol,
-			bad: ['?!', '?', '??'].includes(result.symbol),
+			bad: ['?!', '?', '??'].includes(result.symbol ?? ''),
 			title: `${result.label} · depth ${result.depth} · score loss ${((result.loss ?? 0) / 100).toFixed(2)}${result.best_move ? ` · best: ${result.best_move}` : ''}`
 		};
 	}
@@ -524,7 +525,7 @@
 						/>
 						{#if mode === 'analysis' && showArrows && !turnInProgress}
 							<AnalysisOverlay
-								lines={analysis?.lines ?? []}
+								lines={displayLines(analysis)}
 								selected={selectedLine}
 								width={game.width}
 								height={game.height}
@@ -648,7 +649,7 @@
 								analyses={analyzedPositions}
 								{beforeKeys}
 								{runtime}
-								{history}
+								history={fullHistory}
 								revision={positionRevision}
 								keys={reviewKeys}
 								results={reviewResults}

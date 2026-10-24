@@ -41,10 +41,8 @@ async function run(data: SearchRequest) {
 		}
 		const started = performance.now();
 		let previousElapsed: number | null = null;
-		while (current()) {
-			const remaining = data.settings.timeMs - (performance.now() - started);
-			const analysis = session.chunk(data.settings, Math.max(20, Math.min(250, remaining)));
-			const key = analysis.best_action?.position_key;
+		const publish = (analysis: import('./types').AnalysisView) => {
+			const key = analysis.position_key ?? analysis.best_action?.position_key;
 			if (key) {
 				previousElapsed ??= elapsedByPosition.get(key) ?? 0;
 				analysis.elapsed_ms = previousElapsed + performance.now() - started;
@@ -52,7 +50,17 @@ async function run(data: SearchRequest) {
 				if (elapsedByPosition.size > 128) elapsedByPosition.clear();
 				elapsedByPosition.set(key, analysis.elapsed_ms);
 			}
-			if (analysis.score != null) send({ id: data.id, type: 'progress', analysis });
+			if (analysis.score != null || analysis.iteration)
+				send({ id: data.id, type: 'progress', analysis });
+		};
+		while (current()) {
+			const remaining = data.settings.timeMs - (performance.now() - started);
+			const analysis = session.chunk(
+				data.settings,
+				Math.max(20, Math.min(250, remaining)),
+				publish
+			);
+			publish(analysis);
 			if (
 				analysis.stop_reason === 'terminal' ||
 				analysis.stop_reason === 'forced_move' ||

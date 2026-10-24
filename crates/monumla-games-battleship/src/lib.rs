@@ -143,7 +143,18 @@ impl InteractionRules for BattleshipRules {
                                 offset(p) + (cell % 10) as u16,
                                 (cell / 10) as u16,
                             ))
-                            .with_label(format!("Place {length}-deck ship"));
+                            .with_label(format!("Place {length}-deck ship"))
+                            .with_preview(
+                                fleet::cells(cell, length, vertical)
+                                    .unwrap()
+                                    .into_iter()
+                                    .map(|part| {
+                                        Position::new(
+                                            offset(p) + (part % 10) as u16,
+                                            (part / 10) as u16,
+                                        )
+                                    }),
+                            );
                             c.data.insert("ship", index as u64);
                             c.data.insert("vertical", vertical);
                             out.push(c);

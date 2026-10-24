@@ -195,6 +195,7 @@ test('alignment review shows named move quality only in analysis', async ({ page
 		{ timeout: 20000 }
 	);
 	await expect(page.locator('.log-row .move-badge').last()).toBeVisible();
+	await expect(page.locator('.alignment-cell .cell-assessment .move-badge')).toBeVisible();
 	await page.getByRole('button', { name: 'Play', exact: true }).click();
 	await expect(page.locator('.move-badge')).toHaveCount(0);
 });
@@ -218,4 +219,22 @@ test('Battleship review uses a sampled pre-shot estimate and keeps fog intact', 
 	});
 	await expect(page.locator('.engine-error')).toHaveCount(0);
 	await expect(page.locator('.sea-cell.hull')).toHaveCount(20);
+	await expect(page.locator('.sea-cell .cell-assessment .move-badge')).toBeVisible();
+});
+
+test('fleet setup previews contain the full footprint and orientation without claiming a ranking', async ({
+	page
+}) => {
+	await page.goto('/');
+	await page.getByLabel('Game variant').selectOption('battleship');
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await expect(page.getByRole('heading', { name: 'Fleet placement' })).toBeVisible();
+	await expect(page.locator('.placement-options')).toContainText('not strategically ranked');
+	await page.getByRole('button', { name: 'Preview Place 4-deck ship vertical at A1' }).hover();
+	await expect(page.locator('.sea-cell.ghost')).toHaveCount(4);
+	await expect(page.locator('.sea-cell.ghost[data-cell="30"]')).toHaveCount(1);
+	await expect(page.getByRole('button', { name: 'Vertical', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
 });

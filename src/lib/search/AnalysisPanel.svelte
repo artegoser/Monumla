@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '$lib/ui/Icon.svelte';
+	import PlacementOptions from '$lib/games/PlacementOptions.svelte';
+	import { displayLines, displayScore } from './presentation';
+	import { stateScalar, type ChoiceView } from '$lib/wasm/runtime';
 	import { SearchCancelled, SearchClient } from './client';
 	import type { AnalysisView, BestAction } from './types';
 	import type { GameView, LocalGame } from '$lib/wasm/runtime';
 
+	export let onpreview: (choice: ChoiceView | null) => void = () => {};
 	export let runtime: LocalGame;
 	export let game: GameView;
 	export let mode: 'play' | 'analysis';
@@ -38,6 +42,9 @@
 	let analysisKey = '';
 	let currentKey = '';
 	const cache = new Map<string, AnalysisView>();
+	$: displayedLines = displayLines(analysis, lineCount);
+	$: liveScore = displayScore(analysis);
+	$: live = analysis?.iteration;
 	$: isCurrent = analysis != null && analysisKey === currentKey;
 	let failure: string | null = null;
 	let job = 0;
@@ -49,6 +56,7 @@
 	let settingsOpen = false;
 
 	$: whiteSide = game.ruleset === 'go' ? 2 : 1;
+	$: setup = game.ruleset === 'battleship' && stateScalar(game.status.details, 'phase') === 'setup';
 	$: placement = game.ruleset === 'battleship' || game.ruleset === 'tictactoe';
 	$: firstLabel =
 		game.ruleset === 'battleship' ? 'Player 1' : game.ruleset === 'tictactoe' ? 'Cross' : 'White';
@@ -79,7 +87,8 @@
 		timeMs,
 		lineCount,
 		paused,
-		turnInProgress
+		turnInProgress,
+		setup
 	);
 
 	function cancel() {
@@ -96,7 +105,8 @@
 		duration: number,
 		lines: number,
 		suspended: boolean,
-		partial: boolean
+		partial: boolean,
+		preparing: boolean
 	) {
 		if (!ready) return;
 		const switched = current !== seenRuntime || currentMode !== seenMode;
@@ -130,6 +140,10 @@
 		scheduled = key;
 		failure = null;
 		if (partial || suspended) return;
+		if (currentMode === 'analysis' && preparing) {
+			onanalysis(null);
+			return;
+		}
 		if (currentMode === 'analysis') void start(false);
 		else if (computer != null && game.active_players.includes(computer) && !game.status.outcome)
 			void start(true);
@@ -144,7 +158,7 @@
 		try {
 			const accept = (value: AnalysisView) => {
 				if (request !== job || position !== revision || current !== runtime) return;
-				if (value.score == null) return;
+				if (value.score == null && !value.iteration) return;
 				const previous = cache.get(sourceKey);
 				if (previous && previous.depth > value.depth) return;
 				if (value.score != null) {
@@ -219,14 +233,16 @@
 
 <section
 	class="engine-panel"
+	data-searching-depth={live?.depth ?? analysis?.depth ?? 0}
+	data-provisional={!!live}
 	data-analysis-depth={isCurrent ? (analysis?.depth ?? 0) : 0}
 	data-analysis-pending={!isCurrent}
 	aria-label={mode === 'analysis' ? 'Position analysis' : 'Computer opponent'}
 >
 	<div class="panel-heading-row">
-		<h2>{mode === 'analysis' ? 'Position analysis' : 'Your game'}</h2>
+		<h2>{mode === 'analysis' ? (setup ? 'Fleet placement' : 'Position analysis') : 'Your game'}</h2>
 		<div class="panel-tools">
-			{#if mode === 'analysis' || botTurn || paused}
+			{#if (mode === 'analysis' && !setup) || botTurn || paused}
 				<button
 					class="icon-button"
 					type="button"
@@ -288,6 +304,8 @@
 								? 'Your move'
 								: 'Pass the board to your opponent'}
 		</p>
+	{:else if setup}
+		<PlacementOptions choices={runtime.interaction().choices} {onpreview} />
 	{:else}
 		{#if settingsOpen}
 			<div class="analysis-settings">
@@ -310,9 +328,7 @@
 			</div>
 		{/if}
 		<div class="analysis-summary" class:previous-position={!isCurrent && analysis != null}>
-			<strong class="score" aria-label="Position evaluation"
-				>{scoreText(analysis?.score ?? null)}</strong
-			>
+			<strong class="score" aria-label="Position evaluation">{scoreText(liveScore)}</strong>
 			<div>
 				<span
 					>{game.ruleset === 'battleship'
@@ -324,10 +340,12 @@
 						: !isCurrent && analysis
 							? 'Previous position · searching'
 							: thinking
-								? 'Searching deeper'
+								? live
+									? `Provisional · depth ${live.depth}${live.root_total ? ` · ${live.root_done}/${live.root_total} moves` : ''}${live.line_index > 1 ? ` · PV ${live.line_index}` : ''}`
+									: 'Searching deeper'
 								: paused
-									? 'Analysis paused'
-									: 'Search finished'}{isCurrent && analysis
+									? `Analysis paused${live ? ` · unfinished depth ${live.depth}` : ''}`
+									: 'Search finished'}{isCurrent && analysis && !live
 						? analysis.samples > 0
 							? ` · ${analysis.samples} sampled layouts`
 							: ` · depth ${analysis.depth}`
@@ -342,7 +360,7 @@
 			style:grid-template-rows={`repeat(${lineCount}, 42px)`}
 		>
 			{#each Array.from({ length: lineCount }) as _, index}
-				{@const line = analysis?.lines[index]}
+				{@const line = displayedLines[index]}
 				{#if line}
 					<button
 						type="button"
@@ -356,7 +374,7 @@
 						disabled={!isCurrent || turnInProgress}
 						aria-pressed={selectedLine === index && isCurrent}
 						title={isCurrent
-							? line.moves.join('  ')
+							? `${line.moves.join('  ')} · Completed depth ${line.depth}`
 							: 'Previous position; waiting for current analysis'}
 					>
 						<span class="line-rank">{index + 1}</span><strong>{scoreText(line.score)}</strong><span
@@ -380,6 +398,28 @@
 				{/if}
 			{/each}
 		</div>
+		<p
+			class="working-line"
+			aria-label="Unfinished search candidate"
+			title="An unfinished root search can change as other moves are checked; it does not replace the completed ranking."
+		>
+			{#if live?.line}
+				<span>Working · depth {live.depth}</span>
+				<strong
+					>{live.bound === 'exact'
+						? ''
+						: live.bound === 'estimate'
+							? '≈ '
+							: (live.bound === 'lower') ===
+								  (game.ruleset === 'battleship' || analysis?.perspective === whiteSide)
+								? '≥ '
+								: '≤ '}{scoreText(live.line.score)}</strong
+				>
+				<span class="working-moves">{live.line.moves.join('  ')}</span>
+			{:else}
+				<span>{thinking ? 'Checking candidates…' : 'Completed ranking above'}</span>
+			{/if}
+		</p>
 		<p class="search-details">
 			{analysis && isCurrent
 				? `${analysis.nodes.toLocaleString()} nodes · ${(analysis.nodes_per_second / 1000).toFixed(1)}k nodes/s · ${(analysis.elapsed_ms / 1000).toFixed(1)}s`

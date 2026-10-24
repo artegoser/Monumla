@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { GameView, InteractionView } from '$lib/wasm/runtime';
-	import type { AnalysisView } from '$lib/search/types';
+	import type { AnalysisView, MoveAssessment } from '$lib/search/types';
+	import MoveBadge from '$lib/search/MoveBadge.svelte';
+	export let assessment: MoveAssessment | null | undefined = null;
 	export let game: GameView;
 	export let interaction: InteractionView;
 	export let disabled = false;
@@ -46,6 +48,9 @@
 							r="27"
 						/>{/if}</svg
 				>{:else if candidate >= 0}<span class="candidate-ring"></span>{/if}
+			{#if assessment && game.last_move?.to.x === cell.x && game.last_move?.to.y === cell.y}<span
+					class="cell-assessment"><MoveBadge {assessment} /></span
+				>{/if}
 		</button>
 	{/each}
 	<svg
@@ -72,6 +77,16 @@
 </div>
 
 <style>
+	.cell-assessment {
+		position: absolute;
+		right: 1px;
+		top: 1px;
+		z-index: 8;
+		pointer-events: none;
+		transform: scale(0.8);
+		transform-origin: top right;
+	}
+
 	.alignment-board {
 		position: relative;
 		display: grid;

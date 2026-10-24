@@ -5,6 +5,7 @@
 		stateScalar,
 		type GameView,
 		type InteractionView,
+		type ChoiceView,
 		type HistoryTurnView
 	} from '$lib/wasm/runtime';
 	import type { AnalysisView, BestAction, MoveAssessment } from '$lib/search/types';
@@ -13,6 +14,7 @@
 	import GameReview from '$lib/search/GameReview.svelte';
 	import MoveBadge from '$lib/search/MoveBadge.svelte';
 	import { describeAssessment } from '$lib/search/assessment';
+	import { displayLines } from '$lib/search/presentation';
 	import AlignmentBoard from './AlignmentBoard.svelte';
 	import BattleshipBoard from './BattleshipBoard.svelte';
 	export let ruleset: 'battleship' | 'tictactoe';
@@ -21,12 +23,19 @@
 	let game: GameView | null = null;
 	let interaction: InteractionView;
 	let history: HistoryTurnView[] = [];
+	let fullHistory: HistoryTurnView[] = [];
 	let error = '';
 	let loading = true;
 	let revision = 0;
 	let pauseRevision = 0;
 	let analysis: AnalysisView | null = null;
 	let showHints = true;
+	let placementPreview: ChoiceView | null = null;
+	let placementVertical = false;
+	function previewPlacement(choice: ChoiceView | null) {
+		placementPreview = choice;
+		if (choice) placementVertical = stateScalar(choice.data, 'vertical') === true;
+	}
 	let viewer = 1;
 	let botSide: number | null = 2;
 	let bothBots = false;
@@ -37,15 +46,15 @@
 	let customOpen = false;
 	let reviewResults: Record<string, MoveAssessment> = {};
 	let analyzedPositions: Record<string, AnalysisView> = {};
-	$: reviewKeys = history.map((_, i) => historyKey(i + 1));
-	$: beforeKeys = history.map((_, i) => historyKey(i));
+	$: reviewKeys = fullHistory.map((_, i) => historyKey(i + 1));
+	$: beforeKeys = fullHistory.map((_, i) => historyKey(i));
 	$: currentAssessment = reviewResults[historyKey(history.length)];
 	$: currentGrade = describeAssessment(currentAssessment);
 	function historyKey(length: number) {
 		return (
 			ruleset +
 			':' +
-			history
+			fullHistory
 				.slice(0, length)
 				.map((t) => `${t.actor}:${t.notation}`)
 				.join('/')
@@ -95,6 +104,14 @@
 		game = runtime.view();
 		interaction = runtime.interaction();
 		history = runtime.history();
+		if (
+			!game.can_redo ||
+			history.some(
+				(turn, i) =>
+					turn.notation !== fullHistory[i]?.notation || turn.actor !== fullHistory[i]?.actor
+			)
+		)
+			fullHistory = history;
 		revision += 1;
 	}
 	async function start() {
@@ -308,11 +325,14 @@
 				</section>
 			{:else if ruleset === 'battleship'}
 				<BattleshipBoard
+					assessment={mode === 'analysis' && !setup ? currentAssessment : null}
+					preview={placementPreview}
+					bind:vertical={placementVertical}
 					{game}
 					{interaction}
 					{viewer}
 					disabled={blocked}
-					analysis={hints}
+					analysis={hints ? { ...hints, lines: displayLines(hints) } : null}
 					onchoose={choose}
 				/>
 				{#if setup}<div class="setup-actions">
@@ -324,10 +344,11 @@
 							>{/each}
 					</div>{/if}
 			{:else}<AlignmentBoard
+					assessment={mode === 'analysis' ? currentAssessment : null}
 					{game}
 					{interaction}
 					disabled={blocked}
-					analysis={hints}
+					analysis={hints ? { ...hints, lines: displayLines(hints) } : null}
 					onchoose={choose}
 				/>{/if}
 			<p class="placement-status" aria-live="polite">{game.status.text}</p>
@@ -343,6 +364,7 @@
 				{revision}
 				{pauseRevision}
 				bind:showArrows={showHints}
+				onpreview={previewPlacement}
 				onplay={play}
 				onanalysis={receiveAnalysis}
 				oncontrolchange={controls}
@@ -350,7 +372,7 @@
 			<section class="placement-history">
 				<div class="panel-heading-row">
 					<h2>{ruleset === 'battleship' ? 'Logbook' : 'Moves'}</h2>
-					<span>{history.length} turns</span>
+					<span>{fullHistory.length} turns</span>
 				</div>
 				{#if mode === 'analysis'}
 					<div class="placement-review">
@@ -372,7 +394,7 @@
 						<GameReview
 							{runtime}
 							{revision}
-							{history}
+							history={fullHistory}
 							keys={reviewKeys}
 							{beforeKeys}
 							analyses={analyzedPositions}
@@ -386,7 +408,10 @@
 							{ruleset === 'battleship'
 								? 'Place all ten ships, then confirm Ready.'
 								: 'Place your first mark.'}
-						</p>{/if}{#each history as turn}<div class="log-row">
+						</p>{/if}{#each fullHistory as turn}<div
+							class="log-row"
+							class:future={turn.index >= history.length}
+						>
 							<span>{turn.index + 1}.</span><span class:player-one={turn.actor === 1}
 								>P{turn.actor}</span
 							><strong>{turn.notation}</strong
@@ -422,6 +447,10 @@
 </main>
 
 <style>
+	.log-row.future {
+		opacity: 0.55;
+	}
+
 	.placement-move-grade {
 		display: flex;
 		align-items: center;

@@ -17,7 +17,18 @@ export interface AnalysisLine {
 	path: Array<{ x: number; y: number }>;
 }
 
+export interface LiveAnalysis {
+	depth: number;
+	root_done: number;
+	root_total: number;
+	line_index: number;
+	current_move: string | null;
+	bound: 'exact' | 'lower' | 'upper' | 'estimate';
+	line: AnalysisLine | null;
+}
 export interface AnalysisView {
+	position_key?: string;
+	iteration?: LiveAnalysis | null;
 	samples: number;
 	lines: AnalysisLine[];
 	score: number | null;

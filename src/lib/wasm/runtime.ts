@@ -86,6 +86,7 @@ export interface GameView {
 }
 
 export interface ChoiceView {
+	preview: PositionView[];
 	id: string;
 	kind: 'select_entity' | 'select_position' | 'select_ability' | 'select_option' | 'finish_turn';
 	entity: number | null;
@@ -186,6 +187,14 @@ interface WasmHandle {
 }
 
 interface WasmSearchSession {
+	chunkWithProgress(
+		depth: number,
+		nodes: number,
+		timeMs: number,
+		lines: number,
+		forced: boolean,
+		progress: (analysis: AnalysisView) => void
+	): AnalysisView;
 	setPosition(snapshot: unknown): void;
 	chunk(depth: number, nodes: number, timeMs: number, lines: number, forced: boolean): AnalysisView;
 	free(): void;
@@ -374,13 +383,20 @@ export class LocalSearchSession {
 	setPosition(snapshot: unknown) {
 		this.handle.setPosition(snapshot);
 	}
-	chunk(settings: SearchSettings, timeMs: number) {
-		return this.handle.chunk(
+	chunk(
+		settings: SearchSettings,
+		timeMs: number,
+		progress: (analysis: AnalysisView) => void = () => {}
+	) {
+		const chunk = this.handle.chunkWithProgress ?? this.handle.chunk;
+		return chunk.call(
+			this.handle,
 			settings.maxDepth,
 			settings.maxNodes,
 			timeMs,
 			settings.lines,
-			settings.forcedMove ?? false
+			settings.forcedMove ?? false,
+			progress
 		);
 	}
 	dispose() {

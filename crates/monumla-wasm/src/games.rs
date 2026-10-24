@@ -140,7 +140,11 @@ impl RulesRuntime {
             details,
             self.timeline.can_undo(),
             self.timeline.can_redo(),
-            None,
+            if self.kind == Kind::Battleship && sea::phase(&state) == "setup" {
+                None
+            } else {
+                last_action_view(self.timeline.history())
+            },
         ))
     }
     pub fn interaction_view(&self) -> InteractionView {

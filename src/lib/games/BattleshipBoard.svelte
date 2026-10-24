@@ -1,14 +1,22 @@
 <script lang="ts">
-	import { stateScalar, type GameView, type InteractionView } from '$lib/wasm/runtime';
-	import type { AnalysisView } from '$lib/search/types';
+	import {
+		stateScalar,
+		type GameView,
+		type InteractionView,
+		type ChoiceView
+	} from '$lib/wasm/runtime';
+	import type { AnalysisView, MoveAssessment } from '$lib/search/types';
 	import Icon from '$lib/ui/Icon.svelte';
+	import MoveBadge from '$lib/search/MoveBadge.svelte';
+	export let assessment: MoveAssessment | null | undefined = null;
 	export let game: GameView;
 	export let interaction: InteractionView;
 	export let viewer = 1;
 	export let disabled = false;
 	export let analysis: AnalysisView | null = null;
 	export let onchoose: (id: string) => void;
-	let vertical = false;
+	export let vertical = false;
+	export let preview: ChoiceView | null = null;
 	let hovered: number | null = null;
 	const fleet = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 	$: setup = stateScalar(game.status.details, 'phase') === 'setup';
@@ -66,9 +74,11 @@
 		}
 	}
 	$: ghost =
-		hovered == null || !boards[0]?.cells[hovered]?.input
-			? []
-			: Array.from({ length }, (_, i) => hovered! + i * (vertical ? 10 : 1));
+		setup && preview && interaction.choices.some((c) => c.id === preview?.id)
+			? preview.preview.map((p) => p.y * 10 + p.x - (viewer === 1 ? 0 : 10))
+			: hovered == null || !boards[0]?.cells[hovered]?.input
+				? []
+				: Array.from({ length }, (_, i) => hovered! + i * (vertical ? 10 : 1));
 </script>
 
 <svelte:window on:keydown={keyboard} />
@@ -177,6 +187,9 @@
 									class="water-mark"
 									class:inferred={result === 'water'}
 								></span>{:else if candidate >= 0}<span class="shot-candidate"></span>{/if}
+							{#if assessment && game.last_move?.to.x === (owner === 1 ? 0 : 10) + (cell % 10) && game.last_move?.to.y === Math.floor(cell / 10)}<span
+									class="cell-assessment"><MoveBadge {assessment} /></span
+								>{/if}
 						</button>
 					{/each}
 				</div>
@@ -191,6 +204,16 @@
 </div>
 
 <style>
+	.cell-assessment {
+		position: absolute;
+		right: 1px;
+		top: 1px;
+		z-index: 8;
+		pointer-events: none;
+		transform: scale(0.8);
+		transform-origin: top right;
+	}
+
 	.ship-direction {
 		display: flex;
 		align-items: center;

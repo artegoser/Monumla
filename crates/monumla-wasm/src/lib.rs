@@ -789,37 +789,7 @@ impl ChessRuntime {
             }
             let side = ChessSide::from_player(turn.actor)
                 .ok_or_else(|| "history actor is not a chess side".to_owned())?;
-            let notation = match turn.steps.last().map(|step| step.action.kind.as_str()) {
-                Some("chess_move") => self
-                    .rules
-                    .san_for_turn(turn, &prefix)
-                    .map_err(string_error)?,
-                Some("chess_resign") => "Resignation".to_owned(),
-                Some("chess_draw_agreement") => "Draw agreement".to_owned(),
-                Some("chess_draw_claim_threefold") => "Threefold repetition claimed".to_owned(),
-                Some("chess_draw_claim_fifty_move") => "Fifty-move draw claimed".to_owned(),
-                Some("chess_draw_claim_threefold_by_move") => {
-                    let san = turn
-                        .steps
-                        .last()
-                        .and_then(|step| step.action.data.get("san"))
-                        .and_then(monumla_core::StateValue::as_str)
-                        .unwrap_or("?");
-                    format!("Threefold repetition claimed by intended move {san}")
-                }
-                Some("chess_draw_claim_fifty_move_by_move") => {
-                    let san = turn
-                        .steps
-                        .last()
-                        .and_then(|step| step.action.data.get("san"))
-                        .and_then(monumla_core::StateValue::as_str)
-                        .unwrap_or("?");
-                    format!("Fifty-move draw claimed by intended move {san}")
-                }
-                Some("chess_recorded_result") => "Recorded PGN result".to_owned(),
-                Some(other) => other.to_owned(),
-                None => "Terminal action".to_owned(),
-            };
+            let notation = chess_turn_notation(&self.rules, turn, &prefix)?;
             turns.push(HistoryTurnView {
                 index: u32::try_from(index).unwrap_or(u32::MAX),
                 actor: turn.actor.get(),
@@ -1172,6 +1142,18 @@ fn movement_endpoints(turn: &monumla_core::TurnRecord) -> Option<MoveEndpointsVi
             }
         }
     }
+    if let Some(position) = turn.input.choices.iter().rev().find_map(|input| {
+        if let ChoiceKind::SelectPosition { position } = input.kind {
+            Some(position)
+        } else {
+            None
+        }
+    }) {
+        return Some(MoveEndpointsView {
+            from: position.into(),
+            to: position.into(),
+        });
+    }
     None
 }
 
@@ -1481,6 +1463,7 @@ pub struct InteractionView {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ChoiceView {
+    pub preview: Vec<PositionView>,
     pub id: String,
     pub kind: String,
     pub entity: Option<u32>,
@@ -1499,6 +1482,12 @@ pub struct ChoiceView {
 impl From<&Choice> for ChoiceView {
     fn from(choice: &Choice) -> Self {
         let mut view = Self {
+            preview: choice
+                .preview
+                .iter()
+                .copied()
+                .map(PositionView::from)
+                .collect(),
             id: choice.id.get().to_string(),
             kind: String::new(),
             entity: None,
@@ -1831,6 +1820,39 @@ fn js_error(error: impl ToString) -> JsValue {
 }
 fn string_error(error: impl ToString) -> String {
     error.to_string()
+}
+
+fn chess_turn_notation(rules: &ChessRules, turn: &monumla_core::TurnRecord, prefix: &monumla_core::History) -> Result<String, String> {
+    Ok(match turn.steps.last().map(|step| step.action.kind.as_str()) {
+                Some("chess_move") => rules
+                    .san_for_turn(turn, prefix)
+                    .map_err(string_error)?,
+                Some("chess_resign") => "Resignation".to_owned(),
+                Some("chess_draw_agreement") => "Draw agreement".to_owned(),
+                Some("chess_draw_claim_threefold") => "Threefold repetition claimed".to_owned(),
+                Some("chess_draw_claim_fifty_move") => "Fifty-move draw claimed".to_owned(),
+                Some("chess_draw_claim_threefold_by_move") => {
+                    let san = turn
+                        .steps
+                        .last()
+                        .and_then(|step| step.action.data.get("san"))
+                        .and_then(monumla_core::StateValue::as_str)
+                        .unwrap_or("?");
+                    format!("Threefold repetition claimed by intended move {san}")
+                }
+                Some("chess_draw_claim_fifty_move_by_move") => {
+                    let san = turn
+                        .steps
+                        .last()
+                        .and_then(|step| step.action.data.get("san"))
+                        .and_then(monumla_core::StateValue::as_str)
+                        .unwrap_or("?");
+                    format!("Fifty-move draw claimed by intended move {san}")
+                }
+                Some("chess_recorded_result") => "Recorded PGN result".to_owned(),
+                Some(other) => other.to_owned(),
+                None => "Terminal action".to_owned(),
+            })
 }
 
 #[cfg(test)]

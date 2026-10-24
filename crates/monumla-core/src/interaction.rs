@@ -34,6 +34,8 @@ pub enum ChoicePurpose {
 pub struct ChoiceSpec {
     #[serde(default)]
     pub purpose: ChoicePurpose,
+    #[serde(default)]
+    pub preview: Vec<Position>,
     pub kind: ChoiceKind,
     pub label: Option<String>,
     pub asset_key: Option<String>,
@@ -45,6 +47,7 @@ impl ChoiceSpec {
         Self {
             kind,
             purpose: ChoicePurpose::Action,
+            preview: Vec::new(),
             label: None,
             asset_key: None,
             data: StateMap::new(),
@@ -53,6 +56,13 @@ impl ChoiceSpec {
 
     pub fn for_presentation(mut self) -> Self {
         self.purpose = ChoicePurpose::Presentation;
+        self
+    }
+
+    /// Geometry supplied by the rules for a legal action preview. It is not
+    /// part of the replay input and cannot alter legality or search identity.
+    pub fn with_preview(mut self, positions: impl IntoIterator<Item = Position>) -> Self {
+        self.preview = positions.into_iter().collect();
         self
     }
 
@@ -100,6 +110,8 @@ impl From<&ChoiceSpec> for ChoiceInput {
 pub struct Choice {
     #[serde(default)]
     pub purpose: ChoicePurpose,
+    #[serde(default)]
+    pub preview: Vec<Position>,
     pub id: ChoiceId,
     pub kind: ChoiceKind,
     pub label: Option<String>,
@@ -154,6 +166,7 @@ impl ChoiceIssuer {
                     id: ChoiceId::new(self.next_choice_id),
                     kind: spec.kind,
                     purpose: spec.purpose,
+                    preview: spec.preview,
                     label: spec.label,
                     asset_key: spec.asset_key,
                     data: spec.data,
