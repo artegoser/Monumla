@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { SearchClient, SearchCancelled } from './client';
-	import type { MoveAssessment } from './types';
+	import type { MoveAssessment, AnalysisView } from './types';
 	import type { LocalGame, HistoryTurnView } from '$lib/wasm/runtime';
 	export let runtime: LocalGame;
 	export let revision: number;
 	export let history: HistoryTurnView[];
 	export let keys: string[];
+	export let beforeKeys: string[];
+	export let analyses: Record<string, AnalysisView>;
 	export let results: Record<string, MoveAssessment>;
 	export let onassessment: (key: string, value: MoveAssessment) => void;
 	const engine = new SearchClient();
@@ -37,10 +39,12 @@
 			const snapshot = runtime.searchSnapshot();
 			for (let i = history.length - 1; i >= 0; i--) {
 				if (request !== token) return;
-				if (results[keys[i]]) continue;
+				const cached = analyses[beforeKeys[i]];
+				if (results[keys[i]] && (!cached || cached.depth <= results[keys[i]].depth)) continue;
 				currentMove = i + 1;
 				const key = keys[i];
-				const result = await engine.review(snapshot, history[i].index);
+				const retained = cached ? runtime.reviewCachedTurn(history[i].index, cached) : null;
+				const result = retained ?? (await engine.review(snapshot, history[i].index));
 				if (request !== token) return;
 				onassessment(key, result);
 			}
@@ -55,7 +59,7 @@
 		mounted = true;
 		return () => {
 			token++;
-			engine.cancel();
+			engine.dispose();
 		};
 	});
 </script>

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { tick } from 'svelte';
+	import BoardArrow from './BoardArrow.svelte';
+	import { movementTrack } from './movement';
 	import { stateScalar } from '$lib/wasm/runtime';
 	import type {
 		ChoiceView,
@@ -18,6 +20,7 @@
 	export let orientation: 'white' | 'black' = 'white';
 	export let onchoice: (choiceId: string) => void;
 	export let oncancel: () => void;
+	export let onanimationchange: (active: boolean) => void = () => {};
 
 	type DragState = {
 		pointerId: number;
@@ -117,19 +120,6 @@
 		return `left:${(shown.x * 100) / width}%;top:${(shown.y * 100) / height}%;width:${100 / width}%;height:${100 / height}%;`;
 	}
 
-	function center(
-		position: PositionView,
-		orientationValue: 'white' | 'black',
-		width: number,
-		height: number
-	) {
-		const shown = display(position, orientationValue, width, height);
-		return {
-			x: ((shown.x + 0.5) * 100) / width,
-			y: ((shown.y + 0.5) * 100) / height
-		};
-	}
-
 	$: entitiesBySquare = new Map(game.entities.map((entity) => [key(entity.position), entity]));
 	$: entitiesById = new Map(game.entities.map((entity) => [entity.id, entity]));
 	$: entityChoices = new Map(
@@ -148,7 +138,9 @@
 	$: visibleDestinations = positionChoices.filter(
 		(choice) => choice.actor == null || (visualActor != null && choice.actor === visualActor)
 	);
-	$: destinationBySquare = new Map(visibleDestinations.map((choice) => [key(choice.position), choice]));
+	$: destinationBySquare = new Map(
+		visibleDestinations.map((choice) => [key(choice.position), choice])
+	);
 	$: draggableEntityIds = new Set(
 		positionChoices.filter((choice) => choice.actor != null).map((choice) => choice.actor as number)
 	);
@@ -203,6 +195,7 @@
 	}
 
 	function cancelActiveAnimations(clearTransientState = false) {
+		onanimationchange(false);
 		for (const animation of activeAnimations) animation.cancel();
 		activeAnimations = [];
 		if (cleanupTimer) {
@@ -217,7 +210,9 @@
 
 	function cancelEntityAnimation(entityId: number) {
 		if (!boardElement) return;
-		const node = boardElement.querySelector<HTMLElement>(`.piece-node[data-entity-id="${entityId}"]`);
+		const node = boardElement.querySelector<HTMLElement>(
+			`.piece-node[data-entity-id="${entityId}"]`
+		);
 		for (const animation of node?.getAnimations() ?? []) animation.cancel();
 	}
 
@@ -281,7 +276,8 @@
 		if (!drawStart) return;
 		if (end && samePosition(drawStart, end)) {
 			const existing = squareAnnotations.findIndex((item) => samePosition(item.position, end));
-			if (existing >= 0) squareAnnotations = squareAnnotations.filter((_, index) => index !== existing);
+			if (existing >= 0)
+				squareAnnotations = squareAnnotations.filter((_, index) => index !== existing);
 			else squareAnnotations = [...squareAnnotations, { position: end, color: drawColor }];
 		} else if (end) {
 			const existing = arrows.findIndex(
@@ -347,22 +343,20 @@
 		if (!transition || !previousGame || typeof window === 'undefined') return;
 		const previousById = new Map(previousGame.entities.map((entity) => [entity.id, entity]));
 		const nextById = new Map(game.entities.map((entity) => [entity.id, entity]));
-		const moved: Array<{ entity: number; x: number; y: number }> = [];
+		const paths = new Map<number, PositionView[]>();
 		const overrides: Record<number, string> = {};
 		const removed: EntityView[] = [];
 
 		for (const change of transition.changes) {
 			if (change.type === 'entity_moved') {
-				const entity = Number(change.entity);
+				const id = Number(change.entity);
 				const from = change.from as PositionView;
 				const to = change.to as PositionView;
-				const fromDisplay = display(from, orientation, game.width, game.height);
-				const toDisplay = display(to, orientation, game.width, game.height);
-				moved.push({
-					entity,
-					x: fromDisplay.x - toDisplay.x,
-					y: fromDisplay.y - toDisplay.y
-				});
+				const path = paths.get(id) ?? [previousById.get(id)?.position ?? from];
+				if (samePosition(path[path.length - 1], from)) {
+					path.push(to);
+					paths.set(id, path);
+				}
 			}
 			if (change.type === 'entity_removed') {
 				const snapshot = change.entity as { id?: number } | undefined;
@@ -378,45 +372,49 @@
 
 		assetOverrides = overrides;
 		fadingPieces = removed;
+		onanimationchange(true);
 		await tick();
 		if (token !== animationToken || !boardElement) return;
 
 		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
 			assetOverrides = {};
 			fadingPieces = [];
+			onanimationchange(false);
 			return;
 		}
 
-		const duration = 200;
-		const easing = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+		const hops = Math.max(1, ...Array.from(paths.values(), (path) => path.length - 1));
+		const duration = hops > 1 ? hops * 320 : 200;
 		const animations: Animation[] = [];
-		for (const move of moved) {
+		for (const [entity, path] of paths) {
 			const node = boardElement.querySelector<HTMLElement>(
-				`.piece-node[data-entity-id="${move.entity}"]:not(.fading-piece)`
+				`.piece-node[data-entity-id="${entity}"]:not(.fading-piece)`
 			);
-			if (!node) continue;
-			animations.push(
-				node.animate(
-					[
-						{ transform: `translate3d(${move.x * 100}%, ${move.y * 100}%, 0)` },
-						{ transform: 'translate3d(0, 0, 0)' }
-					],
-					{ duration, easing }
-				)
-			);
+			const final = nextById.get(entity);
+			if (!node || !final) continue;
+			const track = movementTrack(path, final.position, orientation, game.width, game.height, hops);
+			animations.push(node.animate(track.frames, { duration: track.duration, fill: 'backwards' }));
 		}
 		for (const entity of removed) {
 			const node = boardElement.querySelector<HTMLElement>(
 				`.fading-piece[data-entity-id="${entity.id}"]`
 			);
 			if (!node) continue;
-			animations.push(node.animate([{ opacity: 1 }, { opacity: 0 }], { duration, easing: 'ease-out' }));
+			animations.push(
+				node.animate([{ opacity: 1 }, { opacity: 0 }], {
+					duration: 160,
+					delay: Math.max(0, duration - 160),
+					fill: 'backwards',
+					easing: 'ease-out'
+				})
+			);
 		}
 		activeAnimations = animations;
 
 		const cleanup = () => {
 			if (token !== animationToken) return;
 			activeAnimations = [];
+			onanimationchange(false);
 			assetOverrides = {};
 			fadingPieces = [];
 			if (cleanupTimer) {
@@ -463,7 +461,8 @@
 				<div
 					class="board-state-square"
 					class:selected={samePosition(selectedPosition, position)}
-					class:last-move={samePosition(game.last_move?.from, position) || samePosition(game.last_move?.to, position)}
+					class:last-move={samePosition(game.last_move?.from, position) ||
+						samePosition(game.last_move?.to, position)}
 					class:check={samePosition(game.status.checked_position, position)}
 					class:move-dest={destination != null && !occupied && game.board_style !== 'go'}
 					class:capture-dest={destination != null && occupied && game.board_style !== 'go'}
@@ -478,26 +477,33 @@
 		{#each squareAnnotations as annotation}
 			<div
 				class="annotation-square"
-				style={`${squareStyle(annotation.position, orientation, game.width, game.height)}background:${annotation.color};`}
+				style={`${squareStyle(annotation.position, orientation, game.width, game.height)}--annotation-color:${annotation.color};`}
 			></div>
 		{/each}
 		<svg viewBox="0 0 100 100" preserveAspectRatio="none">
-			<defs>
-				<marker id="arrow-green" markerWidth="4" markerHeight="4" refX="3.1" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#15781b" /></marker>
-				<marker id="arrow-red" markerWidth="4" markerHeight="4" refX="3.1" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#882020" /></marker>
-				<marker id="arrow-blue" markerWidth="4" markerHeight="4" refX="3.1" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#003088" /></marker>
-				<marker id="arrow-yellow" markerWidth="4" markerHeight="4" refX="3.1" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 Z" fill="#e68f00" /></marker>
-			</defs>
 			{#each arrows as arrow}
-				{@const from = center(arrow.from, orientation, game.width, game.height)}
-				{@const to = center(arrow.to, orientation, game.width, game.height)}
-				{@const marker = arrow.color === '#882020' ? 'red' : arrow.color === '#003088' ? 'blue' : arrow.color === '#e68f00' ? 'yellow' : 'green'}
-				<line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={arrow.color} stroke-width="1.8" stroke-linecap="round" marker-end={`url(#arrow-${marker})`} />
+				<BoardArrow
+					from={arrow.from}
+					to={arrow.to}
+					{orientation}
+					width={game.width}
+					height={game.height}
+					color={arrow.color}
+					thickness={1.5}
+				/>
 			{/each}
 			{#if drawStart && drawCurrent && !samePosition(drawStart, drawCurrent)}
-				{@const from = center(drawStart, orientation, game.width, game.height)}
-				{@const to = center(drawCurrent, orientation, game.width, game.height)}
-				<line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={drawColor} stroke-width="1.8" stroke-linecap="round" opacity="0.75" />
+				<g opacity="0.75"
+					><BoardArrow
+						from={drawStart}
+						to={drawCurrent}
+						{orientation}
+						width={game.width}
+						height={game.height}
+						color={drawColor}
+						thickness={1.5}
+					/></g
+				>
 			{/if}
 		</svg>
 	</div>
@@ -519,7 +525,14 @@
 			{@const agreedDead = stateScalar(entity.presentation_data, 'agreed_dead') === true}
 			{@const disputedDead = stateScalar(entity.presentation_data, 'disputed_dead') === true}
 			{#if drag?.started && drag.entityId === entity.id}
-				<img class="piece-node origin-ghost" data-entity-id={entity.id} style={fadingStyle(entity, orientation, game.width, game.height)} src={assetPathFromKey(assetOverrides[entity.id] ?? entity.asset_key)} alt="" draggable="false" />
+				<img
+					class="piece-node origin-ghost"
+					data-entity-id={entity.id}
+					style={fadingStyle(entity, orientation, game.width, game.height)}
+					src={assetPathFromKey(assetOverrides[entity.id] ?? entity.asset_key)}
+					alt=""
+					draggable="false"
+				/>
 			{/if}
 			<img
 				class="piece-node"
@@ -532,6 +545,22 @@
 				alt=""
 				draggable="false"
 			/>
+			{#if game.board_style === 'go' && samePosition(game.last_move?.to, entity.position)}
+				<svg
+					class="piece-node go-last-move"
+					style={fadingStyle(entity, orientation, game.width, game.height)}
+					viewBox="0 0 100 100"
+				>
+					<circle
+						cx="50"
+						cy="50"
+						r="10"
+						fill="none"
+						stroke={entity.asset_key.includes('/white/') ? '#35342f' : '#f4f0e6'}
+						stroke-width="3"
+					/>
+				</svg>
+			{/if}
 			{#if hp != null}
 				<div class="entity-stats" style={fadingStyle(entity, orientation, game.width, game.height)}>
 					<span>HP {hp}</span>
@@ -554,7 +583,9 @@
 					class:movable-origin={entity != null && draggableEntityIds.has(entity.id)}
 					class:selectable-entity={entity != null && entityChoices.has(entity.id)}
 					class:legal-target={destinationBySquare.has(key(position))}
-					aria-label={entity?.label ? `${entity.label} on ${x + 1},${y + 1}` : `Square ${x + 1},${y + 1}`}
+					aria-label={entity?.label
+						? `${entity.label} on ${x + 1},${y + 1}`
+						: `Square ${x + 1},${y + 1}`}
 					on:pointerenter={() => handleSquareEnter(position)}
 					on:pointerleave={() => handleSquareLeave(position)}
 					on:contextmenu|preventDefault
@@ -575,8 +606,16 @@
 			aria-label="Choose option"
 		>
 			{#each optionChoices.filter((choice) => choice.asset_key) as choice}
-				<button type="button" on:click={() => onchoice(choice.id)} aria-label={choice.label ?? choice.option_key}>
-					{#if choice.asset_key}<img src={assetPathFromKey(choice.asset_key)} alt={choice.label ?? choice.option_key} draggable="false" />{/if}
+				<button
+					type="button"
+					on:click={() => onchoice(choice.id)}
+					aria-label={choice.label ?? choice.option_key}
+				>
+					{#if choice.asset_key}<img
+							src={assetPathFromKey(choice.asset_key)}
+							alt={choice.label ?? choice.option_key}
+							draggable="false"
+						/>{/if}
 				</button>
 			{/each}
 		</div>

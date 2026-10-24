@@ -63,7 +63,11 @@
 	let positionRevision = 0;
 	let turnInProgress = false;
 	let botSide: number | null = null;
+	let bothBots = false;
+	let controlKey = '';
 	let pauseRevision = 0;
+	let animationInProgress = false;
+	let pendingComputerMove: BestAction | null = null;
 
 	let mode: 'play' | 'analysis' = 'play';
 	let analysis: AnalysisView | null = null;
@@ -75,6 +79,8 @@
 	let showCoordinates = true;
 	let fullHistory: HistoryTurnView[] = [];
 	let reviewResults: Record<string, MoveAssessment> = {};
+	let analyzedPositions: Record<string, AnalysisView> = {};
+	$: beforeKeys = history.map((_, i) => positionId(history.slice(0, i)));
 	$: reviewKeys = history.map((_, i) => positionId(history.slice(0, i + 1)));
 	$: whiteSide = game?.ruleset === 'go' ? 2 : 1;
 	$: bottomSide = orientation === 'white' ? whiteSide : whiteSide === 1 ? 2 : 1;
@@ -94,6 +100,12 @@
 	}
 	function receiveAnalysis(value: AnalysisView | null) {
 		analysis = value;
+		if (
+			value?.score != null &&
+			value.best_action?.position_key === runtime?.analysisPositionKey()
+		) {
+			analyzedPositions = { ...analyzedPositions, [positionId()]: value };
+		}
 		if (value?.score != null)
 			lastWhiteScore = value.score * (value.perspective === whiteSide ? 1 : -1);
 	}
@@ -110,8 +122,9 @@
 	function navigate(boundary: number) {
 		if (!runtime) return;
 		pauseRevision += 1;
-		while (history.length > boundary && game?.can_undo) run(() => runtime!.undo(), false);
-		while (history.length < boundary && game?.can_redo) run(() => runtime!.redo(), false);
+		const animate = Math.abs(history.length - boundary) === 1;
+		while (history.length > boundary && game?.can_undo) run(() => runtime!.undo(), animate);
+		while (history.length < boundary && game?.can_redo) run(() => runtime!.redo(), animate);
 	}
 	function keyboard(event: KeyboardEvent) {
 		if (
@@ -128,14 +141,21 @@
 			redo();
 		}
 	}
-	function playerName(side: number, currentMode: string, computer: number | null) {
-		return currentMode === 'analysis'
-			? 'Analysis board'
-			: computer === side
-				? 'Monumla computer'
-				: computer != null
-					? 'You'
-					: 'Local player';
+	function playerName(
+		side: number,
+		currentMode: string,
+		computer: number | null,
+		computers: boolean
+	) {
+		return computers && currentMode === 'play'
+			? 'Monumla computer'
+			: currentMode === 'analysis'
+				? 'Analysis board'
+				: computer === side
+					? 'Monumla computer'
+					: computer != null
+						? 'You'
+						: 'Local player';
 	}
 
 	function emptyInteraction(): InteractionView {
@@ -191,6 +211,7 @@
 
 	function applyTransition(transition: TransitionView, animate = true) {
 		if (transition.committed) {
+			pendingComputerMove = null;
 			positionRevision += 1;
 			turnInProgress = false;
 		}
@@ -199,7 +220,10 @@
 		game = transition.game;
 		interaction = transition.interaction;
 		latestTransition = transition;
-		if (animate && transition.changes.length > 0) animationSeq += 1;
+		if (animate && transition.changes.length > 0) {
+			animationInProgress = true;
+			animationSeq += 1;
+		}
 		// FEN, PGN, history and draw claims describe only committed state.
 		// Selection/promotion drafts must not trigger expensive prospective-claim scans.
 		if (transition.committed) syncMetadata();
@@ -221,7 +245,19 @@
 
 	function playBestAction(best: BestAction) {
 		if (!runtime) return;
+		if (animationInProgress) {
+			pendingComputerMove = best;
+			return;
+		}
 		run(() => runtime!.applyBestAction(best));
+	}
+	function animationChanged(active: boolean) {
+		animationInProgress = active;
+		if (!active && pendingComputerMove) {
+			const best = pendingComputerMove;
+			pendingComputerMove = null;
+			if (runtime && best.position_key === runtime.analysisPositionKey()) playBestAction(best);
+		}
 	}
 
 	function cancelSelection() {
@@ -269,6 +305,7 @@
 		selectedRuleset = next.ruleset();
 		fullHistory = [];
 		reviewResults = {};
+		analyzedPositions = {};
 		analysis = null;
 		lastWhiteScore = null;
 		previousGame = null;
@@ -425,7 +462,7 @@
 			<div class="player-strip" class:active-player={game.active_players.includes(topSide)}>
 				<span class="player-avatar"><Icon name={botSide === topSide ? 'bot' : 'user'} /></span>
 				<div>
-					<strong>{playerName(topSide, mode, botSide)}</strong><span
+					<strong>{playerName(topSide, mode, botSide, bothBots)}</strong><span
 						>{topSide === whiteSide ? 'White' : 'Black'}</span
 					>
 				</div>
@@ -459,6 +496,7 @@
 							showCoordinates={mode === 'play' || showCoordinates}
 						/>
 						<Pieces
+							onanimationchange={animationChanged}
 							{game}
 							interaction={botSide != null && game.active_players.includes(botSide)
 								? emptyInteraction()
@@ -496,7 +534,7 @@
 			<div class="player-strip" class:active-player={game.active_players.includes(bottomSide)}>
 				<span class="player-avatar"><Icon name={botSide === bottomSide ? 'bot' : 'user'} /></span>
 				<div>
-					<strong>{playerName(bottomSide, mode, botSide)}</strong><span
+					<strong>{playerName(bottomSide, mode, botSide, bothBots)}</strong><span
 						>{bottomSide === whiteSide ? 'White' : 'Black'}</span
 					>
 				</div>
@@ -552,9 +590,14 @@
 				bind:showCoordinates
 				onplay={playBestAction}
 				onanalysis={receiveAnalysis}
-				oncontrolchange={(side, human, white) => {
+				oncontrolchange={(side, human, white, both, paused) => {
 					botSide = side;
-					if (side != null) orientation = human === white ? 'white' : 'black';
+					if (paused || side == null) pendingComputerMove = null;
+					bothBots = both;
+					const key = `${side != null}:${human}:${white}:${both}`;
+					if (key !== controlKey && side != null)
+						orientation = both || human === white ? 'white' : 'black';
+					controlKey = key;
 				}}
 			/>
 			<section class="history-panel" aria-label="Move history">
@@ -588,6 +631,8 @@
 					</div>
 					<div class="review-slot">
 						{#if !turnInProgress}<GameReview
+								analyses={analyzedPositions}
+								{beforeKeys}
 								{runtime}
 								{history}
 								revision={positionRevision}

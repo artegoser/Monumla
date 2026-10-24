@@ -149,6 +149,7 @@ export interface HistoryTurnView {
 }
 
 interface WasmHandle {
+	reviewCachedTurn(ply: number, analysis: AnalysisView): MoveAssessment | null;
 	analysisPositionKey(): string;
 	reviewTurn(ply: number, depth: number, nodes: number, timeMs: number): MoveAssessment;
 	searchSnapshot(): unknown;
@@ -181,7 +182,13 @@ interface WasmHandle {
 	free(): void;
 }
 
+interface WasmSearchSession {
+	setPosition(snapshot: unknown): void;
+	chunk(depth: number, nodes: number, timeMs: number, lines: number, forced: boolean): AnalysisView;
+	free(): void;
+}
 interface WasmModule {
+	SearchSession: new (snapshot: unknown) => WasmSearchSession;
 	from_search_snapshot(snapshot: unknown): WasmHandle;
 	default(): Promise<unknown>;
 	new_game(ruleset: string): WasmHandle;
@@ -253,6 +260,9 @@ export class LocalGame {
 		);
 	}
 
+	reviewCachedTurn(ply: number, analysis: AnalysisView): MoveAssessment | null {
+		return this.handle.reviewCachedTurn(ply, analysis);
+	}
 	reviewTurn(ply: number, settings: SearchSettings): MoveAssessment {
 		return this.handle.reviewTurn(ply, settings.maxDepth, settings.maxNodes, settings.timeMs);
 	}
@@ -330,6 +340,30 @@ export class LocalGame {
 	}
 
 	dispose(): void {
+		this.handle.free();
+	}
+}
+
+/** The worker retains this engine's evaluator, tables and completed iterations. */
+export class LocalSearchSession {
+	private constructor(private readonly handle: WasmSearchSession) {}
+	static async create(snapshot: unknown) {
+		const wasm = await loadModule();
+		return new LocalSearchSession(new wasm.SearchSession(snapshot));
+	}
+	setPosition(snapshot: unknown) {
+		this.handle.setPosition(snapshot);
+	}
+	chunk(settings: SearchSettings, timeMs: number) {
+		return this.handle.chunk(
+			settings.maxDepth,
+			settings.maxNodes,
+			timeMs,
+			settings.lines,
+			settings.forcedMove ?? false
+		);
+	}
+	dispose() {
 		this.handle.free();
 	}
 }

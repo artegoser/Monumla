@@ -18,7 +18,13 @@
 	export let showCoordinates = true;
 	export let onplay: (best: BestAction) => void;
 	export let onanalysis: (analysis: AnalysisView | null) => void;
-	export let oncontrolchange: (side: number | null, human: number, white: number) => void;
+	export let oncontrolchange: (
+		side: number | null,
+		human: number,
+		white: number,
+		both: boolean,
+		paused: boolean
+	) => void;
 
 	const engine = new SearchClient();
 	let mounted = false;
@@ -43,8 +49,17 @@
 	let settingsOpen = false;
 
 	$: whiteSide = game.ruleset === 'go' ? 2 : 1;
-	$: botSide = mode === 'play' && opponent === 'bot' ? (humanSide === 1 ? 2 : 1) : null;
-	$: oncontrolchange(botSide, humanSide, whiteSide);
+	$: botSide =
+		mode === 'play'
+			? opponent === 'bots'
+				? (game.active_players[0] ?? null)
+				: opponent === 'bot'
+					? humanSide === 1
+						? 2
+						: 1
+					: null
+			: null;
+	$: oncontrolchange(botSide, humanSide, whiteSide, opponent === 'bots' && mode === 'play', paused);
 	$: botTurn = botSide != null && game.active_players.includes(botSide) && !game.status.outcome;
 	$: if (pauseRevision !== seenPause) {
 		seenPause = pauseRevision;
@@ -81,6 +96,7 @@
 		if (!ready) return;
 		const switched = current !== seenRuntime || currentMode !== seenMode;
 		if (current !== seenRuntime) {
+			engine.dispose();
 			cache.clear();
 			analysis = null;
 			analysisKey = '';
@@ -142,7 +158,8 @@
 					maxDepth: 32,
 					maxNodes: 50_000_000,
 					timeMs: playAfter ? duration : 600_000,
-					lines: playAfter ? 1 : lineCount
+					lines: playAfter ? 1 : lineCount,
+					forcedMove: playAfter
 				},
 				accept
 			);
@@ -187,7 +204,8 @@
 		mounted = true;
 		return () => {
 			cancel();
-			oncontrolchange(null, humanSide, whiteSide);
+			engine.dispose();
+			oncontrolchange(null, humanSide, whiteSide, false, true);
 		};
 	});
 </script>
@@ -224,8 +242,9 @@
 		<div class="engine-settings">
 			<label
 				>Opponent<select bind:value={opponent} on:change={() => (paused = false)}
-					><option value="bot">Computer</option><option value="local">A friend · local</option
-					></select
+					><option value="bot">Play the computer</option><option value="bots"
+						>Computer vs computer</option
+					><option value="local">A friend · local</option></select
 				></label
 			>
 			{#if opponent === 'bot'}
@@ -238,7 +257,7 @@
 				>
 			{/if}
 		</div>
-		{#if settingsOpen && opponent === 'bot'}
+		{#if settingsOpen && opponent !== 'local'}
 			<label class="field-label"
 				>Thinking time<select bind:value={timeMs}
 					><option value={300}>Quick · 0.3 seconds</option><option value={1000}
@@ -256,9 +275,11 @@
 					? 'Computer paused'
 					: thinking
 						? 'Computer is thinking…'
-						: opponent === 'bot'
-							? 'Your move'
-							: 'Pass the board to your opponent'}
+						: opponent === 'bots'
+							? 'Computers are playing'
+							: opponent === 'bot'
+								? 'Your move'
+								: 'Pass the board to your opponent'}
 		</p>
 	{:else}
 		{#if settingsOpen}
@@ -306,8 +327,12 @@
 					<button
 						type="button"
 						class:chosen={selectedLine === index && isCurrent}
-						style:--candidate-color={['#7db869', '#6ba9cf', '#b294d0', '#d6ae60', '#d3847b'][index]}
+						style:--candidate-color={index === selectedLine ? '#82a6ce' : '#aaa79e'}
 						on:click={() => (selectedLine = index)}
+						on:mouseenter={() => (selectedLine = index)}
+						on:mouseleave={() => (selectedLine = 0)}
+						on:focus={() => (selectedLine = index)}
+						on:blur={() => (selectedLine = 0)}
 						disabled={!isCurrent || turnInProgress}
 						aria-pressed={selectedLine === index && isCurrent}
 						title={isCurrent

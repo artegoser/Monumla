@@ -31,9 +31,37 @@ for (const ruleset of ['chess', 'checkers', 'checkers-international', 'go']) {
 		page.on('pageerror', (error) => errors.push(error.message));
 		await open(page, ruleset);
 		await analysis(page);
+		if (ruleset === 'go') {
+			await expect(page.locator('.go-grid-lines line').first()).toHaveCSS(
+				'vector-effect',
+				'non-scaling-stroke'
+			);
+			await expect(page.locator('.go-board')).toHaveCSS('background-image', 'none');
+		}
 		await expect(page.getByLabel('Evaluation bar')).toBeVisible();
 		await expect(page.getByLabel('Suggested moves')).toBeVisible();
 		await expect(page.locator('.candidate-arrow')).toHaveCount(3, { timeout: 30000 });
+		await expect(page.locator('.candidate-arrow text')).toHaveCount(0);
+		const firstArrow = page.locator('.candidate-arrow[data-rank="1"]');
+		const secondArrow = page.locator('.candidate-arrow[data-rank="2"]');
+		const thirdArrow = page.locator('.candidate-arrow[data-rank="3"]');
+		expect(Number(await firstArrow.getAttribute('opacity'))).toBeGreaterThan(
+			Number(await secondArrow.getAttribute('opacity'))
+		);
+		expect(Number(await secondArrow.getAttribute('opacity'))).toBeGreaterThan(
+			Number(await thirdArrow.getAttribute('opacity'))
+		);
+		expect(
+			await firstArrow
+				.locator('path,circle')
+				.first()
+				.evaluate((el) => el.getAttribute('stroke') ?? el.getAttribute('fill'))
+		).not.toEqual(
+			await secondArrow
+				.locator('path,circle')
+				.first()
+				.evaluate((el) => el.getAttribute('stroke') ?? el.getAttribute('fill'))
+		);
 		await page.getByLabel('Best continuations').locator('button').nth(1).click();
 		await expect(page.getByLabel('Best continuations').locator('button').nth(1)).toHaveAttribute(
 			'aria-pressed',
@@ -220,9 +248,19 @@ test('analysis navigation retains evaluation, restores cached depth and keeps co
 			.locator('.history-controls')
 			.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
 	const before = await controlsTop();
-	const held: import('@playwright/test').Route[] = [];
-	await page.route(/engine\.worker-[^/]+\.js$/, (route) => {
-		held.push(route);
+	await page.evaluate(() => {
+		const original = Worker.prototype.postMessage;
+		const blocked: Array<{ worker: Worker; message: unknown }> = [];
+		Worker.prototype.postMessage = function (message: unknown) {
+			const request = message as { settings?: unknown; ply?: number };
+			if (request.settings && request.ply == null) blocked.push({ worker: this, message });
+			else original.call(this, message);
+		};
+		(window as unknown as { releaseAnalysis: () => void }).releaseAnalysis = () => {
+			Worker.prototype.postMessage = original;
+			const last = blocked.at(-1);
+			if (last) original.call(last.worker, last.message);
+		};
 	});
 	await humanMove(page);
 	await expect(panel).toHaveAttribute('data-analysis-pending', 'true');
@@ -237,9 +275,10 @@ test('analysis navigation retains evaluation, restores cached depth and keeps co
 	await expect(panel).toHaveAttribute('data-analysis-pending', 'false');
 	const returned = await controlsTop();
 	expect(Math.abs(returned - before)).toBeLessThanOrEqual(1);
-	await page.unroute(/engine\.worker-[^/]+\.js$/);
-	for (const route of held) await route.continue().catch(() => {});
-	// A restarted worker must not replace a deeper cached result with depth one.
+	await page.evaluate(() =>
+		(window as unknown as { releaseAnalysis: () => void }).releaseAnalysis()
+	);
+	// Resuming must not replace a deeper cached result with depth one.
 	await page.evaluate(() => {
 		const panel = document.querySelector('[data-analysis-depth]')!;
 		(window as unknown as { observedDepths: number[] }).observedDepths = [];
@@ -283,4 +322,98 @@ test('move assessments have readable names, a legend and distinct quality colors
 	expect(good).not.toEqual(blunder);
 	await page.getByRole('button', { name: 'Play', exact: true }).click();
 	await expect(page.getByLabel('Current move assessment')).toHaveCount(0);
+});
+
+test('flipping analysis rotates arrows without changing the turn', async ({ page }) => {
+	await open(page);
+	await analysis(page);
+	await page.getByLabel('Pause search').click();
+	const arrow = page.locator('.candidate-arrow[data-rank="1"] path').first();
+	const before = await arrow.getAttribute('d');
+	const status = await page.locator('.board-status').textContent();
+	await page.getByRole('button', { name: 'Flip board', exact: true }).click();
+	await expect(arrow).not.toHaveAttribute('d', before!);
+	await expect(page.locator('.board-status')).toHaveText(status!);
+	await expect(page.locator('.move-row button')).toHaveCount(0);
+});
+
+test('computer versus computer plays both sides, pauses and keeps draughts notation', async ({
+	page
+}) => {
+	await open(page, 'checkers');
+	await page.getByRole('combobox', { name: 'Opponent', exact: true }).selectOption('bots');
+	await expect
+		.poll(() => page.locator('.move-row button').count(), { timeout: 30000 })
+		.toBeGreaterThanOrEqual(2);
+	await expect(page.locator('.player-strip').first()).toContainText('Monumla computer');
+	await expect(page.locator('.player-strip').last()).toContainText('Monumla computer');
+	await expect(page.locator('.move-row button').first()).toContainText(/[a-h][1-8][-x][a-h][1-8]/);
+	await page.getByLabel('Pause search').click();
+	await expect(page.getByLabel('Computer opponent')).toContainText('Computer paused');
+	const count = await page.locator('.move-row button').count();
+	await page.waitForTimeout(1200);
+	await expect(page.locator('.move-row button')).toHaveCount(count);
+	await expect(page.getByLabel('Suggested moves')).toHaveCount(0);
+	await page.getByLabel('Resume search').click();
+	await expect
+		.poll(() => page.locator('.move-row button').count(), { timeout: 30000 })
+		.toBeGreaterThan(count);
+});
+
+test('a published best move gets its existing assessment without another review search', async ({
+	page
+}) => {
+	await open(page);
+	await page.getByRole('combobox', { name: 'Opponent', exact: true }).selectOption('local');
+	await analysis(page);
+	await expect(page.getByLabel('Position analysis')).toHaveAttribute(
+		'data-analysis-depth',
+		/[2-9]/,
+		{ timeout: 30000 }
+	);
+	await page.getByLabel('Pause search').click();
+	const arrow = page.locator('.candidate-arrow[data-rank="1"] path').first();
+	const from = (await arrow.getAttribute('data-from'))!.split(',').map(Number);
+	const to = (await arrow.getAttribute('data-to'))!.split(',').map(Number);
+	await page.evaluate(() => {
+		const original = Worker.prototype.postMessage;
+		(window as unknown as { reviewRequests: number }).reviewRequests = 0;
+		Worker.prototype.postMessage = function (message: unknown) {
+			if ((message as { ply?: number }).ply != null)
+				(window as unknown as { reviewRequests: number }).reviewRequests++;
+			original.call(this, message);
+		};
+	});
+	const square = (position: number[]) =>
+		page
+			.locator('.board-hit-square')
+			.filter({ hasText: '' })
+			.and(
+				page.getByRole('button', {
+					name: new RegExp(`(?:Square |on )${position[0] + 1},${position[1] + 1}$`)
+				})
+			);
+	await square(from).click();
+	await square(to).click();
+	await expect(page.getByLabel('Current move assessment')).toContainText(
+		/Best move|Strong move|Great move/
+	);
+	expect(
+		await page.evaluate(() => (window as unknown as { reviewRequests: number }).reviewRequests)
+	).toBe(0);
+});
+
+test('right click marks a circle without filling or hiding the piece', async ({ page }) => {
+	await open(page);
+	const square = page.locator('.board-hit-square.movable-origin').first();
+	await square.click({ button: 'right' });
+	const mark = page.locator('.annotation-square');
+	await expect(mark).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+	await expect(mark).toHaveCount(1);
+	const circle = await mark.evaluate((el) => {
+		const style = getComputedStyle(el, '::after');
+		return { radius: style.borderRadius, border: style.borderTopStyle };
+	});
+	expect(circle).toEqual({ radius: '50%', border: 'solid' });
+	await expect(page.locator('.piece-node').first()).toBeVisible();
 });

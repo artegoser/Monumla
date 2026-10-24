@@ -1,4 +1,5 @@
 export interface SearchSettings {
+	forcedMove?: boolean;
 	maxDepth: number;
 	maxNodes: number;
 	timeMs: number;
@@ -26,7 +27,7 @@ export interface AnalysisView {
 	nodes_per_second: number;
 	principal_variation: string[];
 	best_action: BestAction | null;
-	stop_reason: 'depth_limit' | 'node_limit' | 'time_limit' | 'terminal';
+	stop_reason: 'depth_limit' | 'node_limit' | 'time_limit' | 'terminal' | 'forced_move';
 	transposition_hits: number;
 	quiescence_nodes: number;
 	cutoffs: number;
@@ -43,6 +44,7 @@ export interface MoveAssessment {
 }
 
 export interface SearchRequest {
+	cancel?: boolean;
 	ply?: number;
 	id: number;
 	snapshot: unknown;

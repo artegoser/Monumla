@@ -13,7 +13,7 @@ export class SearchCancelled extends Error {
 	}
 }
 
-/** Each request owns its worker. Termination cancels synchronous WASM immediately. */
+/** Position changes cancel between bounded chunks while retaining engine memory. */
 export class SearchClient {
 	private worker: Worker | null = null;
 	private reject: ((reason: Error) => void) | null = null;
@@ -44,17 +44,15 @@ export class SearchClient {
 		const id = ++this.generation;
 		return new Promise((resolve, reject) => {
 			try {
-				const worker = new Worker(new URL('./engine.worker.ts', import.meta.url), {
-					type: 'module'
-				});
+				const worker =
+					this.worker ??
+					new Worker(new URL('./engine.worker.ts', import.meta.url), {
+						type: 'module'
+					});
 				this.worker = worker;
 				this.reject = reject;
 				const finish = () => {
-					worker.terminate();
-					if (this.worker === worker) {
-						this.worker = null;
-						this.reject = null;
-					}
+					if (this.worker === worker) this.reject = null;
 				};
 				worker.onmessage = ({ data }: MessageEvent<SearchMessage>) => {
 					if (id !== this.generation || data.id !== id) return;
@@ -70,6 +68,8 @@ export class SearchClient {
 				};
 				worker.onerror = (event) => {
 					finish();
+					worker.terminate();
+					this.worker = null;
 					reject(new Error(event.message || 'The analysis worker could not start. Try again.'));
 				};
 				const request: SearchRequest = { id, snapshot, settings, ply };
@@ -81,10 +81,14 @@ export class SearchClient {
 		});
 	}
 
-	cancel() {
-		this.generation += 1;
+	dispose() {
+		this.cancel();
 		this.worker?.terminate();
 		this.worker = null;
+	}
+	cancel() {
+		this.generation += 1;
+		this.worker?.postMessage({ id: this.generation, cancel: true });
 		const reject = this.reject;
 		this.reject = null;
 		reject?.(new SearchCancelled());
