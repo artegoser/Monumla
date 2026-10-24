@@ -24,8 +24,9 @@ pub use history::{
 pub use ids::{AbilityId, ChoiceId, EntityId, EntityTypeId, PlayerId, TeamId};
 pub use information::InformationRule;
 pub use interaction::{
-    recorded_step, Choice, ChoiceInput, ChoiceIssuer, ChoiceKind, ChoiceSpec, Interaction,
-    InteractionDriver, InteractionError, InteractionFlow, InteractionRules, InteractionUpdate,
+    recorded_step, Choice, ChoiceInput, ChoiceIssuer, ChoiceKind, ChoicePurpose, ChoiceSpec,
+    Interaction, InteractionDriver, InteractionError, InteractionFlow, InteractionRules,
+    InteractionUpdate,
 };
 pub use rules::{
     AbilityRule, EntityPresentation, EntityRule, EntityRuleContext, GameOutcome, GameRule,

@@ -228,7 +228,7 @@ impl InteractionRules for ChessInteractionRules {
             if destinations.is_empty() {
                 continue;
             }
-            choices.push(ChoiceSpec::entity(entity.id));
+            choices.push(ChoiceSpec::entity(entity.id).for_presentation());
             if Self::selected_entity(draft).map_or(true, |selected| selected == entity.id) {
                 choices.extend(destinations);
             }

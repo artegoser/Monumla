@@ -32,6 +32,9 @@ impl RuntimeDomain {
                 continue;
             }
             for choice in &driver.interaction().choices {
+                if choice.purpose == monumla_core::ChoicePurpose::Presentation {
+                    continue;
+                }
                 let mut child = driver.clone();
                 let mut choices = path.clone();
                 choices.push(ChoiceInput::from(choice));

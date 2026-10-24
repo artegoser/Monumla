@@ -20,8 +20,20 @@ pub struct ChoiceInput {
     pub data: StateMap,
 }
 
+/// Presentation choices only adjust a frontend draft. Every legal complete turn
+/// must remain reachable without them; rules must not change game state here.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChoicePurpose {
+    #[default]
+    Action,
+    Presentation,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ChoiceSpec {
+    #[serde(default)]
+    pub purpose: ChoicePurpose,
     pub kind: ChoiceKind,
     pub label: Option<String>,
     pub asset_key: Option<String>,
@@ -32,10 +44,16 @@ impl ChoiceSpec {
     pub fn new(kind: ChoiceKind) -> Self {
         Self {
             kind,
+            purpose: ChoicePurpose::Action,
             label: None,
             asset_key: None,
             data: StateMap::new(),
         }
+    }
+
+    pub fn for_presentation(mut self) -> Self {
+        self.purpose = ChoicePurpose::Presentation;
+        self
     }
 
     pub fn entity(entity: EntityId) -> Self {
@@ -80,6 +98,8 @@ impl From<&ChoiceSpec> for ChoiceInput {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Choice {
+    #[serde(default)]
+    pub purpose: ChoicePurpose,
     pub id: ChoiceId,
     pub kind: ChoiceKind,
     pub label: Option<String>,
@@ -133,6 +153,7 @@ impl ChoiceIssuer {
                 Choice {
                     id: ChoiceId::new(self.next_choice_id),
                     kind: spec.kind,
+                    purpose: spec.purpose,
                     label: spec.label,
                     asset_key: spec.asset_key,
                     data: spec.data,
@@ -254,9 +275,33 @@ impl<R: InteractionRules> InteractionDriver<R> {
         }
 
         let choice = self.current.choice(id)?.clone();
-        let flow = self
+        let mut guard = (choice.purpose == ChoicePurpose::Presentation)
+            .then(|| (self.turn.clone(), self.draft.clone()));
+        let flow = match self
             .rules
-            .apply_choice(&mut self.turn, &mut self.draft, &choice)?;
+            .apply_choice(&mut self.turn, &mut self.draft, &choice)
+        {
+            Ok(flow) => flow,
+            Err(error) => {
+                if let Some((before, draft)) = guard.take() {
+                    self.turn = before;
+                    self.draft = draft;
+                }
+                return Err(error);
+            }
+        };
+        if let Some((before, draft)) = guard {
+            if flow != InteractionFlow::Continue
+                || self.turn.working != before.working
+                || self.turn.steps != before.steps
+            {
+                self.turn = before;
+                self.draft = draft;
+                return Err(InteractionError::RuleViolation(
+                    "Presentation choices cannot change game state or finish a turn".into(),
+                ));
+            }
+        }
         self.turn.input.choices.push(ChoiceInput::from(&choice));
         match flow {
             InteractionFlow::Continue => {
@@ -325,5 +370,66 @@ impl<R: InteractionRules + ?Sized> InteractionRules for std::rc::Rc<R> {
         choice: &Choice,
     ) -> Result<InteractionFlow, InteractionError> {
         (**self).apply_choice(turn, draft, choice)
+    }
+}
+
+#[cfg(test)]
+mod presentation_tests {
+    use super::*;
+    use crate::{GameState, PlayerId, PlayerState};
+    struct Focus {
+        mutates: bool,
+    }
+    impl InteractionRules for Focus {
+        fn choices(
+            &self,
+            _: &TurnSession,
+            _: &StateMap,
+        ) -> Result<Vec<ChoiceSpec>, InteractionError> {
+            Ok(vec![ChoiceSpec::option("focus").for_presentation()])
+        }
+        fn apply_choice(
+            &self,
+            t: &mut TurnSession,
+            draft: &mut StateMap,
+            _: &Choice,
+        ) -> Result<InteractionFlow, InteractionError> {
+            draft.insert("focus", true);
+            if self.mutates {
+                t.working.ruleset_state.insert("illegal", true);
+            }
+            Ok(InteractionFlow::Continue)
+        }
+    }
+    fn state() -> GameState {
+        let mut s = GameState::new(1, 1).unwrap();
+        s.add_player(PlayerState::new(PlayerId::new(1))).unwrap();
+        s
+    }
+    #[test]
+    fn presentation_only_updates_draft() {
+        let s = state();
+        let mut d = InteractionDriver::new(
+            Focus { mutates: false },
+            TurnSession::new(&s, PlayerId::new(1)).unwrap(),
+        )
+        .unwrap();
+        let id = d.interaction().choices[0].id;
+        d.choose(id).unwrap();
+        assert_eq!(d.turn().working, s);
+        assert!(d.draft().contains_key("focus"));
+    }
+    #[test]
+    fn presentation_mutation_is_rejected_and_rolled_back() {
+        let s = state();
+        let mut d = InteractionDriver::new(
+            Focus { mutates: true },
+            TurnSession::new(&s, PlayerId::new(1)).unwrap(),
+        )
+        .unwrap();
+        let id = d.interaction().choices[0].id;
+        assert!(d.choose(id).is_err());
+        assert_eq!(d.turn().working, s);
+        assert!(!d.draft().contains_key("focus"));
     }
 }
