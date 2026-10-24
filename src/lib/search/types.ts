@@ -18,6 +18,7 @@ export interface AnalysisLine {
 }
 
 export interface AnalysisView {
+	samples: number;
 	lines: AnalysisLine[];
 	score: number | null;
 	perspective: number;
@@ -34,6 +35,7 @@ export interface AnalysisView {
 }
 
 export interface MoveAssessment {
+	samples: number;
 	depth: number;
 	best_score: number | null;
 	played_score: number | null;

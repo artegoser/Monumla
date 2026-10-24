@@ -121,7 +121,7 @@ test('reported midgame keeps deepening and mode changes cancel stale work', asyn
 	await page.getByRole('button', { name: 'Play', exact: true }).click();
 	await expect(page.getByLabel('Suggested moves')).toHaveCount(0);
 	await page.getByLabel('Game variant').selectOption('checkers');
-	await expect(page.getByRole('heading', { name: 'Russian draughts', exact: true })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Russian checkers', exact: true })).toBeVisible();
 	await expect(page.locator('.move-row button')).toHaveCount(0);
 });
 

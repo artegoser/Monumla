@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import PlacementGame from '$lib/games/PlacementGame.svelte';
 	import AnalysisPanel from '$lib/search/AnalysisPanel.svelte';
 	import type { AnalysisView, BestAction, MoveAssessment } from '$lib/search/types';
 	import MoveBadge from '$lib/search/MoveBadge.svelte';
@@ -26,13 +27,23 @@
 		{ id: 'chess', label: 'Chess', description: 'Standard chess with SAN, PGN and FEN.' },
 		{
 			id: 'checkers',
-			label: 'Russian draughts',
+			label: 'Russian checkers',
 			description: '8×8 · Backward captures, flying kings and promotion during captures.'
 		},
 		{
 			id: 'checkers-international',
-			label: 'International draughts',
+			label: 'International checkers',
 			description: '10×10 · Maximum captures, flying kings and promotion after the turn.'
+		},
+		{
+			id: 'battleship',
+			label: 'Battleship',
+			description: '10×10 · Fleet placement and fog of war.'
+		},
+		{
+			id: 'tictactoe',
+			label: 'Tic-tac-toe',
+			description: 'Connect a line on boards of different sizes.'
 		},
 		{
 			id: 'go',
@@ -127,6 +138,7 @@
 		while (history.length < boundary && game?.can_redo) run(() => runtime!.redo(), animate);
 	}
 	function keyboard(event: KeyboardEvent) {
+		if (selectedRuleset === 'battleship' || selectedRuleset === 'tictactoe') return;
 		if (
 			event.target instanceof HTMLElement &&
 			(event.target.closest('input,textarea,select') || event.target.isContentEditable)
@@ -456,7 +468,9 @@
 		{#each rulesets as ruleset}<option value={ruleset.id}>{ruleset.label}</option>{/each}
 	</select>
 </header>
-{#if game && runtime}
+{#if selectedRuleset === 'battleship' || selectedRuleset === 'tictactoe'}
+	{#key selectedRuleset}<PlacementGame ruleset={selectedRuleset} {mode} />{/key}
+{:else if game && runtime}
 	<main class="game-layout" class:analysis-mode={mode === 'analysis'}>
 		<div class="board-column">
 			<div class="player-strip" class:active-player={game.active_players.includes(topSide)}>

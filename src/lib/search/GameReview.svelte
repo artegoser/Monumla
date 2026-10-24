@@ -36,7 +36,6 @@
 		reviewing = true;
 		failure = '';
 		try {
-			const snapshot = runtime.searchSnapshot();
 			for (let i = history.length - 1; i >= 0; i--) {
 				if (request !== token) return;
 				const cached = analyses[beforeKeys[i]];
@@ -44,7 +43,9 @@
 				currentMove = i + 1;
 				const key = keys[i];
 				const retained = cached ? runtime.reviewCachedTurn(history[i].index, cached) : null;
-				const result = retained ?? (await engine.review(snapshot, history[i].index));
+				const result =
+					retained ??
+					(await engine.review(runtime.reviewSnapshot(history[i].index), history[i].index));
 				if (request !== token) return;
 				onassessment(key, result);
 			}

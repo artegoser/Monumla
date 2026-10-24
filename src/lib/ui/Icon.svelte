@@ -10,7 +10,8 @@
 		| 'pause'
 		| 'bot'
 		| 'user'
-		| 'reset';
+		| 'reset'
+		| 'rotate';
 	const paths = {
 		first: 'M5 5v14M19 5l-9 7 9 7V5Z',
 		back: 'm15 5-8 7 8 7',
@@ -22,6 +23,7 @@
 		pause: 'M8 5v14M16 5v14',
 		bot: 'M5 8h14v12H5V8Zm7-5v5M9 13h.01M15 13h.01M9 17h6M2 12v4M22 12v4',
 		user: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-3a8 8 0 0 1 16 0v3',
+		rotate: 'M20 9a8 8 0 1 0 0 6M20 3v6h-6',
 		reset: 'M4 10a8 8 0 1 1 1 8M4 4v6h6'
 	};
 </script>

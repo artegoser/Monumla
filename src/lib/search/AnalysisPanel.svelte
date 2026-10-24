@@ -49,6 +49,11 @@
 	let settingsOpen = false;
 
 	$: whiteSide = game.ruleset === 'go' ? 2 : 1;
+	$: placement = game.ruleset === 'battleship' || game.ruleset === 'tictactoe';
+	$: firstLabel =
+		game.ruleset === 'battleship' ? 'Player 1' : game.ruleset === 'tictactoe' ? 'Cross' : 'White';
+	$: secondLabel =
+		game.ruleset === 'battleship' ? 'Player 2' : game.ruleset === 'tictactoe' ? 'Circle' : 'Black';
 	$: botSide =
 		mode === 'play'
 			? opponent === 'bots'
@@ -185,7 +190,9 @@
 		scheduled = '';
 	}
 	function whiteScore(score: number) {
-		return score * (analysis?.perspective === whiteSide ? 1 : -1);
+		return game.ruleset === 'battleship'
+			? score
+			: score * (analysis?.perspective === whiteSide ? 1 : -1);
 	}
 	function scoreText(score: number | null) {
 		if (score == null) return '…';
@@ -250,8 +257,8 @@
 			{#if opponent === 'bot'}
 				<label
 					>Your side<select bind:value={humanSide} on:change={() => (paused = false)}
-						><option value={whiteSide}>White</option><option value={whiteSide === 1 ? 2 : 1}
-							>Black</option
+						><option value={whiteSide}>{firstLabel}</option><option value={whiteSide === 1 ? 2 : 1}
+							>{secondLabel}</option
 						></select
 					></label
 				>
@@ -291,10 +298,15 @@
 						></select
 					></label
 				>
-				<label><input type="checkbox" bind:checked={showArrows} /> Best-move arrows</label>
-				<label><input type="checkbox" bind:checked={showEvaluation} /> Evaluation bar</label>
-				<label><input type="checkbox" bind:checked={showAnnotations} /> Move assessments</label>
-				<label><input type="checkbox" bind:checked={showCoordinates} /> Board coordinates</label>
+				<label
+					><input type="checkbox" bind:checked={showArrows} />
+					{placement ? 'Candidate squares' : 'Best-move arrows'}</label
+				>
+				{#if !placement}
+					<label><input type="checkbox" bind:checked={showEvaluation} /> Evaluation bar</label>
+					<label><input type="checkbox" bind:checked={showAnnotations} /> Move assessments</label>
+					<label><input type="checkbox" bind:checked={showCoordinates} /> Board coordinates</label>
+				{/if}
 			</div>
 		{/if}
 		<div class="analysis-summary" class:previous-position={!isCurrent && analysis != null}>
@@ -302,7 +314,11 @@
 				>{scoreText(analysis?.score ?? null)}</strong
 			>
 			<div>
-				<span>White perspective</span><small>
+				<span
+					>{game.ruleset === 'battleship'
+						? `Player ${analysis?.perspective ?? game.active_players[0]} perspective`
+						: `${firstLabel} perspective`}</span
+				><small>
 					{turnInProgress
 						? 'Complete the current move'
 						: !isCurrent && analysis
@@ -311,7 +327,11 @@
 								? 'Searching deeper'
 								: paused
 									? 'Analysis paused'
-									: 'Search finished'}{isCurrent && analysis ? ` · depth ${analysis.depth}` : ''}
+									: 'Search finished'}{isCurrent && analysis
+						? analysis.samples > 0
+							? ` · ${analysis.samples} sampled layouts`
+							: ` · depth ${analysis.depth}`
+						: ''}
 				</small>
 			</div>
 			<span class="status-dot" class:busy={thinking}></span>
@@ -366,7 +386,9 @@
 				: 'Waiting for a completed search iteration'}
 		</p>
 		<p class="evaluation-note">
-			Generic heuristic score · not a win probability{game.ruleset === 'go'
+			{game.ruleset === 'battleship'
+				? 'Sampled one-shot estimate · legal fleet completions'
+				: 'Position estimate · not a win probability'}{game.ruleset === 'go'
 				? ' or territory count'
 				: ''}.
 		</p>

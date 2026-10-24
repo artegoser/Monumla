@@ -4,7 +4,7 @@
 	export let width: number;
 	export let height: number;
 	export let orientation: 'white' | 'black' = 'white';
-	export let boardStyle: 'checkerboard' | 'go' = 'checkerboard';
+	export let boardStyle: 'checkerboard' | 'go' | 'battleship' | 'tictactoe' = 'checkerboard';
 	export let showCoordinates = true;
 
 	function boardX(col: number) {

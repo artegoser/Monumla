@@ -1,6 +1,7 @@
 import type { AnalysisView, BestAction, MoveAssessment, SearchSettings } from '$lib/search/types';
 
-export type RulesetId = 'chess' | 'checkers' | 'checkers-international' | 'go';
+export type RulesetId =
+	'chess' | 'checkers' | 'checkers-international' | 'go' | 'battleship' | 'tictactoe';
 export type GoScoring = 'territory' | 'area';
 
 export interface PositionView {
@@ -73,7 +74,7 @@ export interface MoveEndpointsView {
 export interface GameView {
 	ruleset: RulesetId;
 	title: string;
-	board_style: 'checkerboard' | 'go';
+	board_style: 'checkerboard' | 'go' | 'battleship' | 'tictactoe';
 	width: number;
 	height: number;
 	entities: EntityView[];
@@ -149,10 +150,12 @@ export interface HistoryTurnView {
 }
 
 interface WasmHandle {
+	setPerspective(player: number): void;
 	reviewCachedTurn(ply: number, analysis: AnalysisView): MoveAssessment | null;
 	analysisPositionKey(): string;
 	reviewTurn(ply: number, depth: number, nodes: number, timeMs: number): MoveAssessment;
 	searchSnapshot(): unknown;
+	reviewSnapshot(index: number): unknown;
 	turnInProgress(): boolean;
 	analyze(
 		maxDepth: number,
@@ -193,6 +196,8 @@ interface WasmModule {
 	default(): Promise<unknown>;
 	new_game(ruleset: string): WasmHandle;
 	new_go(size: number, scoring: string, handicap: number): WasmHandle;
+	new_battleship(seed: number): WasmHandle;
+	new_tictactoe(width: number, height: number, connect: number): WasmHandle;
 	from_fen(fen: string): WasmHandle;
 	from_pgn(pgn: string): WasmHandle;
 }
@@ -214,6 +219,18 @@ export class LocalGame {
 	static async create(ruleset: RulesetId): Promise<LocalGame> {
 		const wasm = await loadModule();
 		return new LocalGame(wasm.new_game(ruleset));
+	}
+
+	static async createBattleship(): Promise<LocalGame> {
+		const wasm = await loadModule();
+		return new LocalGame(wasm.new_battleship(crypto.getRandomValues(new Uint32Array(1))[0]));
+	}
+	static async createTicTacToe(width: number, height: number, connect: number): Promise<LocalGame> {
+		const wasm = await loadModule();
+		return new LocalGame(wasm.new_tictactoe(width, height, connect));
+	}
+	setPerspective(player: number) {
+		this.handle.setPerspective(player);
 	}
 
 	static async createGo(
@@ -242,6 +259,9 @@ export class LocalGame {
 
 	analysisPositionKey(): string {
 		return this.handle.analysisPositionKey();
+	}
+	reviewSnapshot(index: number): unknown {
+		return this.handle.reviewSnapshot(index);
 	}
 	searchSnapshot(): unknown {
 		return this.handle.searchSnapshot();
