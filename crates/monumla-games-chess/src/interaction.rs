@@ -9,7 +9,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 #[derive(Default)]
 struct InteractionCache {
     state: Option<monumla_core::GameState>,
-    terminal: Option<bool>,
+    status: Option<crate::ChessStatus>,
     moves: BTreeMap<EntityId, Vec<PseudoMove>>,
 }
 
@@ -110,19 +110,21 @@ impl ChessInteractionRules {
         }
     }
 
-    fn terminal(&self, turn: &TurnSession, history: &History) -> Result<bool, InteractionError> {
+    fn status(
+        &self,
+        turn: &TurnSession,
+        history: &History,
+    ) -> Result<crate::ChessStatus, InteractionError> {
         self.refresh_cache(&turn.working);
-        if let Some(terminal) = self.cache.borrow().terminal {
-            return Ok(terminal);
+        if let Some(status) = &self.cache.borrow().status {
+            return Ok(status.clone());
         }
-        let terminal = self
+        let status = self
             .rules
             .status(&turn.working, history)
-            .map_err(Self::rule_error)?
-            .outcome
-            .is_some();
-        self.cache.borrow_mut().terminal = Some(terminal);
-        Ok(terminal)
+            .map_err(Self::rule_error)?;
+        self.cache.borrow_mut().status = Some(status.clone());
+        Ok(status)
     }
 
     fn movement_to(
@@ -161,7 +163,8 @@ impl InteractionRules for ChessInteractionRules {
         let side = self.side_to_move(turn)?;
         let empty_history = History::default();
         let history = self.history.as_ref().unwrap_or(&empty_history);
-        if self.terminal(turn, history)? {
+        let status = self.status(turn, history)?;
+        if status.outcome.is_some() {
             return Ok(Vec::new());
         }
 
@@ -234,6 +237,11 @@ impl InteractionRules for ChessInteractionRules {
             }
         }
 
+        choices.extend(
+            crate::interaction_draw::choices(&self.rules, &turn.working, history, &status)
+                .map_err(Self::rule_error)?,
+        );
+
         self.rules
             .resolve_game_choices(
                 RuleContext::from_turn(turn, self.history.as_ref()),
@@ -256,6 +264,19 @@ impl InteractionRules for ChessInteractionRules {
             .map_err(Self::rule_error)?
         {
             return Ok(flow);
+        }
+
+        let empty_history = History::default();
+        if crate::interaction_draw::apply(
+            &self.rules,
+            self.history.as_ref().unwrap_or(&empty_history),
+            turn,
+            choice,
+        )
+        .map_err(Self::rule_error)?
+        {
+            Self::clear_selection(draft);
+            return Ok(InteractionFlow::FinishTurn);
         }
 
         if let Some(target) = Self::pending_target(draft) {

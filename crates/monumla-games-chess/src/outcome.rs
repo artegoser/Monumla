@@ -406,6 +406,23 @@ impl ChessRules {
         Ok(count)
     }
 
+    /// A prospective third occurrence must target a position already seen twice.
+    /// This avoids simulating every intended move in ordinary non-repeating play.
+    pub(crate) fn has_repetition_claim_target(&self, state: &GameState, history: &History) -> Result<bool, ChessError> {
+        if history.len() < 7 { return Ok(false); }
+        let side = self.side_to_move(state)?.opponent().player();
+        let mut seen = std::collections::BTreeSet::new();
+        if let Some(first) = history.turns().first() {
+            let key = self.position_key_after(&first.before, None)?;
+            if key.side_to_move == side { seen.insert(key); }
+        }
+        for turn in history.turns().iter().filter(|t| turn_records_chess_move(t)) {
+            if self.side_to_move(&turn.after)?.player() != side { continue; }
+            if !seen.insert(self.position_key_after(&turn.after, Some(turn))?) { return Ok(true); }
+        }
+        Ok(false)
+    }
+
     /// Sound hot-path recognition of standard material-dead positions.
     ///
     /// This deliberately returns `false` for exotic blocked-material positions that

@@ -7,6 +7,7 @@ mod error;
 mod fen;
 mod game;
 mod interaction;
+mod interaction_draw;
 mod notation;
 mod outcome;
 mod perft;
