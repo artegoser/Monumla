@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 mod fleet;
 mod information;
+mod sampling;
 #[cfg(test)]
 mod tests;
 
@@ -75,7 +76,7 @@ pub fn registry() -> RuleRegistry {
     let mut r = RuleRegistry::new();
     r.register_entity(DECK, DeckRule).unwrap();
     r.register_outcome(FleetOutcome);
-    r.set_information(FleetInformation);
+    r.set_information(FleetInformation::default());
     r.set_position_score(FleetScore);
     r
 }

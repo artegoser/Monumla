@@ -1,7 +1,10 @@
 use super::*;
 /// Every hidden completion is built from public results; the true enemy fleet
 /// and both randomization seeds are removed before crossing the worker boundary.
-pub struct FleetInformation;
+#[derive(Default)]
+pub struct FleetInformation {
+    sampler: crate::sampling::FleetSampler,
+}
 impl InformationRule for FleetInformation {
     fn observe(&self, s: &GameState, viewer: PlayerId) -> Result<GameState, RuleError> {
         if !s.players.contains_key(&viewer) {
@@ -37,7 +40,7 @@ impl InformationRule for FleetInformation {
         world.ruleset_state.remove("observer");
         if phase(s) == "battle" {
             let p = opponent(viewer);
-            let ships = generate(&world, p, seed, true)?;
+            let ships = self.sampler.sample(&world, p, seed)?;
             install(&mut world, p, &ships)?;
             validate_fleet(&world, p)?;
         }

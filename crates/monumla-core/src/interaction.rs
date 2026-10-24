@@ -241,6 +241,9 @@ impl<R: InteractionRules> InteractionDriver<R> {
             return Err(InteractionError::AlreadyFinished);
         }
         self.draft = StateMap::new();
+        if self.turn.steps.is_empty() {
+            self.turn.input = crate::TurnInput::default();
+        }
         self.refresh()?;
         Ok(self.current.clone())
     }
@@ -251,10 +254,11 @@ impl<R: InteractionRules> InteractionDriver<R> {
         }
 
         let choice = self.current.choice(id)?.clone();
-        match self
+        let flow = self
             .rules
-            .apply_choice(&mut self.turn, &mut self.draft, &choice)?
-        {
+            .apply_choice(&mut self.turn, &mut self.draft, &choice)?;
+        self.turn.input.choices.push(ChoiceInput::from(&choice));
+        match flow {
             InteractionFlow::Continue => {
                 self.refresh()?;
                 Ok(InteractionUpdate::Continued(self.current.clone()))

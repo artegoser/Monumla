@@ -15,6 +15,7 @@ pub(super) struct RulesRuntime {
     pub timeline: GameTimeline,
     pub interaction: Option<InteractionDriver<Rc<dyn InteractionRules>>>,
     pub viewer: PlayerId,
+    pub review_input: Option<monumla_core::TurnInput>,
 }
 impl RulesRuntime {
     pub fn new(kind: Kind, state: GameState) -> Result<Self, String> {
@@ -23,6 +24,7 @@ impl RulesRuntime {
             timeline: GameTimeline::new(state).map_err(string_error)?,
             interaction: None,
             viewer: PlayerId::new(1),
+            review_input: None,
         };
         r.rebuild_interaction()?;
         Ok(r)

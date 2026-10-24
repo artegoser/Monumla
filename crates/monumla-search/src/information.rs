@@ -22,6 +22,8 @@ pub struct InformationMemory<A> {
     nodes: u64,
     actions: Vec<A>,
     sums: Vec<i64>,
+    batches: Vec<Vec<i64>>,
+    partial: Vec<i64>,
 }
 impl<A> InformationMemory<A> {
     pub fn new() -> Self {
@@ -31,7 +33,72 @@ impl<A> InformationMemory<A> {
             nodes: 0,
             actions: Vec::new(),
             sums: Vec::new(),
+            batches: Vec::new(),
+            partial: Vec::new(),
         }
+    }
+}
+/// Approximate uncertainty from blocks, rather than treating consecutive
+/// correlated world samples as independent observations. Not a rating or proof.
+pub struct SampleComparison {
+    pub best_score: i32,
+    pub played_score: i32,
+    pub margin: i32,
+    pub samples: u64,
+    pub standard_error: f64,
+    pub is_best: bool,
+}
+impl<A: PartialEq> InformationMemory<A> {
+    pub fn compare(&self, action: &A) -> Option<SampleComparison> {
+        let played = self.actions.iter().position(|a| a == action)?;
+        let best = self
+            .sums
+            .iter()
+            .enumerate()
+            .min_by_key(|(i, s)| (std::cmp::Reverse(**s), *i))?
+            .0;
+        let best_score = (self.sums[best] / self.samples.max(1) as i64) as i32;
+        let played_score = (self.sums[played] / self.samples.max(1) as i64) as i32;
+        let other = self
+            .sums
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != best)
+            .map(|(_, s)| *s / self.samples.max(1) as i64)
+            .max()
+            .unwrap_or(i64::from(best_score));
+        let compare = if played == best {
+            self.sums
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| *i != best)
+                .max_by_key(|(_, s)| *s)
+                .map(|(i, _)| i)
+                .unwrap_or(best)
+        } else {
+            played
+        };
+        let diffs = self
+            .batches
+            .iter()
+            .map(|b| (b[best] - b[compare]) as f64 / 16.0)
+            .collect::<Vec<_>>();
+        let standard_error = if diffs.len() < 8 {
+            f64::INFINITY
+        } else {
+            let mean = diffs.iter().sum::<f64>() / diffs.len() as f64;
+            (diffs.iter().map(|x| (x - mean).powi(2)).sum::<f64>()
+                / (diffs.len() * (diffs.len() - 1)) as f64)
+                .sqrt()
+        };
+        Some(SampleComparison {
+            best_score,
+            played_score,
+            margin: best_score.saturating_sub(other as i32),
+            samples: self.samples,
+            standard_error,
+            is_best: played == best,
+        })
     }
 }
 /// Compare all root actions against the same possible worlds. Completed batches
@@ -89,6 +156,7 @@ pub fn analyze_information<D: InformationDomain>(
         if memory.actions.is_empty() {
             memory.actions = actions.clone();
             memory.sums = vec![0; actions.len()];
+            memory.partial = vec![0; actions.len()];
         }
         // Visibility must not alter the set or identity of available root inputs.
         if actions.len() != memory.actions.len()
@@ -127,10 +195,18 @@ pub fn analyze_information<D: InformationDomain>(
         if interrupted {
             break;
         }
-        for (sum, value) in memory.sums.iter_mut().zip(values) {
+        for ((sum, partial), value) in memory.sums.iter_mut().zip(&mut memory.partial).zip(values) {
             *sum += i64::from(value);
+            *partial += i64::from(value);
         }
         memory.samples += 1;
+        if memory.samples % 16 == 0 {
+            if memory.batches.len() == 128 {
+                memory.batches.remove(0);
+            }
+            memory.batches.push(memory.partial.clone());
+            memory.partial.fill(0);
+        }
         // Setup/forced decisions also use this path; do not invent hidden foresight.
         if options.stop_on_forced_move && memory.actions.len() == 1 {
             stop = StopReason::ForcedMove;

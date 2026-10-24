@@ -31,6 +31,9 @@ pub struct StepRecord {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TurnRecord {
+    /// Accepted interaction inputs, excluding cancelled unplayed drafts.
+    #[serde(default)]
+    pub input: crate::TurnInput,
     pub actor: PlayerId,
     pub before: GameState,
     pub steps: Vec<StepRecord>,
@@ -118,6 +121,7 @@ pub struct TransactionResult<T> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TurnSession {
+    pub input: crate::TurnInput,
     pub actor: PlayerId,
     pub before: GameState,
     pub working: GameState,
@@ -131,6 +135,7 @@ impl TurnSession {
             return Err(CoreError::TurnActorNotFound(actor));
         }
         Ok(Self {
+            input: crate::TurnInput::default(),
             actor,
             before: state.clone(),
             working: state.clone(),
@@ -200,6 +205,7 @@ impl TurnSession {
 
     fn into_record(self) -> TurnRecord {
         TurnRecord {
+            input: self.input,
             actor: self.actor,
             before: self.before,
             steps: self.steps,

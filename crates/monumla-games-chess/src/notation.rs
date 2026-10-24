@@ -424,6 +424,7 @@ impl ChessRules {
         let input = self.notation_move_input(state, history, movement, promotion)?;
         self.execute_move(&mut turn, Some(history), movement, input.as_ref())?;
         let record = TurnRecord {
+            input: monumla_core::TurnInput::default(),
             actor: turn.actor,
             before: turn.before.clone(),
             steps: turn.steps.clone(),

@@ -30,6 +30,15 @@ pub struct RuntimeAction {
     #[serde(skip)]
     position_key: Option<u128>,
 }
+impl RuntimeAction {
+    pub fn from_input(input: TurnInput) -> Self {
+        Self {
+            input,
+            turn: None,
+            position_key: None,
+        }
+    }
+}
 impl PartialEq for RuntimeAction {
     fn eq(&self, other: &Self) -> bool {
         self.input == other.input

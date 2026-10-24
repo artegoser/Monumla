@@ -116,15 +116,17 @@ fn observation_is_independent_of_enemy_layout_seeds_and_history() {
         .unwrap()
         .state
         .insert("seed", 123_u64);
-    let a = FleetInformation.observe(t.current(), FIRST).unwrap();
-    let b = FleetInformation.observe(&other, FIRST).unwrap();
+    let a = FleetInformation::default()
+        .observe(t.current(), FIRST)
+        .unwrap();
+    let b = FleetInformation::default().observe(&other, FIRST).unwrap();
     assert_eq!(a, b);
     assert_eq!(a.entities.len(), 20);
     assert!(a.players.values().all(|p| p.state.is_empty()));
-    assert!(FleetInformation.observe(&a, SECOND).is_err());
+    assert!(FleetInformation::default().observe(&a, SECOND).is_err());
     assert_eq!(
-        FleetInformation.sample(&a, FIRST, 1).unwrap(),
-        FleetInformation.sample(&b, FIRST, 1).unwrap()
+        FleetInformation::default().sample(&a, FIRST, 1).unwrap(),
+        FleetInformation::default().sample(&b, FIRST, 1).unwrap()
     );
 }
 #[test]
@@ -140,9 +142,13 @@ fn samples_preserve_all_public_results_and_hit_constraints() {
     for target in targets.iter().take(7) {
         shoot(&mut t, *target);
     }
-    let observation = FleetInformation.observe(t.current(), FIRST).unwrap();
+    let observation = FleetInformation::default()
+        .observe(t.current(), FIRST)
+        .unwrap();
     for seed in 0..30 {
-        let s = FleetInformation.sample(&observation, FIRST, seed).unwrap();
+        let s = FleetInformation::default()
+            .sample(&observation, FIRST, seed)
+            .unwrap();
         validate_fleet(&s, SECOND).unwrap();
         for c in 0..100 {
             let occupied = s
@@ -191,7 +197,7 @@ fn placed_ship_rotation_checks_borders_and_neighbors_atomically() {
 fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
     let mut t = battle(9);
     assert_eq!(
-        FleetInformation
+        FleetInformation::default()
             .observe(t.current(), SECOND)
             .unwrap()
             .entities
@@ -208,11 +214,13 @@ fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
     for p in positions {
         shoot(&mut t, p);
     }
-    let final_view = FleetInformation.observe(t.current(), SECOND).unwrap();
+    let final_view = FleetInformation::default()
+        .observe(t.current(), SECOND)
+        .unwrap();
     assert_eq!(final_view.entities.len(), 40);
     assert!(final_view.players.values().all(|p| p.state.is_empty()));
     assert_eq!(
-        FleetInformation
+        FleetInformation::default()
             .sample(&final_view, SECOND, 1)
             .unwrap()
             .entities,
@@ -220,7 +228,7 @@ fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
     );
     t.undo().unwrap();
     assert_eq!(
-        FleetInformation
+        FleetInformation::default()
             .observe(t.current(), SECOND)
             .unwrap()
             .entities
@@ -229,7 +237,7 @@ fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
     );
     t.redo().unwrap();
     assert_eq!(
-        FleetInformation
+        FleetInformation::default()
             .observe(t.current(), SECOND)
             .unwrap()
             .entities
@@ -241,7 +249,7 @@ fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
 fn battle_score_has_no_setup_offset() {
     let t = battle(4);
     for p in [FIRST, SECOND] {
-        let observation = FleetInformation.observe(t.current(), p).unwrap();
+        let observation = FleetInformation::default().observe(t.current(), p).unwrap();
         assert_eq!(
             registry()
                 .position_score(RuleContext::from_state(&observation, None), p)
@@ -249,4 +257,34 @@ fn battle_score_has_no_setup_offset() {
             Some(0)
         );
     }
+}
+
+#[test]
+fn hit_continuation_is_not_biased_to_the_longest_remaining_ship() {
+    let mut s = battle(12).current().clone();
+    for (cell, result) in [(37, "hit"), (47, "hit"), (57, "miss")] {
+        s.ruleset_state.insert(format!("shot.2.{cell}"), result);
+    }
+    let info = FleetInformation::default();
+    let observed = info.observe(&s, FIRST).unwrap();
+    let mut near = 0;
+    let mut far = 0;
+    for seed in 1..=300 {
+        let sample = info.sample(&observed, FIRST, seed).unwrap();
+        validate_fleet(&sample, SECOND).unwrap();
+        if sample.entity_at(Position::new(17, 2)).unwrap().is_some() {
+            near += 1;
+        }
+        if sample.entity_at(Position::new(17, 1)).unwrap().is_some() {
+            far += 1;
+        }
+    }
+    assert_eq!(
+        near, 300,
+        "H3 must continue the damaged hull when H6 is water"
+    );
+    assert!(
+        far > 0 && far < 290,
+        "H2 is occupied only by a compatible four-deck hull: {far}"
+    );
 }

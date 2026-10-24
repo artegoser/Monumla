@@ -71,10 +71,10 @@ fn sampled_search_is_independent_of_real_enemy_fleet() {
     let Runtime::Rules(r) = &mut b.inner else {
         panic!()
     };
-    let observed = sea::FleetInformation
+    let observed = sea::FleetInformation::default()
         .observe(r.timeline.current(), sea::FIRST)
         .unwrap();
-    let replacement = sea::FleetInformation
+    let replacement = sea::FleetInformation::default()
         .sample(&observed, sea::FIRST, 999)
         .unwrap();
     r.timeline = GameTimeline::new(replacement).unwrap();
@@ -224,4 +224,76 @@ fn solved_classic_tic_tac_toe_self_play_is_a_draw() {
         .unwrap()
         .winners
         .is_empty());
+}
+
+#[test]
+fn hidden_review_sends_only_pre_move_knowledge_and_does_not_grade_luck() {
+    let mut a = prepared(21);
+    let mut b = prepared(21);
+    let r = match &mut b.inner {
+        Runtime::Rules(r) => r,
+        _ => panic!(),
+    };
+    let information = sea::FleetInformation::default();
+    let observed = information
+        .observe(r.timeline.current(), sea::FIRST)
+        .unwrap();
+    r.timeline =
+        GameTimeline::new(information.sample(&observed, sea::FIRST, 999).unwrap()).unwrap();
+    r.rebuild_interaction().unwrap();
+    let target = (0..100)
+        .map(|i| Position::new(10 + i % 10, i / 10))
+        .find(|p| {
+            a.timeline().current().entity_at(*p).unwrap().is_some()
+                != b.timeline().current().entity_at(*p).unwrap().is_some()
+        })
+        .unwrap();
+    for game in [&mut a, &mut b] {
+        let Runtime::Rules(r) = &mut game.inner else {
+            panic!()
+        };
+        let id = r
+            .interaction
+            .as_ref()
+            .unwrap()
+            .interaction()
+            .choices
+            .iter()
+            .find(|c| matches!(c.kind,ChoiceKind::SelectPosition{position} if position==target))
+            .unwrap()
+            .id;
+        r.choose(id).unwrap();
+    }
+    let index_a = a.timeline().history().len() - 1;
+    let index_b = b.timeline().history().len() - 1;
+    let snapshot_a = a.snapshot_for_review(index_a).unwrap();
+    let snapshot_b = b.snapshot_for_review(index_b).unwrap();
+    assert_eq!(snapshot_a.timeline, snapshot_b.timeline);
+    assert_eq!(snapshot_a.review_input, snapshot_b.review_input);
+    assert!(snapshot_a.timeline.history().is_empty());
+    assert_eq!(snapshot_a.timeline.current().entities.len(), 20);
+    assert_ne!(
+        sea::shot(
+            a.timeline().current(),
+            sea::SECOND,
+            usize::from(target.y) * 10 + usize::from(target.x - 10)
+        ),
+        sea::shot(
+            b.timeline().current(),
+            sea::SECOND,
+            usize::from(target.y) * 10 + usize::from(target.x - 10)
+        )
+    );
+    let result_a = GameHandle::restore_snapshot(snapshot_a)
+        .unwrap()
+        .assess_turn(index_a, options(), 60_000.0)
+        .unwrap();
+    let result_b = GameHandle::restore_snapshot(snapshot_b)
+        .unwrap()
+        .assess_turn(index_b, options(), 60_000.0)
+        .unwrap();
+    assert_eq!(result_a.best_score, result_b.best_score);
+    assert_eq!(result_a.played_score, result_b.played_score);
+    assert_eq!(result_a.symbol, result_b.symbol);
+    assert!(result_a.samples >= 128);
 }

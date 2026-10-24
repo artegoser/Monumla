@@ -7,6 +7,8 @@ use monumla_search::{
 };
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
+#[path = "review_information.rs"]
+mod review_information;
 
 #[derive(Clone, Serialize, Deserialize)]
 struct Snapshot {
@@ -15,6 +17,8 @@ struct Snapshot {
     initial_fen: String,
     undo_floor: usize,
     pgn_tags: BTreeMap<String, String>,
+    #[serde(default)]
+    review_input: Option<monumla_core::TurnInput>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BestAction {
@@ -60,6 +64,7 @@ struct CachedAnalysis {
 /// A comparison of the actual move and best move at the same completed depth.
 #[derive(Clone, Debug, Serialize)]
 pub struct MoveAssessment {
+    pub samples: u64,
     pub depth: u16,
     pub best_score: Option<i32>,
     pub played_score: Option<i32>,
@@ -88,6 +93,10 @@ impl GameHandle {
                 .cached_assessment(index as usize, analysis)
                 .map_err(js_error)?,
         )
+    }
+    #[wasm_bindgen(js_name=reviewSnapshot)]
+    pub fn review_snapshot(&self, index: u32) -> Result<JsValue, JsValue> {
+        to_js(&self.snapshot_for_review(index as usize).map_err(js_error)?)
     }
     #[wasm_bindgen(js_name=searchSnapshot)]
     pub fn search_snapshot(&self) -> Result<JsValue, JsValue> {
@@ -168,6 +177,15 @@ impl GameHandle {
         options: SearchOptions,
         time_ms: f64,
     ) -> Result<MoveAssessment, String> {
+        if let Runtime::Rules(r) = &self.inner {
+            if let Some(input) = &r.review_input {
+                return self.information_assessment(input.clone(), options, time_ms);
+            }
+            if self.domain().has_hidden_information() {
+                let observed = Self::restore_snapshot(self.snapshot_for_review(index)?)?;
+                return observed.assess_turn(index, options, time_ms);
+            }
+        }
         let actual = self
             .timeline()
             .history()
@@ -194,6 +212,7 @@ impl GameHandle {
             });
         let Some(played) = played else {
             return Ok(MoveAssessment {
+                samples: 0,
                 depth: 0,
                 best_score: None,
                 played_score: None,
@@ -259,6 +278,7 @@ impl GameHandle {
             .find_map(|(d, b)| played_depths.get(d).map(|p| (*d, b, p)));
         let Some((depth, best, candidate)) = common else {
             return Ok(MoveAssessment {
+                samples: 0,
                 depth: 0,
                 best_score: None,
                 played_score: None,
@@ -414,6 +434,30 @@ impl GameHandle {
             .expect("valid information projection");
         format!("{}:{:032x}", self.ruleset(), fingerprint(&position))
     }
+    fn snapshot_for_review(&self, index: usize) -> Result<Snapshot, String> {
+        let domain = self.domain();
+        if !domain.has_hidden_information() {
+            return self.snapshot();
+        }
+        let turn = self
+            .timeline()
+            .history()
+            .turns()
+            .get(index)
+            .ok_or("Move outside history")?;
+        let before = GameTimeline::new(turn.before.clone()).map_err(string_error)?;
+        let observation = domain
+            .observation(&before, turn.actor)
+            .map_err(string_error)?;
+        Ok(Snapshot {
+            ruleset: self.ruleset(),
+            timeline: observation,
+            review_input: Some(turn.input.clone()),
+            initial_fen: String::new(),
+            undo_floor: 0,
+            pgn_tags: BTreeMap::new(),
+        })
+    }
     fn snapshot(&self) -> Result<Snapshot, String> {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
@@ -428,6 +472,7 @@ impl GameHandle {
             initial_fen,
             undo_floor,
             pgn_tags,
+            review_input: None,
         })
     }
     fn restore_snapshot(snapshot: Snapshot) -> Result<Self, String> {
@@ -435,6 +480,7 @@ impl GameHandle {
         let mut game = Self::new_ruleset(&snapshot.ruleset)?;
         match &mut game.inner {
             Runtime::Rules(r) => {
+                r.review_input = snapshot.review_input;
                 r.timeline = snapshot.timeline;
                 r.viewer = r.timeline.current().turn.active_players[0];
                 r.rebuild_interaction()?;
@@ -722,6 +768,7 @@ fn assess_scores(
         (Some("·"), "Good move")
     };
     MoveAssessment {
+        samples: 0,
         depth,
         best_score,
         played_score,

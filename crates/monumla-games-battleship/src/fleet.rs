@@ -15,7 +15,7 @@ pub(crate) fn fleet(s: &GameState, p: PlayerId) -> Fleet {
     }
     ships.into_iter().collect()
 }
-fn cells(cell: usize, len: usize, vertical: bool) -> Option<Vec<usize>> {
+pub(crate) fn cells(cell: usize, len: usize, vertical: bool) -> Option<Vec<usize>> {
     if cell >= 100 || (vertical && cell / 10 + len > 10) || (!vertical && cell % 10 + len > 10) {
         return None;
     }
@@ -150,9 +150,9 @@ pub fn validate_fleet(s: &GameState, p: PlayerId) -> Result<(), RuleError> {
     }
     Ok(())
 }
-struct Random(u64);
+pub(crate) struct Random(pub u64);
 impl Random {
-    fn next(&mut self) -> u64 {
+    pub(crate) fn next(&mut self) -> u64 {
         self.0 = self.0.wrapping_add(0x9e3779b97f4a7c15);
         let mut z = self.0;
         z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
