@@ -186,3 +186,67 @@ fn placed_ship_rotation_checks_borders_and_neighbors_atomically() {
     assert!(rotate_ship(&mut s, FIRST, 0).is_err());
     assert_eq!(s, before);
 }
+
+#[test]
+fn fleets_reveal_only_at_game_end_and_hide_again_on_undo() {
+    let mut t = battle(9);
+    assert_eq!(
+        FleetInformation
+            .observe(t.current(), SECOND)
+            .unwrap()
+            .entities
+            .len(),
+        20
+    );
+    let positions = t
+        .current()
+        .entities
+        .values()
+        .filter(|e| e.owner == SECOND)
+        .map(|e| e.position)
+        .collect::<Vec<_>>();
+    for p in positions {
+        shoot(&mut t, p);
+    }
+    let final_view = FleetInformation.observe(t.current(), SECOND).unwrap();
+    assert_eq!(final_view.entities.len(), 40);
+    assert!(final_view.players.values().all(|p| p.state.is_empty()));
+    assert_eq!(
+        FleetInformation
+            .sample(&final_view, SECOND, 1)
+            .unwrap()
+            .entities,
+        t.current().entities
+    );
+    t.undo().unwrap();
+    assert_eq!(
+        FleetInformation
+            .observe(t.current(), SECOND)
+            .unwrap()
+            .entities
+            .len(),
+        20
+    );
+    t.redo().unwrap();
+    assert_eq!(
+        FleetInformation
+            .observe(t.current(), SECOND)
+            .unwrap()
+            .entities
+            .len(),
+        40
+    );
+}
+#[test]
+fn battle_score_has_no_setup_offset() {
+    let t = battle(4);
+    for p in [FIRST, SECOND] {
+        let observation = FleetInformation.observe(t.current(), p).unwrap();
+        assert_eq!(
+            registry()
+                .position_score(RuleContext::from_state(&observation, None), p)
+                .unwrap(),
+            Some(0)
+        );
+    }
+}

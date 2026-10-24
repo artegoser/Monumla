@@ -101,7 +101,12 @@ struct FleetScore;
 impl PositionScoreRule for FleetScore {
     fn score(&self, c: RuleContext<'_>, p: PlayerId) -> Result<i32, RuleError> {
         let setup = c.state().entities.values().filter(|e| e.owner == p).count() as i32 * 10
-            + if ready(c.state(), p) { 1000 } else { 0 };
+            + if ready(c.state(), p) { 1000 } else { 0 }
+            - if ready(c.state(), opponent(p)) {
+                1200
+            } else {
+                0
+            };
         let damage = |owner| {
             (0..100)
                 .filter(|i| matches!(shot(c.state(), owner, *i), "hit" | "sunk"))

@@ -18,7 +18,7 @@ impl InformationRule for FleetInformation {
         for id in view
             .entities
             .values()
-            .filter(|e| e.owner != viewer)
+            .filter(|e| e.owner != viewer && phase(s) != "finished")
             .map(|e| e.id)
             .collect::<Vec<_>>()
         {
@@ -35,7 +35,7 @@ impl InformationRule for FleetInformation {
         // Project again: even a caller accidentally passing authority cannot leak it.
         let mut world = self.observe(s, viewer)?;
         world.ruleset_state.remove("observer");
-        if phase(s) != "setup" {
+        if phase(s) == "battle" {
             let p = opponent(viewer);
             let ships = generate(&world, p, seed, true)?;
             install(&mut world, p, &ships)?;
