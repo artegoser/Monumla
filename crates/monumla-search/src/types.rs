@@ -141,6 +141,7 @@ pub enum StopReason {
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SearchStatistics {
+    pub samples: u64,
     pub quiescence_nodes: u64,
     pub transposition_hits: u64,
     pub cutoffs: u64,

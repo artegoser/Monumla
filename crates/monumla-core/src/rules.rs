@@ -375,6 +375,8 @@ pub struct RuleRegistry {
     ability_rules: BTreeMap<AbilityId, Box<dyn AbilityRule>>,
     outcome_rules: Vec<Box<dyn OutcomeRule>>,
     game_rules: GameRuleSet,
+    score_rule: Option<Box<dyn crate::PositionScoreRule>>,
+    information_rule: Option<Box<dyn crate::InformationRule>>,
 }
 
 impl RuleRegistry {
@@ -382,6 +384,28 @@ impl RuleRegistry {
         Self::default()
     }
 
+    pub fn set_information<R: crate::InformationRule + 'static>(&mut self, rule: R) {
+        self.information_rule = Some(Box::new(rule));
+    }
+    pub fn information(&self) -> Option<&dyn crate::InformationRule> {
+        self.information_rule.as_deref()
+    }
+    pub fn set_position_score<R: crate::PositionScoreRule + 'static>(&mut self, rule: R) {
+        self.score_rule = Some(Box::new(rule));
+    }
+    pub fn has_position_score(&self) -> bool {
+        self.score_rule.is_some()
+    }
+    pub fn position_score(
+        &self,
+        context: RuleContext<'_>,
+        perspective: PlayerId,
+    ) -> Result<Option<i32>, RuleError> {
+        self.score_rule
+            .as_ref()
+            .map(|rule| rule.score(context, perspective))
+            .transpose()
+    }
     pub fn register_entity<R>(
         &mut self,
         entity_type: EntityTypeId,
@@ -474,7 +498,8 @@ impl RuleRegistry {
         draft: &StateMap,
         choices: Vec<ChoiceSpec>,
     ) -> Result<Vec<ChoiceSpec>, RuleError> {
-        self.game_rules.resolve_choices(context, actor, draft, choices)
+        self.game_rules
+            .resolve_choices(context, actor, draft, choices)
     }
 
     pub fn apply_game_choice(

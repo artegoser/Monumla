@@ -42,6 +42,7 @@ pub struct AnalysisView {
     pub transposition_hits: u64,
     pub quiescence_nodes: u64,
     pub cutoffs: u64,
+    pub samples: u64,
 }
 #[derive(Deserialize)]
 struct CachedLine {
@@ -316,6 +317,10 @@ impl GameHandle {
                 .map_err(string_error)?,
             Runtime::Go(_) => go_turn_notation(actual, before.current().board.width()),
             Runtime::Checkers(_) => checkers_turn_notation(actual),
+            Runtime::Rules(r) => match r.kind {
+                Kind::Battleship => monumla_games_battleship::turn_notation(actual),
+                Kind::TicTacToe => monumla_games_tictactoe::turn_notation(actual),
+            },
         };
         let Some((index, line)) = analysis
             .lines
@@ -350,6 +355,16 @@ impl GameHandle {
     }
     pub(super) fn domain(&self) -> RuntimeDomain {
         match &self.inner {
+            Runtime::Rules(r) => {
+                let kind = r.kind;
+                RuntimeDomain::new(r.registry(), move |_| {
+                    let rules: Rc<dyn InteractionRules> = match kind {
+                        Kind::Battleship => Rc::new(monumla_games_battleship::BattleshipRules),
+                        Kind::TicTacToe => Rc::new(monumla_games_tictactoe::TicTacToeRules),
+                    };
+                    Ok(rules)
+                })
+            }
             Runtime::Chess(runtime) => {
                 let rules = runtime.rules.clone();
                 let mut registry = monumla_core::RuleRegistry::new();
@@ -371,8 +386,33 @@ impl GameHandle {
             }),
         }
     }
+    fn analysis_timeline(&self) -> Result<GameTimeline, String> {
+        if let Runtime::Rules(r) = &self.inner {
+            let registry = r.registry();
+            if let Some(information) = registry.information() {
+                let viewer = self
+                    .timeline()
+                    .current()
+                    .turn
+                    .active_players
+                    .first()
+                    .copied()
+                    .unwrap_or(PlayerId::new(1));
+                return GameTimeline::new(
+                    information
+                        .observe(self.timeline().current(), viewer)
+                        .map_err(string_error)?,
+                )
+                .map_err(string_error);
+            }
+        }
+        Ok(self.timeline().clone())
+    }
     fn position_key(&self) -> String {
-        format!("{}:{:032x}", self.ruleset(), fingerprint(self.timeline()))
+        let position = self
+            .analysis_timeline()
+            .expect("valid information projection");
+        format!("{}:{:032x}", self.ruleset(), fingerprint(&position))
     }
     fn snapshot(&self) -> Result<Snapshot, String> {
         if self.turn_in_progress() {
@@ -384,7 +424,7 @@ impl GameHandle {
         };
         Ok(Snapshot {
             ruleset: self.ruleset(),
-            timeline: self.timeline().clone(),
+            timeline: self.analysis_timeline()?,
             initial_fen,
             undo_floor,
             pgn_tags,
@@ -394,6 +434,11 @@ impl GameHandle {
         validate_timeline(&snapshot.timeline)?;
         let mut game = Self::new_ruleset(&snapshot.ruleset)?;
         match &mut game.inner {
+            Runtime::Rules(r) => {
+                r.timeline = snapshot.timeline;
+                r.viewer = r.timeline.current().turn.active_players[0];
+                r.rebuild_interaction()?;
+            }
             Runtime::Chess(r) => {
                 r.timeline = snapshot.timeline;
                 r.initial_fen = snapshot.initial_fen;
@@ -434,7 +479,9 @@ impl GameHandle {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
         }
-        let player = if stable_perspective {
+        let hidden = domain.has_hidden_information();
+        let root = self.analysis_timeline()?;
+        let player = if stable_perspective && !hidden {
             self.timeline()
                 .current()
                 .players
@@ -456,12 +503,28 @@ impl GameHandle {
         let convert = |result: &SearchResult<RuntimeAction>| -> Result<AnalysisView, String> {
             let mut lines = Vec::new();
             for variation in &result.variations {
-                let mut position = self.timeline().clone();
+                let mut position = root.clone();
                 let mut moves = Vec::new();
                 let path = variation
                     .actions
                     .first()
-                    .map(|a| domain.action_path(&position, a))
+                    .map(|a| {
+                        if hidden {
+                            Ok(a.input
+                                .choices
+                                .iter()
+                                .filter_map(|c| {
+                                    if let ChoiceKind::SelectPosition { position } = c.kind {
+                                        Some(position)
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .collect())
+                        } else {
+                            domain.action_path(&position, a)
+                        }
+                    })
                     .transpose()
                     .map_err(string_error)?
                     .unwrap_or_default()
@@ -469,8 +532,29 @@ impl GameHandle {
                     .map(PositionView::from)
                     .collect();
                 for action in &variation.actions {
-                    moves.push(self.action_label(domain, &position, action)?);
-                    position = domain.play(&position, action).map_err(string_error)?;
+                    if hidden {
+                        moves.push(
+                            action
+                                .input
+                                .choices
+                                .iter()
+                                .map(|c| match &c.kind {
+                                    ChoiceKind::SelectPosition { position } => {
+                                        monumla_games_battleship::coordinate(
+                                            usize::from(position.y) * 10
+                                                + usize::from(position.x % 10),
+                                        )
+                                    }
+                                    ChoiceKind::SelectOption { key } => key.clone(),
+                                    _ => "Action".into(),
+                                })
+                                .collect::<Vec<_>>()
+                                .join(" → "),
+                        );
+                    } else {
+                        moves.push(self.action_label(domain, &position, action)?);
+                        position = domain.play(&position, action).map_err(string_error)?;
+                    }
                 }
                 lines.push(AnalysisLine {
                     score: variation.score,
@@ -503,8 +587,23 @@ impl GameHandle {
                 transposition_hits: result.statistics.transposition_hits,
                 quiescence_nodes: result.statistics.quiescence_nodes,
                 cutoffs: result.statistics.cutoffs,
+                samples: result.statistics.samples,
             })
         };
+        if hidden {
+            let result = monumla_search::analyze_information(
+                domain,
+                &root,
+                player,
+                options,
+                &mut domain.information_memory.borrow_mut(),
+                cancel,
+            )
+            .map_err(string_error)?;
+            let view = convert(&result)?;
+            progress(&view);
+            return Ok(view);
+        }
         let result = monumla_search::analyze_cached(
             domain,
             self.timeline(),
@@ -539,6 +638,10 @@ impl GameHandle {
                 .map_err(string_error),
             Runtime::Go(_) => Ok(go_turn_notation(turn, position.current().board.width())),
             Runtime::Checkers(_) => Ok(checkers_turn_notation(turn)),
+            Runtime::Rules(r) => Ok(match r.kind {
+                Kind::Battleship => monumla_games_battleship::turn_notation(turn),
+                Kind::TicTacToe => monumla_games_tictactoe::turn_notation(turn),
+            }),
         }
     }
     pub(super) fn apply_analyzed_action(
@@ -569,6 +672,10 @@ impl GameHandle {
             .steps
             .clone();
         match &mut self.inner {
+            Runtime::Rules(r) => {
+                r.timeline = next;
+                r.rebuild_interaction()?;
+            }
             Runtime::Chess(r) => {
                 r.timeline = next;
                 r.rebuild_interaction()?;
@@ -1151,3 +1258,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "games_tests.rs"]
+mod games_tests;

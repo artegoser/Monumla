@@ -4,8 +4,10 @@
 mod action;
 mod board;
 mod error;
+mod evaluation;
 mod history;
 mod ids;
+mod information;
 mod interaction;
 mod rules;
 mod state;
@@ -15,10 +17,12 @@ mod value;
 pub use action::{EntityActionPath, TurnInput};
 pub use board::{Board, Position};
 pub use error::CoreError;
+pub use evaluation::PositionScoreRule;
 pub use history::{
     GameTimeline, History, RecordedAction, StepRecord, TransactionResult, TurnRecord, TurnSession,
 };
 pub use ids::{AbilityId, ChoiceId, EntityId, EntityTypeId, PlayerId, TeamId};
+pub use information::InformationRule;
 pub use interaction::{
     recorded_step, Choice, ChoiceInput, ChoiceIssuer, ChoiceKind, ChoiceSpec, Interaction,
     InteractionDriver, InteractionError, InteractionFlow, InteractionRules, InteractionUpdate,

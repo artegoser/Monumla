@@ -46,8 +46,8 @@ impl DraughtsVariant {
     }
     pub const fn title(self) -> &'static str {
         match self {
-            Self::Russian => "Russian draughts",
-            Self::International => "International draughts",
+            Self::Russian => "Russian checkers",
+            Self::International => "International checkers",
         }
     }
     pub fn from_state(state: &GameState) -> Self {

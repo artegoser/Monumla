@@ -124,6 +124,16 @@ impl RuntimeDomain {
         // The default evaluator uses only runtime features, without piece IDs,
         // state-key names, game-specific values, or board-specific movement.
         // Terminal outcomes always dominate these heuristic control estimates.
+        if let Some(score) = self
+            .registry
+            .position_score(
+                RuleContext::from_state(position.current(), Some(position.history())),
+                perspective,
+            )
+            .map_err(|e| InteractionError::RuleViolation(e.to_string()))?
+        {
+            return Ok(score.clamp(-20_000, 20_000));
+        }
         self.learn(position)?;
         let state = position.current();
         let mut score = 0_i32;

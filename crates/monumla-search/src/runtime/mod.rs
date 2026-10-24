@@ -1,6 +1,7 @@
 //! One search binding for every game using the Monumla interaction protocol.
 //! Games supply their normal interaction rules and outcome registry. They do not
-//! implement SearchDomain, evaluation, move ordering, or a search adapter.
+//! implement SearchDomain, move ordering, or a search adapter. Optional position
+//! estimates and hidden-information constraints are ordinary ruleset knowledge.
 use crate::{fingerprint, NodeRole, Quiescence, SearchDomain};
 use monumla_core::{
     ChoiceInput, GameOutcome, GameState, GameTimeline, InteractionDriver, InteractionError,
@@ -49,6 +50,7 @@ pub struct RuntimeDomain {
     factory: Rc<Factory>,
     cache: Mutex<HashMap<u128, Vec<RuntimeAction>>>,
     weights: Mutex<HashMap<u128, i32>>,
+    pub information_memory: std::cell::RefCell<crate::InformationMemory<RuntimeAction>>,
 }
 impl RuntimeDomain {
     pub fn new(
@@ -60,6 +62,7 @@ impl RuntimeDomain {
             factory: Rc::new(factory),
             cache: Mutex::new(HashMap::new()),
             weights: Mutex::new(HashMap::new()),
+            information_memory: std::cell::RefCell::new(crate::InformationMemory::new()),
         }
     }
     pub fn outcome(
@@ -159,7 +162,14 @@ impl SearchDomain for RuntimeDomain {
     type Perspective = PlayerId;
     type Error = InteractionError;
     fn prepare(&self, position: &GameTimeline) -> Result<(), Self::Error> {
-        self.learn(position)
+        if self.has_hidden_information() {
+            return Err(InteractionError::RuleViolation("Hidden-information rules require observation sampling, not perfect-information search".into()));
+        }
+        if self.registry.has_position_score() {
+            Ok(())
+        } else {
+            self.learn(position)
+        }
     }
     fn terminal_score(
         &self,
@@ -386,3 +396,48 @@ impl From<TurnInput> for RuntimeAction {
 
 #[cfg(test)]
 mod tests;
+
+impl RuntimeDomain {
+    pub fn has_hidden_information(&self) -> bool {
+        self.registry.information().is_some()
+    }
+    pub fn observation(
+        &self,
+        position: &GameTimeline,
+        viewer: PlayerId,
+    ) -> Result<GameTimeline, InteractionError> {
+        if let Some(rule) = self.registry.information() {
+            let state = rule
+                .observe(position.current(), viewer)
+                .map_err(|e| InteractionError::RuleViolation(e.to_string()))?;
+            // No historical authority or redo snapshots cross this boundary.
+            Ok(GameTimeline::new(state)?)
+        } else {
+            Ok(position.clone())
+        }
+    }
+}
+impl crate::InformationDomain for RuntimeDomain {
+    fn observe(
+        &self,
+        position: &GameTimeline,
+        viewer: PlayerId,
+    ) -> Result<GameTimeline, InteractionError> {
+        self.observation(position, viewer)
+    }
+    fn sample(
+        &self,
+        position: &GameTimeline,
+        viewer: PlayerId,
+        seed: u64,
+    ) -> Result<GameTimeline, InteractionError> {
+        let rule = self
+            .registry
+            .information()
+            .ok_or_else(|| InteractionError::RuleViolation("No information rule".into()))?;
+        let state = rule
+            .sample(position.current(), viewer, seed)
+            .map_err(|e| InteractionError::RuleViolation(e.to_string()))?;
+        Ok(GameTimeline::new(state)?)
+    }
+}

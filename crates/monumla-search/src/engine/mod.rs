@@ -284,6 +284,7 @@ fn analyze_roots<D: SearchDomain>(
     }
     result.nodes = carried_nodes.saturating_add(context.nodes);
     result.statistics = SearchStatistics {
+        samples: 0,
         quiescence_nodes: carried_statistics.quiescence_nodes + context.statistics.quiescence_nodes,
         transposition_hits: carried_statistics.transposition_hits
             + context.statistics.transposition_hits,

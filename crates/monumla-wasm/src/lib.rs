@@ -1,7 +1,9 @@
 //! Browser boundary for the Monumla Rust runtime.
 #![forbid(unsafe_code)]
 
+mod games;
 mod search;
+use games::{Kind, RulesRuntime};
 pub use search::{native_analysis, AnalysisView, BestAction, SearchSession};
 #[cfg(not(target_arch = "wasm32"))]
 pub mod experiments;
@@ -60,6 +62,26 @@ pub fn new_go(size: u16, scoring: &str, handicap: u8) -> Result<GameHandle, JsVa
 }
 
 #[wasm_bindgen]
+pub fn new_battleship(seed: u32) -> Result<GameHandle, JsValue> {
+    Ok(GameHandle {
+        inner: Runtime::Rules(
+            RulesRuntime::new(
+                Kind::Battleship,
+                monumla_games_battleship::initial_state(u64::from(seed)),
+            )
+            .map_err(js_error)?,
+        ),
+    })
+}
+#[wasm_bindgen]
+pub fn new_tictactoe(width: u16, height: u16, connect: u16) -> Result<GameHandle, JsValue> {
+    let config = monumla_games_tictactoe::Config::new(width, height, connect).map_err(js_error)?;
+    let state = monumla_games_tictactoe::initial_state(config).map_err(js_error)?;
+    Ok(GameHandle {
+        inner: Runtime::Rules(RulesRuntime::new(Kind::TicTacToe, state).map_err(js_error)?),
+    })
+}
+#[wasm_bindgen]
 pub fn from_fen(fen: &str) -> Result<GameHandle, JsValue> {
     Ok(GameHandle {
         inner: Runtime::Chess(ChessRuntime::from_fen(fen).map_err(js_error)?),
@@ -82,6 +104,7 @@ enum Runtime {
     Chess(ChessRuntime),
     Checkers(CheckersRuntime),
     Go(GoRuntime),
+    Rules(RulesRuntime),
 }
 
 struct ChessRuntime {
@@ -112,6 +135,15 @@ impl GameHandle {
                 Runtime::Checkers(CheckersRuntime::new(DraughtsVariant::International)?)
             }
             "go" => Runtime::Go(GoRuntime::standard()?),
+            "battleship" => Runtime::Rules(RulesRuntime::new(
+                Kind::Battleship,
+                monumla_games_battleship::initial_state(1),
+            )?),
+            "tictactoe" => Runtime::Rules(RulesRuntime::new(
+                Kind::TicTacToe,
+                monumla_games_tictactoe::initial_state(monumla_games_tictactoe::Config::standard())
+                    .map_err(string_error)?,
+            )?),
             other => return Err(format!("unknown Monumla ruleset '{other}'")),
         };
         Ok(Self { inner })
@@ -126,6 +158,9 @@ impl GameHandle {
                 visible_state(&runtime.timeline, runtime.interaction.as_ref())
             }
             Runtime::Go(runtime) => visible_state(&runtime.timeline, runtime.interaction.as_ref()),
+            Runtime::Rules(runtime) => {
+                visible_state(&runtime.timeline, runtime.interaction.as_ref())
+            }
         }
     }
 
@@ -134,6 +169,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => &runtime.timeline,
             Runtime::Checkers(runtime) => &runtime.timeline,
             Runtime::Go(runtime) => &runtime.timeline,
+            Runtime::Rules(runtime) => &runtime.timeline,
         }
     }
 
@@ -142,6 +178,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.game_view(),
             Runtime::Checkers(runtime) => runtime.game_view(),
             Runtime::Go(runtime) => runtime.game_view(),
+            Runtime::Rules(runtime) => runtime.game_view(),
         }
     }
 
@@ -150,6 +187,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.interaction_view(),
             Runtime::Checkers(runtime) => runtime.interaction_view(),
             Runtime::Go(runtime) => runtime.interaction_view(),
+            Runtime::Rules(runtime) => runtime.interaction_view(),
         }
     }
 
@@ -162,8 +200,16 @@ impl GameHandle {
             committed,
             game: self.game_view()?,
             interaction: self.interaction_view(),
-            changes: changes_from_steps(steps),
-            presentation: presentation_from_steps(steps),
+            changes: if matches!(&self.inner,Runtime::Rules(r) if r.kind==Kind::Battleship) {
+                Vec::new()
+            } else {
+                changes_from_steps(steps)
+            },
+            presentation: if matches!(&self.inner,Runtime::Rules(r) if r.kind==Kind::Battleship) {
+                Vec::new()
+            } else {
+                presentation_from_steps(steps)
+            },
         })
     }
 
@@ -180,6 +226,16 @@ impl GameHandle {
 
 #[wasm_bindgen]
 impl GameHandle {
+    #[wasm_bindgen(js_name=setPerspective)]
+    pub fn set_perspective(&mut self, player: u32) -> Result<(), JsValue> {
+        if ![1, 2].contains(&player) {
+            return Err(js_error("Unknown player"));
+        }
+        if let Runtime::Rules(r) = &mut self.inner {
+            r.viewer = monumla_core::PlayerId::new(player);
+        }
+        Ok(())
+    }
     pub fn ruleset(&self) -> String {
         match &self.inner {
             Runtime::Chess(_) => "chess",
@@ -187,6 +243,7 @@ impl GameHandle {
                 DraughtsVariant::from_state(runtime.timeline.current()).id()
             }
             Runtime::Go(_) => "go",
+            Runtime::Rules(runtime) => runtime.id(),
         }
         .to_owned()
     }
@@ -205,6 +262,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.choose(id).map_err(js_error)?,
             Runtime::Checkers(runtime) => runtime.choose(id).map_err(js_error)?,
             Runtime::Go(runtime) => runtime.choose(id).map_err(js_error)?,
+            Runtime::Rules(runtime) => runtime.choose(id).map_err(js_error)?,
         };
         to_js(&self.transition_view(committed, &steps).map_err(js_error)?)
     }
@@ -217,6 +275,7 @@ impl GameHandle {
                 reset_draft(&mut runtime.interaction).map_err(js_error)?
             }
             Runtime::Go(runtime) => reset_draft(&mut runtime.interaction).map_err(js_error)?,
+            Runtime::Rules(runtime) => reset_draft(&mut runtime.interaction).map_err(js_error)?,
         }
         to_js(&self.transition_view(false, &[]).map_err(js_error)?)
     }
@@ -229,6 +288,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.undo().map_err(js_error)?,
             Runtime::Checkers(runtime) => runtime.undo().map_err(js_error)?,
             Runtime::Go(runtime) => runtime.undo().map_err(js_error)?,
+            Runtime::Rules(runtime) => runtime.undo().map_err(js_error)?,
         }
         let delta = StateDelta::between(&before, self.visible_state());
         let mut view = self.transition_from_delta(delta).map_err(js_error)?;
@@ -236,6 +296,10 @@ impl GameHandle {
             if let Some(record) = record {
                 view.changes = recorded_changes(&record, true);
             }
+        }
+        if matches!(&self.inner,Runtime::Rules(r) if r.kind==Kind::Battleship) {
+            view.changes.clear();
+            view.presentation.clear();
         }
         to_js(&view)
     }
@@ -246,11 +310,16 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.redo().map_err(js_error)?,
             Runtime::Checkers(runtime) => runtime.redo().map_err(js_error)?,
             Runtime::Go(runtime) => runtime.redo().map_err(js_error)?,
+            Runtime::Rules(runtime) => runtime.redo().map_err(js_error)?,
         }
         let delta = StateDelta::between(&before, self.visible_state());
         let mut view = self.transition_from_delta(delta).map_err(js_error)?;
         if let Some(record) = self.timeline().history().previous_turn() {
             view.changes = recorded_changes(record, false);
+        }
+        if matches!(&self.inner,Runtime::Rules(r) if r.kind==Kind::Battleship) {
+            view.changes.clear();
+            view.presentation.clear();
         }
         to_js(&view)
     }
@@ -351,6 +420,7 @@ impl GameHandle {
 
     pub fn history(&self) -> Result<JsValue, JsValue> {
         let turns = match &self.inner {
+            Runtime::Rules(runtime) => runtime.history_view(),
             Runtime::Chess(runtime) => runtime.history_view().map_err(js_error)?,
             Runtime::Checkers(runtime) => {
                 generic_history_view(runtime.timeline.history(), "checkers")
@@ -369,6 +439,7 @@ impl GameHandle {
             Runtime::Chess(runtime) => runtime.can_undo(),
             Runtime::Checkers(runtime) => runtime.timeline.can_undo(),
             Runtime::Go(runtime) => runtime.timeline.can_undo(),
+            Runtime::Rules(runtime) => runtime.timeline.can_undo(),
         }
     }
 

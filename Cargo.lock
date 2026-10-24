@@ -70,6 +70,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "monumla-games-battleship"
+version = "0.1.0"
+dependencies = [
+ "monumla-core",
+]
+
+[[package]]
 name = "monumla-games-checkers"
 version = "0.1.0"
 dependencies = [
@@ -93,6 +100,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "monumla-games-tictactoe"
+version = "0.1.0"
+dependencies = [
+ "monumla-core",
+]
+
+[[package]]
 name = "monumla-search"
 version = "0.1.0"
 dependencies = [
@@ -107,9 +121,11 @@ version = "0.1.0"
 dependencies = [
  "js-sys",
  "monumla-core",
+ "monumla-games-battleship",
  "monumla-games-checkers",
  "monumla-games-chess",
  "monumla-games-go",
+ "monumla-games-tictactoe",
  "monumla-search",
  "serde",
  "serde-wasm-bindgen",

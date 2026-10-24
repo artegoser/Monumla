@@ -1,14 +1,16 @@
 # Monumla
 
-Monumla is a local-first programmable game runtime with a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, and Go rulesets compile to WebAssembly for the browser.
+Monumla is a local-first programmable game runtime with a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, Go, Battleship, and tic-tac-toe rulesets compile to WebAssembly for the browser.
 
 ## Repository layout
 
 - `crates/monumla-core` — generic state, history, turns, interaction, runtime primitives.
 - `crates/monumla-search` — game-independent search and analysis.
 - `crates/monumla-games-chess` — standard chess rules built on the generic core.
-- `crates/monumla-games-checkers` — Russian 8×8 and international 10×10 draughts, sharing move generation and interaction.
+- `crates/monumla-games-checkers` — Russian 8×8 and international 10×10 checkers, sharing move generation and interaction.
 - `crates/monumla-games-go` — playable digital AGA Go ruleset with 9×9/13×13/19×19 boards, superko, scoring review, komi and handicap.
+- `crates/monumla-games-battleship` — classic 10×10 fleets, manual/automatic setup, validated rotation, and player observations.
+- `crates/monumla-games-tictactoe` — rectangular 3–9 row/column boards with configurable winning-line length.
 - `crates/monumla-wasm` — browser bindings for the Rust runtime.
 - `src` — SvelteKit presentation and input layer.
 - `docs/CORE_IMPLEMENTATION_PLAN.md` — architecture and implementation plan.
@@ -92,4 +94,4 @@ See:
 
 ## Search engine
 
-`monumla-search` searches the ordinary core rules for chess, both draughts variants, and Go through one shared runtime path. It owns evaluation, iterative deepening, alpha-beta/PVS, transposition storage, quiescence, and ranked continuations. The browser offers automatic computer play and a separate Analysis mode with evaluations and arrows. Game crates contain no search adapters. See [`docs/SEARCH_ENGINE.md`](docs/SEARCH_ENGINE.md) for behavior, examples, and limits.
+`monumla-search` searches the ordinary core rules for chess, both checkers variants, Go, and tic-tac-toe through one shared runtime path. It owns iterative deepening, alpha-beta/PVS, transposition storage, quiescence, and ranked continuations. Battleship uses the shared observation-sampling algorithm: the worker receives its own fleet and public results, then compares shots against possible enemy fleets. Optional position estimates remain ruleset knowledge; no game implements a search algorithm. The browser offers automatic computer play and a separate Analysis mode with evaluations and arrows. Game crates contain no search adapters. See [`docs/SEARCH_ENGINE.md`](docs/SEARCH_ENGINE.md) for behavior, examples, and limits.

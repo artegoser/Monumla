@@ -5,6 +5,8 @@ members = [
     "crates/monumla-games-chess",
     "crates/monumla-games-checkers",
     "crates/monumla-games-go",
+    "crates/monumla-games-battleship",
+    "crates/monumla-games-tictactoe",
     "crates/monumla-wasm",
 ]
 resolver = "2"
@@ -22,6 +24,8 @@ monumla-core = { path = "crates/monumla-core" }
 monumla-games-chess = { path = "crates/monumla-games-chess" }
 monumla-games-checkers = { path = "crates/monumla-games-checkers" }
 monumla-games-go = { path = "crates/monumla-games-go" }
+monumla-games-battleship = { path = "crates/monumla-games-battleship" }
+monumla-games-tictactoe = { path = "crates/monumla-games-tictactoe" }
 serde = { version = "1.0", features = ["derive", "rc"] }
 serde-wasm-bindgen = "0.6"
 thiserror = "2.0"
