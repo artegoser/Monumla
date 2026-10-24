@@ -15,6 +15,9 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             return Err(Abort::Stopped(StopReason::NodeLimit));
         }
         self.nodes += 1;
+        if self.options.report_partial && self.nodes & 255 == 0 && self.live.is_some() {
+            self.notify();
+        }
         Ok(())
     }
     pub(super) fn order(
@@ -100,6 +103,24 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     Bound::Upper => score <= alpha,
                 };
                 if usable {
+                    if ply == 0 {
+                        let bound = match entry.bound {
+                            Bound::Exact => ScoreBound::Exact,
+                            Bound::Lower => ScoreBound::Lower,
+                            Bound::Upper => ScoreBound::Upper,
+                        };
+                        self.root_result(
+                            depth,
+                            0,
+                            0,
+                            &Line {
+                                score,
+                                actions: entry.line.clone(),
+                                terminal: false,
+                            },
+                            bound,
+                        );
+                    }
                     return Ok(Line {
                         score,
                         actions: entry.line.clone(),
@@ -133,7 +154,12 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         let original_beta = beta;
         let forced = actions.len() == 1;
         let mut best: Option<Line<D::Action>> = None;
+        let root_total = actions.len();
+        let mut root_done = 0;
         for (index, action) in actions.into_iter().enumerate() {
+            if ply == 0 {
+                self.root_started(depth, root_total, index, &action);
+            }
             let child = self.domain.play(position, &action)?;
             let follow = if preferred.first() == Some(&action) {
                 &preferred[1..]
@@ -192,6 +218,23 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     terminal: false,
                 });
             }
+            if ply == 0 {
+                root_done = index + 1;
+                if improves && self.options.report_partial {
+                    let line = best.as_ref().unwrap();
+                    let bound = match role {
+                        NodeRole::Maximize if line.score > original_alpha => ScoreBound::Lower,
+                        NodeRole::Minimize if line.score < original_beta => ScoreBound::Upper,
+                        _ => ScoreBound::Estimate,
+                    };
+                    let line = Line {
+                        score: line.score,
+                        actions: line.actions.clone(),
+                        terminal: false,
+                    };
+                    self.root_result(depth, root_done, root_total, &line, bound);
+                }
+            }
             let score = best.as_ref().expect("one action evaluated").score;
             match role {
                 NodeRole::Maximize => alpha = alpha.max(score),
@@ -203,6 +246,17 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             }
         }
         let best = best.expect("nonempty actions");
+        if ply == 0 {
+            let bound = if best.score <= original_alpha {
+                ScoreBound::Upper
+            } else if best.score >= original_beta {
+                ScoreBound::Lower
+            } else {
+                ScoreBound::Exact
+            };
+            self.root_result(depth, root_done, root_total, &best, bound);
+        }
+
         if let Some(key) = key {
             let bound = if best.score <= original_alpha {
                 Bound::Upper

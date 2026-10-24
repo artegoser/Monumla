@@ -696,3 +696,100 @@ fn promising_late_probe_is_verified_at_full_depth() {
     assert_eq!(result.best_action, Some(1));
     assert!(result.statistics.researches > 0);
 }
+
+#[test]
+fn live_root_updates_preserve_completed_scores_and_do_not_publish_partial_depths() {
+    let tree = trap();
+    let stop = Cell::new(false);
+    let mut seen = Vec::new();
+    let mut memory = SearchMemory::new(1024);
+    let options = SearchOptions {
+        report_partial: true,
+        limits: SearchLimits {
+            max_depth: 2,
+            max_nodes: Some(10000),
+        },
+        transposition_entries: 1024,
+        ..Default::default()
+    };
+    let result = analyze_cached(
+        &tree,
+        &0,
+        true,
+        options,
+        &mut memory,
+        || stop.get(),
+        |r| {
+            if let Some(live) = &r.iteration {
+                seen.push((r.completed_depth, live.depth, live.root_done, live.score));
+                if live.depth == 2 && live.root_done == 1 && live.score.is_some() {
+                    stop.set(true);
+                }
+            }
+        },
+    )
+    .unwrap();
+    assert_eq!(result.completed_depth, 1);
+    assert_eq!(result.stop_reason, StopReason::Cancelled);
+    assert!(seen
+        .iter()
+        .any(|(completed, depth, done, score)| *completed == 0
+            && *depth == 1
+            && *done == 1
+            && score.is_some()));
+    let live = result.iteration.as_ref().unwrap();
+    assert_eq!(live.depth, 2);
+    let completed = analyze(
+        &tree,
+        &0,
+        true,
+        SearchOptions {
+            limits: SearchLimits {
+                max_depth: 1,
+                max_nodes: Some(10000),
+            },
+            ..Default::default()
+        },
+        || false,
+        |_| {},
+    )
+    .unwrap();
+    assert_eq!(result.score, completed.score);
+    assert_eq!(result.best_action, completed.best_action);
+    let resumed = analyze_cached(&tree, &0, true, options, &mut memory, || false, |_| {}).unwrap();
+    assert_eq!(resumed.completed_depth, 2);
+    assert!(resumed.iteration.is_none());
+    assert_eq!(resumed.score, Some(exhaustive(&tree, 0, 2)));
+}
+#[test]
+fn enabling_live_reports_preserves_exact_search_work_and_answer() {
+    let tree = trap();
+    let options = SearchOptions {
+        limits: SearchLimits {
+            max_depth: 3,
+            max_nodes: Some(10000),
+        },
+        multi_pv: 2,
+        ..Default::default()
+    };
+    let plain = analyze(&tree, &0, true, options, || false, |_| {}).unwrap();
+    let mut reports = 0;
+    let live = analyze(
+        &tree,
+        &0,
+        true,
+        SearchOptions {
+            report_partial: true,
+            ..options
+        },
+        || false,
+        |r| {
+            if r.iteration.is_some() {
+                reports += 1;
+            }
+        },
+    )
+    .unwrap();
+    assert!(reports > 0);
+    assert_eq!(plain, live);
+}

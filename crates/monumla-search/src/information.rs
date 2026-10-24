@@ -125,6 +125,7 @@ pub fn analyze_information<D: InformationDomain>(
         .map_err(SearchError::Domain)?
     {
         return Ok(SearchResult {
+            iteration: None,
             best_action: None,
             score: Some(score),
             principal_variation: vec![],
@@ -227,6 +228,7 @@ pub fn analyze_information<D: InformationDomain>(
     ranked.truncate(options.multi_pv.clamp(1, 8));
     let first = ranked.first();
     Ok(SearchResult {
+        iteration: None,
         best_action: first.and_then(|v| v.actions.first()).cloned(),
         score: first.map(|v| v.score),
         principal_variation: first.map(|v| v.actions.clone()).unwrap_or_default(),

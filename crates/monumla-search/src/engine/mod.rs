@@ -159,6 +159,7 @@ fn analyze_roots<D: SearchDomain>(
         let actions = domain.actions(position).map_err(SearchError::Domain)?;
         if actions.len() == 1 {
             return Ok(SearchResult {
+                iteration: None,
                 best_action: actions.first().cloned(),
                 score: None,
                 principal_variation: actions,
@@ -171,19 +172,8 @@ fn analyze_roots<D: SearchDomain>(
         }
     }
     domain.prepare(position).map_err(SearchError::Domain)?;
-    let mut context = Context {
-        domain,
-        perspective,
-        options,
-        cancel,
-        nodes: 0,
-        statistics: SearchStatistics::default(),
-        memory,
-        generation: 0,
-        excluded_root: Vec::new(),
-        allowed_root,
-    };
     let mut result = SearchResult {
+        iteration: None,
         best_action: None,
         score: None,
         principal_variation: Vec::new(),
@@ -203,8 +193,26 @@ fn analyze_roots<D: SearchDomain>(
     } else {
         u16::from(options.limits.max_depth != 0)
     };
+    let mut context = Context {
+        completed: result.clone(),
+        live: None,
+        progress: &mut progress,
+        base_nodes: carried_nodes,
+        base_statistics: carried_statistics,
+        domain,
+        perspective,
+        options,
+        cancel,
+        nodes: 0,
+        statistics: SearchStatistics::default(),
+        memory,
+        generation: 0,
+        excluded_root: Vec::new(),
+        allowed_root,
+    };
     'iterations: for depth in start..=options.limits.max_depth {
         context.generation = depth;
+        context.completed = result.clone();
         let mut width = i64::from(options.aspiration_window);
         let center = result.score;
         let line = loop {
@@ -272,30 +280,30 @@ fn analyze_roots<D: SearchDomain>(
         result.best_action = line.actions.first().cloned();
         result.score = Some(line.score);
         result.principal_variation = line.actions;
-        result.nodes = context.nodes;
-        result.statistics = context.statistics;
+        result.nodes = carried_nodes.saturating_add(context.nodes);
+        result.statistics = context.total_statistics();
         if line.terminal {
             result.stop_reason = StopReason::Terminal;
         }
-        progress(&result);
+        result.iteration = None;
+        (context.progress)(&result);
         if line.terminal {
             break;
         }
     }
     result.nodes = carried_nodes.saturating_add(context.nodes);
-    result.statistics = SearchStatistics {
-        samples: 0,
-        quiescence_nodes: carried_statistics.quiescence_nodes + context.statistics.quiescence_nodes,
-        transposition_hits: carried_statistics.transposition_hits
-            + context.statistics.transposition_hits,
-        cutoffs: carried_statistics.cutoffs + context.statistics.cutoffs,
-        researches: carried_statistics.researches + context.statistics.researches,
-    };
+    result.statistics = context.total_statistics();
+    result.iteration = context
+        .live
+        .clone()
+        .filter(|live| live.depth > result.completed_depth);
     if let Some(key) = root_key {
         if context.memory.results.len() >= 32 && !context.memory.results.contains_key(&key) {
             context.memory.results.clear();
         }
-        context.memory.results.insert(key, result.clone());
+        let mut completed = result.clone();
+        completed.iteration = None;
+        context.memory.results.insert(key, completed);
     }
     Ok(result)
 }
@@ -315,6 +323,11 @@ impl<E> From<E> for Abort<E> {
     }
 }
 struct Context<'a, D: SearchDomain, F> {
+    completed: SearchResult<D::Action>,
+    live: Option<IterationProgress<D::Action>>,
+    progress: &'a mut dyn FnMut(&SearchResult<D::Action>),
+    base_nodes: u64,
+    base_statistics: SearchStatistics,
     domain: &'a D,
     perspective: D::Perspective,
     options: SearchOptions,
@@ -327,5 +340,6 @@ struct Context<'a, D: SearchDomain, F> {
     allowed_root: Option<Vec<D::Action>>,
 }
 
+mod progress;
 mod quiescence;
 mod traversal;

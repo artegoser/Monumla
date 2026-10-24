@@ -106,6 +106,8 @@ impl Default for SearchLimits {
 }
 #[derive(Clone, Copy, Debug)]
 pub struct SearchOptions {
+    /// Publish root work separately from the last completed result.
+    pub report_partial: bool,
     pub limits: SearchLimits,
     pub quiescence_depth: u8,
     pub transposition_entries: usize,
@@ -120,6 +122,7 @@ pub struct SearchOptions {
 impl Default for SearchOptions {
     fn default() -> Self {
         Self {
+            report_partial: false,
             limits: SearchLimits::default(),
             quiescence_depth: 4,
             transposition_entries: 65_536,
@@ -153,8 +156,28 @@ pub struct SearchVariation<A> {
     pub actions: Vec<A>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScoreBound {
+    Exact,
+    Lower,
+    Upper,
+    Estimate,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct IterationProgress<A> {
+    pub depth: u16,
+    pub root_done: usize,
+    pub root_total: usize,
+    pub line_index: usize,
+    pub current_action: Option<A>,
+    pub score: Option<i32>,
+    pub bound: ScoreBound,
+    pub principal_variation: Vec<A>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SearchResult<A> {
+    pub iteration: Option<IterationProgress<A>>,
     pub best_action: Option<A>,
     pub score: Option<i32>,
     pub principal_variation: Vec<A>,
