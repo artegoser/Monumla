@@ -288,3 +288,39 @@ fn hit_continuation_is_not_biased_to_the_longest_remaining_ship() {
         "H2 is occupied only by a compatible four-deck hull: {far}"
     );
 }
+
+#[test]
+#[ignore = "release sampling profile; run explicitly"]
+fn profile_reported_public_hit_pattern() {
+    let mut s = battle(12).current().clone();
+    // Public results visible in the report. No authoritative enemy geometry is
+    // passed to the sampler, and none of these observations was adjusted for it.
+    for cell in [31, 41, 51, 69, 79, 97] {
+        s.ruleset_state.insert(format!("shot.1.{cell}"), "sunk");
+    }
+    for cell in [25, 45, 47] {
+        s.ruleset_state.insert(format!("shot.1.{cell}"), "hit");
+    }
+    for cell in [3, 7, 14, 18, 22, 27, 28, 29, 40, 56, 60, 76, 80, 92] {
+        s.ruleset_state.insert(format!("shot.1.{cell}"), "miss");
+    }
+    let info = FleetInformation::default();
+    let observed = info.observe(&s, SECOND).unwrap();
+    let mut counts = [0_u32; 100];
+    let start = std::time::Instant::now();
+    for seed in 1..=512 {
+        let sample = info.sample(&observed, SECOND, seed).unwrap();
+        validate_fleet(&sample, FIRST).unwrap();
+        for e in sample.entities.values().filter(|e| e.owner == FIRST) {
+            counts[usize::from(e.position.y) * 10 + usize::from(e.position.x)] += 1;
+        }
+    }
+    println!(
+        "samples=512 elapsed_ms={:.3} gap_F4={} nearby_F2={} remote_I5={} nearby_H6={}",
+        start.elapsed().as_secs_f64() * 1000.,
+        counts[35],
+        counts[15],
+        counts[48],
+        counts[57]
+    );
+}

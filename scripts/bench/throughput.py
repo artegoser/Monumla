@@ -17,6 +17,8 @@ def main():
     parser.add_argument("--candidate", required=True)
     parser.add_argument("--positions", type=Path, nargs="*", default=[])
     parser.add_argument("--ruleset", default="chess")
+    parser.add_argument("--prelude", type=Path)
+    parser.add_argument("--opening-plies", type=int, default=0)
     parser.add_argument("--depth", type=int, default=3)
     parser.add_argument("--nodes", type=int, default=100000)
     parser.add_argument("--repeats", type=int, default=5)
@@ -65,7 +67,20 @@ def main():
                 )
                 for side in order:
                     worker = workers[side]
-                    worker.call("init", ruleset=args.ruleset, pgn=pgn, seed=1)
+                    status = worker.call(
+                        "init",
+                        ruleset=args.ruleset,
+                        pgn=pgn,
+                        seed=1,
+                        opening_plies=args.opening_plies,
+                    )
+                    for action in (
+                        json.loads(args.prelude.read_text()) if args.prelude else []
+                    ):
+                        status = worker.call(
+                            "apply",
+                            action=dict(position_key=status["key"], action=action),
+                        )
                     start = time.perf_counter()
                     result = worker.call(
                         "analyze", depth=args.depth, nodes=args.nodes, time_ms=0

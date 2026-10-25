@@ -85,6 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("Usage: profile_search PGN_FILE [DEPTH] [NODES]")?;
     let depth = args.next().map(|s| s.parse()).transpose()?.unwrap_or(1);
     let nodes = args.next().map(|s| s.parse()).transpose()?.unwrap_or(10000);
+    let opening_plies = args.next().map(|s| s.parse()).transpose()?.unwrap_or(0);
     let ruleset = if matches!(
         file.as_str(),
         "go" | "checkers" | "checkers-international" | "tictactoe"
@@ -114,7 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     source.push_str(" *");
-    let session = Session::new(
+    let mut session = Session::new(
         ruleset,
         if ruleset == "chess" {
             Some(&source)
@@ -122,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         },
     )?;
+    if opening_plies > 0 { session.opening(1, opening_plies)?; }
     let timeline = session.search_observation()?;
     let perspective: PlayerId = timeline.current().turn.active_players[0];
     let domain = Profile {

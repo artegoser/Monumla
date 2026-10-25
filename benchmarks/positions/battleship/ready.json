@@ -1,0 +1,46 @@
+[
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "arrange"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "ready"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "arrange"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "ready"
+        },
+        "data": {}
+      }
+    ]
+  }
+]

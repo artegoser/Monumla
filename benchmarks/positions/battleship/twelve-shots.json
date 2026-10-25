@@ -1,0 +1,214 @@
+[
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "arrange"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "ready"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "arrange"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "kind": {
+          "type": "select_option",
+          "key": "ready"
+        },
+        "data": {}
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 14,
+            "y": 0
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 4,
+            "y": 0
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 19,
+            "y": 1
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 9,
+            "y": 1
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 13,
+            "y": 9
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 3,
+            "y": 9
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 10,
+            "y": 1
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 0,
+            "y": 1
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 0,
+            "y": 3
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 18,
+            "y": 0
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 2,
+            "y": 1
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  },
+  {
+    "choices": [
+      {
+        "data": {},
+        "kind": {
+          "position": {
+            "x": 17,
+            "y": 4
+          },
+          "type": "select_position"
+        }
+      }
+    ]
+  }
+]

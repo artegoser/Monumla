@@ -1,0 +1,16 @@
+[
+  {"id":"chess-italian", "ruleset":"chess", "pgn":"benchmarks/positions/chess/italian-queen-g4.pgn", "depth":3, "nodes":100000},
+  {"id":"chess-knights", "ruleset":"chess", "pgn":"benchmarks/positions/chess/central-knights.pgn", "depth":3, "nodes":100000},
+  {"id":"chess-queenside", "ruleset":"chess", "pgn":"benchmarks/positions/chess/queenside-pressure.pgn", "depth":3, "nodes":100000},
+  {"id":"checkers-russian", "ruleset":"checkers", "depth":3, "nodes":100000},
+  {"id":"checkers-international", "ruleset":"checkers-international", "depth":3, "nodes":100000},
+  {"id":"go-9", "ruleset":"go:9", "depth":2, "nodes":100000},
+  {"id":"go-19", "ruleset":"go:19", "depth":2, "nodes":100000},
+  {"id":"go-19-midgame", "ruleset":"go:19", "opening_plies":35, "depth":2, "nodes":100000},
+  {"id":"battleship-setup", "ruleset":"battleship", "depth":1, "nodes":10000},
+  {"id":"battleship-ready", "ruleset":"battleship", "prelude":"benchmarks/positions/battleship/ready.json", "depth":1, "nodes":10000},
+  {"id":"battleship-damaged", "ruleset":"battleship", "prelude":"benchmarks/positions/battleship/twelve-shots.json", "depth":1, "nodes":10000},
+  {"id":"tictactoe-3", "ruleset":"tictactoe", "depth":3, "nodes":100000},
+  {"id":"tictactoe-5", "ruleset":"tictactoe:5x5:4", "depth":3, "nodes":100000},
+  {"id":"tictactoe-rectangular", "ruleset":"tictactoe:7x5:5", "depth":3, "nodes":100000}
+]

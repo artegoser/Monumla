@@ -25,3 +25,7 @@ js-sys.workspace = true
 
 [dev-dependencies]
 serde_json = "1.0"
+
+[package.metadata.wasm-pack.profile.profiling]
+# Preserve function names in optimized profiling builds; release builds stay unchanged.
+wasm-opt = ["-O3", "-g"]

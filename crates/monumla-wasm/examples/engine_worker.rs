@@ -30,6 +30,7 @@ enum Request {
         action: BestAction,
     },
     Status,
+    Observation,
 }
 fn execute(game: &mut Option<Session>, request: Request) -> Result<Value, String> {
     if let Request::Init {
@@ -80,6 +81,7 @@ fn execute(game: &mut Option<Session>, request: Request) -> Result<Value, String
         )?),
         Request::Apply { action } => serde_json::to_value(session.apply(action)?),
         Request::Status => serde_json::to_value(session.status()?),
+        Request::Observation => serde_json::to_value(session.search_observation()?),
         Request::Init { .. } => unreachable!(),
     };
     value.map_err(|e| e.to_string())

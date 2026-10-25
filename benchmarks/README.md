@@ -79,3 +79,52 @@ Primary references (read 2026-10-23):
 - [Lc0 technical overview](https://lczero.org/dev/wiki/technical-explanation-of-leela-chess-zero/)
 - [Actual Lc0 paired network comparison](https://bench.lczero.org/test/1074/)
 - [Lc0 backend/network compatibility](https://lczero.org/play/networks/bestnets/)
+
+## Complete native and WASM matrix
+
+[The case list](cases.json) covers all five games, both checkers rulesets, several Go/tic-tac-toe sizes, and Battleship setup and firing. It is a reproducible workload suite, not an exhaustive strength test. Freeze two clean revisions, build both with the same toolchain and release flags, and keep the binaries/modules unchanged during the run.
+
+```sh
+python3 scripts/bench/matrix.py \
+  --baseline target/monumla-bench/bin/baseline \
+  --candidate target/monumla-bench/bin/candidate \
+  --observer target/monumla-bench/bin/candidate \
+  --baseline-revision BASELINE_COMMIT --candidate-revision CANDIDATE_COMMIT \
+  --cpu 5 --repeats 5 --out target/monumla-bench/native-matrix
+# Build both revisions with wasm-pack --target web --out-name monumla.
+# The exported snapshots preserve the same logical roots across runtimes.
+taskset -c 4 node scripts/bench/wasm_matrix.mjs \
+  --baseline target/monumla-bench/baseline-wasm \
+  --candidate target/monumla-bench/candidate-wasm \
+  --matrix target/monumla-bench/native-matrix --repeats 5 \
+  --out target/monumla-bench/wasm-matrix
+# Requires Matplotlib in the chosen Python environment.
+python3 scripts/bench/matrix_report.py \
+  --native target/monumla-bench/native-matrix/matrix.json \
+  --wasm target/monumla-bench/wasm-matrix/matrix.json
+```
+
+`latest-matrix.json` and `performance.png` show **every case**, including regressions, failures and overlapping timing ranges. Same-source revision labels are enforced across runtimes. SHA-256 values identify the distinct native and WASM binaries; they are not expected to match each other. Native timings include the JSON worker boundary; WASM timings include callbacks but exclude snapshot loading. Compare changes within each runtime, not absolute timings across them. Warmup precedes five alternating measured repetitions. Pinning reduces scheduling noise but does not isolate shared caches, CPU boost or thermal effects.
+
+`performance_history.py` records only improvements with identical work/results and non-overlapping observed ranges on every selected fixture. Use separate series for different workloads/runtimes and compare against that series' last accepted binary. `performance.json` is the accepted history; `performance-history.png` plots it. Historical milestones naturally have different commit labels. Missing gains remain visible in the complete matrix instead of being silently promoted into the history. Observed min/max ranges are not statistical confidence intervals.
+
+## Live search and profiling
+
+The browser's preferred path is one continuous WASM call in a worker. The main thread cancels it through a shared atomic flag. `pnpm start` uses the custom adapter-node server so both documents **and worker assets** receive COOP/COEP headers. If deploying behind another server, preserve those headers. Hosts without cross-origin isolation fall back to yielding chunks; root frontiers, transposition data and unfinished hidden-world batches survive those yields. Only completed root rankings drive bot decisions; unfinished bounds appear separately in analysis. Hidden-world estimates stream after complete comparable samples.
+
+Use `wasm-pack build crates/monumla-wasm --profiling --target web --out-name monumla --out-dir /absolute/local/profile-wasm` to retain names for V8 CPU profiles. `wasm_throughput.mjs` supports `--snapshot`, `--continuous true`, and `--module`; run it under `node --cpu-prof --cpu-prof-dir=target/monumla-bench` for a local sample profile. Do not mix profiling runs with clean timing measurements. Linux perf sampling may be denied by host policy even for user-space events; shared-hook native instrumentation remains available without changing global kernel settings.
+
+## Internal Elo pools and asymmetric budgets
+
+```sh
+python3 scripts/bench/strength.py match \
+  --baseline target/monumla-bench/bin/baseline \
+  --candidate target/monumla-bench/bin/candidate \
+  --ruleset chess --games 40 --jobs 4 --cpus 0,1,2,3 \
+  --baseline-time-ms 1000 --candidate-time-ms 10000 \
+  --out target/monumla-bench/chess-budget-match
+python3 scripts/bench/league.py target/monumla-bench/chess-budget-match \
+  --out target/monumla-bench/league.json
+```
+
+The same runner supports `battleship`, `tictactoe`, `tictactoe:5x5:4`, `tictactoe:7x5:5`, and `go:SIZE`, in addition to chess/checkers. Entrants include both binary identity and search budget, so a single binary at 1 and 10 seconds is two entrants. Every ruleset/size has a separate pool. Online Elo starts at an explicit convention (1000, K=20 per game); it is a useful internal tracking system, not an externally calibrated rating. Import complete paired matches in chronological order. Unfinished pairs are excluded and duplicate imports rejected. Pair-based uncertainty in `strength.py` remains the evidence for strength comparisons; the online rating does not replace it.
