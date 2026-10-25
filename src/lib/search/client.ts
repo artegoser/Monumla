@@ -18,6 +18,7 @@ export class SearchClient {
 	private worker: Worker | null = null;
 	private reject: ((reason: Error) => void) | null = null;
 	private generation = 0;
+	private control: Int32Array | null = null;
 
 	analyze(
 		snapshot: unknown,
@@ -52,7 +53,10 @@ export class SearchClient {
 				this.worker = worker;
 				this.reject = reject;
 				const finish = () => {
-					if (this.worker === worker) this.reject = null;
+					if (this.worker === worker) {
+						this.reject = null;
+						this.control = null;
+					}
 				};
 				worker.onmessage = ({ data }: MessageEvent<SearchMessage>) => {
 					if (id !== this.generation || data.id !== id) return;
@@ -72,9 +76,17 @@ export class SearchClient {
 					this.worker = null;
 					reject(new Error(event.message || 'The analysis worker could not start. Try again.'));
 				};
-				const request: SearchRequest = { id, snapshot, settings, ply };
+				const shared =
+					globalThis.crossOriginIsolated && typeof SharedArrayBuffer !== 'undefined' && ply == null
+						? new SharedArrayBuffer(4)
+						: undefined;
+				this.control = shared ? new Int32Array(shared) : null;
+				const request: SearchRequest = { id, snapshot, settings, ply, control: shared };
 				worker.postMessage(request);
 			} catch (cause) {
+				// Cleanup must not settle this promise as cancellation before
+				// the actual startup/serialization error reaches the panel.
+				this.reject = null;
 				this.cancel();
 				reject(cause instanceof Error ? cause : new Error(String(cause)));
 			}
@@ -87,6 +99,10 @@ export class SearchClient {
 		this.worker = null;
 	}
 	cancel() {
+		if (this.control) {
+			Atomics.store(this.control, 0, 1);
+			this.control = null;
+		}
 		this.generation += 1;
 		this.worker?.postMessage({ id: this.generation, cancel: true });
 		const reject = this.reject;

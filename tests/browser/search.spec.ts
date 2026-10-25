@@ -465,3 +465,83 @@ test('shared search can choose a draw claim and the ordinary action finishes the
 	await page.getByRole('button', { name: 'Claim fifty-move draw', exact: true }).first().click();
 	await expect(page.locator('.board-status')).toContainText('Draw · 50-move rule');
 });
+
+test('continuous worker search uses a shared stop flag and stops when paused', async ({ page }) => {
+	await page.addInitScript(() => {
+		const send = Worker.prototype.postMessage;
+		(window as unknown as { searchFlags: SharedArrayBuffer[] }).searchFlags = [];
+		Worker.prototype.postMessage = function (message: unknown) {
+			const request = message as { settings?: unknown; control?: SharedArrayBuffer };
+			if (request.settings && request.control)
+				(window as unknown as { searchFlags: SharedArrayBuffer[] }).searchFlags.push(
+					request.control
+				);
+			send.call(this, message);
+		};
+	});
+	await open(page);
+	expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
+	await analysis(page);
+	await page.getByLabel('Pause search').click();
+	expect(
+		await page.evaluate(() => {
+			const flags = (window as unknown as { searchFlags: SharedArrayBuffer[] }).searchFlags;
+			return (
+				flags.length > 0 && flags.every((buffer) => Atomics.load(new Int32Array(buffer), 0) === 1)
+			);
+		})
+	).toBe(true);
+	await page.getByLabel('Resume search').click();
+	await expect(page.getByLabel('Position analysis')).toHaveAttribute(
+		'data-analysis-pending',
+		'false'
+	);
+	await expect(page.locator('.engine-error')).toHaveCount(0);
+});
+
+test('Go 19x19 completes all three lines and continues to a deeper result', async ({ page }) => {
+	await open(page);
+	await page.getByLabel('Game variant').selectOption('go');
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await expect(page.locator('.best-lines button')).toHaveCount(3, { timeout: 30000 });
+	await expect(page.getByLabel('Position analysis')).toHaveAttribute(
+		'data-analysis-depth',
+		/[2-9]/,
+		{ timeout: 30000 }
+	);
+	await page.getByLabel('Pause search').click();
+	await expect(page.locator('.engine-error')).toHaveCount(0);
+});
+
+test('hosts without shared memory retain working three-line Go analysis', async ({ page }) => {
+	await page.addInitScript(() =>
+		Object.defineProperty(globalThis, 'crossOriginIsolated', { get: () => false })
+	);
+	await open(page);
+	await page.getByLabel('Game variant').selectOption('go');
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await expect(page.locator('.best-lines button')).toHaveCount(3, { timeout: 30000 });
+	await page.getByLabel('Pause search').click();
+	await expect(page.locator('.engine-error')).toHaveCount(0);
+});
+
+test('worker failures remain visible while paused and a retry can recover', async ({ page }) => {
+	await page.addInitScript(() => {
+		const send = Worker.prototype.postMessage;
+		let fail = true;
+		Worker.prototype.postMessage = function (message: unknown) {
+			if (fail && (message as { settings?: unknown }).settings) {
+				fail = false;
+				throw new Error('Analysis worker test failure');
+			}
+			send.call(this, message);
+		};
+	});
+	await open(page);
+	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
+	await expect(page.locator('.engine-error')).toHaveText('Analysis worker test failure');
+	await expect(page.getByLabel('Resume search')).toBeVisible();
+	await page.getByLabel('Resume search').click();
+	await expect(page.locator('.best-lines button')).toHaveCount(3, { timeout: 30000 });
+	await expect(page.locator('.engine-error')).toHaveCount(0);
+});

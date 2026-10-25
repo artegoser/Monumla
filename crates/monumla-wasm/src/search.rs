@@ -713,13 +713,22 @@ impl GameHandle {
             })
         };
         if hidden {
-            let result = monumla_search::analyze_information(
+            let mut last_sample_report = f64::NEG_INFINITY;
+            let result = monumla_search::analyze_information_with_progress(
                 domain,
                 &root,
                 player,
                 options,
                 &mut domain.information_memory.borrow_mut(),
                 cancel,
+                |result| {
+                    if now_ms() - last_sample_report >= 500.0 {
+                        last_sample_report = now_ms();
+                        if let Ok(view) = convert(result) {
+                            progress(&view);
+                        }
+                    }
+                },
             )
             .map_err(string_error)?;
             let view = convert(&result)?;
@@ -906,6 +915,58 @@ impl SearchSession {
                 .map_err(js_error)?,
         )
     }
+    #[allow(clippy::too_many_arguments)] // Keep the existing chunk ABI plus cancellation/progress handles.
+    #[wasm_bindgen(js_name=runWithControl)]
+    pub fn run_with_control(
+        &mut self,
+        depth: u16,
+        nodes: u32,
+        time_ms: u32,
+        lines: u8,
+        forced: bool,
+        control: js_sys::Int32Array,
+        progress: js_sys::Function,
+    ) -> Result<JsValue, JsValue> {
+        if control.length() < 1 {
+            return Err(js_error("A cancellation flag is required"));
+        }
+        let deadline = now_ms() + f64::from(time_ms.clamp(1, 600_000));
+        let mut until_poll = 0_u8;
+        let report = self
+            .game
+            .analyze_position_cached(
+                &self.domain,
+                &mut self.memory,
+                SearchOptions {
+                    report_partial: true,
+                    limits: SearchLimits {
+                        max_depth: depth.clamp(1, 32),
+                        max_nodes: Some(u64::from(nodes.clamp(100, 50_000_000))),
+                    },
+                    transposition_entries: 16384,
+                    multi_pv: usize::from(lines.clamp(1, 5)),
+                    stop_on_forced_move: forced,
+                    late_move_reductions: true,
+                    ..Default::default()
+                },
+                || {
+                    if until_poll > 0 {
+                        until_poll -= 1;
+                        return false;
+                    }
+                    until_poll = 15;
+                    now_ms() >= deadline || js_sys::Atomics::load(&control, 0).unwrap_or(1) != 0
+                },
+                |view| {
+                    if let Ok(value) = to_js(view) {
+                        let _ = progress.call1(&JsValue::NULL, &value);
+                    }
+                },
+                true,
+            )
+            .map_err(js_error)?;
+        to_js(&report)
+    }
     #[wasm_bindgen(js_name=chunkWithProgress)]
     pub fn chunk_with_progress(
         &mut self,
@@ -1082,7 +1143,9 @@ mod tests {
     #[test]
     fn immediate_win_beats_a_free_capture() {
         let game = GameHandle {
-            inner: Runtime::Chess(ChessRuntime::from_fen("7k/5K2/6Q1/8/8/8/8/6q1 w - - 0 1").unwrap()),
+            inner: Runtime::Chess(
+                ChessRuntime::from_fen("7k/5K2/6Q1/8/8/8/8/6q1 w - - 0 1").unwrap(),
+            ),
         };
         for depth in [1, 2, 3] {
             let report = analyze_game(&game, depth);
@@ -1093,12 +1156,20 @@ mod tests {
     }
     #[test]
     fn a_losing_side_can_choose_a_claimable_draw_through_shared_search() {
-        let mut game = GameHandle { inner: Runtime::Chess(ChessRuntime::from_fen("7k/8/8/8/8/8/8/K6q w - - 100 51").unwrap()) };
+        let mut game = GameHandle {
+            inner: Runtime::Chess(
+                ChessRuntime::from_fen("7k/8/8/8/8/8/8/K6q w - - 100 51").unwrap(),
+            ),
+        };
         let report = analyze_game(&game, 1);
         assert_eq!(report.score, Some(0));
         assert!(report.lines[0].moves[0].contains("draw claimed"));
-        game.apply_analyzed_action(report.best_action.unwrap()).unwrap();
-        assert_eq!(game.game_view().unwrap().status.outcome.unwrap().key, "chess.fifty_move_rule");
+        game.apply_analyzed_action(report.best_action.unwrap())
+            .unwrap();
+        assert_eq!(
+            game.game_view().unwrap().status.outcome.unwrap().key,
+            "chess.fifty_move_rule"
+        );
     }
     #[test]
     fn midgame_from_report_completes_iterations_and_keeps_searching() {

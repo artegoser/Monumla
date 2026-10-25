@@ -127,3 +127,39 @@ fn immediate_cancellation_does_not_invent_a_sample_or_action() {
     assert_eq!(result.score, None);
     assert!(domain.sampled.borrow().is_empty());
 }
+
+#[test]
+fn sampled_progress_only_publishes_complete_world_estimates() {
+    let domain = Hidden {
+        sampled: RefCell::new(Vec::new()),
+    };
+    let options = SearchOptions {
+        limits: SearchLimits {
+            max_depth: 1,
+            max_nodes: Some(19),
+        },
+        report_partial: true,
+        ..Default::default()
+    };
+    let mut reports = Vec::new();
+    let result = analyze_information_with_progress(
+        &domain,
+        &Position {
+            seed: 0,
+            result: None,
+        },
+        true,
+        options,
+        &mut InformationMemory::new(),
+        || false,
+        |report| reports.push(report.clone()),
+    )
+    .unwrap();
+    assert_eq!(reports.len(), 2);
+    assert_eq!(reports[0].statistics.samples, 1);
+    assert_eq!(reports[1].statistics.samples, 2);
+    assert_eq!(reports[1].nodes, 16);
+    assert_eq!(result.nodes, 19);
+    assert_eq!(result.score, reports[1].score);
+    assert_eq!(result.variations, reports[1].variations);
+}

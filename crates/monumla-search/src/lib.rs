@@ -10,7 +10,9 @@ mod table;
 mod types;
 
 pub use engine::{analyze, analyze_action, analyze_cached, search, search_with_control};
-pub use information::{analyze_information, InformationDomain, InformationMemory};
+pub use information::{
+    analyze_information, analyze_information_with_progress, InformationDomain, InformationMemory,
+};
 pub use memory::SearchMemory;
 pub use monumla_core::fingerprint;
 pub use types::*;

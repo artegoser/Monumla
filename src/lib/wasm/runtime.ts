@@ -1,7 +1,12 @@
 import type { AnalysisView, BestAction, MoveAssessment, SearchSettings } from '$lib/search/types';
 
 export type RulesetId =
-	'chess' | 'checkers' | 'checkers-international' | 'go' | 'battleship' | 'tictactoe';
+	| 'chess'
+	| 'checkers'
+	| 'checkers-international'
+	| 'go'
+	| 'battleship'
+	| 'tictactoe';
 export type GoScoring = 'territory' | 'area';
 
 export interface PositionView {
@@ -187,6 +192,15 @@ interface WasmHandle {
 }
 
 interface WasmSearchSession {
+	runWithControl?(
+		depth: number,
+		nodes: number,
+		timeMs: number,
+		lines: number,
+		forced: boolean,
+		control: Int32Array,
+		progress: (analysis: AnalysisView) => void
+	): AnalysisView;
 	chunkWithProgress(
 		depth: number,
 		nodes: number,
@@ -382,6 +396,21 @@ export class LocalSearchSession {
 	}
 	setPosition(snapshot: unknown) {
 		this.handle.setPosition(snapshot);
+	}
+	get supportsContinuous() {
+		return typeof this.handle.runWithControl === 'function';
+	}
+	run(settings: SearchSettings, control: Int32Array, progress: (analysis: AnalysisView) => void) {
+		if (!this.handle.runWithControl) throw new Error('Reload to use the current analysis engine.');
+		return this.handle.runWithControl(
+			settings.maxDepth,
+			settings.maxNodes,
+			settings.timeMs,
+			settings.lines,
+			settings.forcedMove ?? false,
+			control,
+			progress
+		);
 	}
 	chunk(
 		settings: SearchSettings,

@@ -124,6 +124,7 @@
 			seenMode = mode;
 		}
 		if (position !== seenRevision || switched) {
+			failure = null;
 			currentKey = current.analysisPositionKey();
 			const retained = cache.get(currentKey);
 			if (retained) {
@@ -138,8 +139,8 @@
 		if (key === scheduled) return;
 		cancel();
 		scheduled = key;
-		failure = null;
 		if (partial || suspended) return;
+		failure = null;
 		if (currentMode === 'analysis' && preparing) {
 			onanalysis(null);
 			return;

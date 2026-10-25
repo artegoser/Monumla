@@ -22,7 +22,7 @@
 		"test": "cargo test --workspace && pnpm check",
 		"test:full": "cargo test --workspace && cargo test --release -p monumla-games-chess perft::tests:: -- --ignored && cargo check --workspace && cargo clippy --workspace --all-targets --all-features && pnpm check && NODE_ENV=production vite build",
 		"browserslist:update": "pnpm dlx update-browserslist-db latest",
-		"start": "node build",
+		"start": "node server.mjs",
 		"test:browser": "pnpm build && playwright test"
 	},
 	"devDependencies": {

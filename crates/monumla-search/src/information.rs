@@ -124,7 +124,19 @@ pub fn analyze_information<D: InformationDomain>(
     viewer: D::Perspective,
     options: SearchOptions,
     memory: &mut InformationMemory<D::Action, D::Position>,
+    cancel: impl FnMut() -> bool,
+) -> Result<SearchResult<D::Action>, SearchError<D::Error>> {
+    analyze_information_with_progress(domain, position, viewer, options, memory, cancel, |_| {})
+}
+
+pub fn analyze_information_with_progress<D: InformationDomain>(
+    domain: &D,
+    position: &D::Position,
+    viewer: D::Perspective,
+    options: SearchOptions,
+    memory: &mut InformationMemory<D::Action, D::Position>,
     mut cancel: impl FnMut() -> bool,
+    mut progress: impl FnMut(&SearchResult<D::Action>),
 ) -> Result<SearchResult<D::Action>, SearchError<D::Error>> {
     let observation = domain
         .observe(position, viewer)
@@ -225,6 +237,9 @@ pub fn analyze_information<D: InformationDomain>(
             };
             memory.nodes += 1;
             batch.values.push(value);
+            if options.report_partial && memory.samples > 0 && memory.nodes & 255 == 0 {
+                progress(&sample_report(memory, options, StopReason::Cancelled));
+            }
         }
         let values = batch.values;
         for ((sum, partial), value) in memory.sums.iter_mut().zip(&mut memory.partial).zip(values) {
@@ -239,12 +254,23 @@ pub fn analyze_information<D: InformationDomain>(
             memory.batches.push(memory.partial.clone());
             memory.partial.fill(0);
         }
+        if options.report_partial {
+            progress(&sample_report(memory, options, StopReason::Cancelled));
+        }
         // Setup/forced decisions also use this path; do not invent hidden foresight.
         if options.stop_on_forced_move && memory.actions.len() == 1 {
             stop = StopReason::ForcedMove;
             break;
         }
     }
+    Ok(sample_report(memory, options, stop))
+}
+
+fn sample_report<A: Clone, P>(
+    memory: &InformationMemory<A, P>,
+    options: SearchOptions,
+    stop: StopReason,
+) -> SearchResult<A> {
     let mut ranked = memory
         .actions
         .iter()
@@ -259,7 +285,7 @@ pub fn analyze_information<D: InformationDomain>(
     ranked.sort_by_key(|v| std::cmp::Reverse(v.score));
     ranked.truncate(options.multi_pv.clamp(1, 8));
     let first = ranked.first();
-    Ok(SearchResult {
+    SearchResult {
         iteration: None,
         best_action: first.and_then(|v| v.actions.first()).cloned(),
         score: first.map(|v| v.score),
@@ -272,7 +298,7 @@ pub fn analyze_information<D: InformationDomain>(
             ..SearchStatistics::default()
         },
         variations: ranked,
-    })
+    }
 }
 
 #[cfg(test)]

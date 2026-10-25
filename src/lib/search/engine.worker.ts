@@ -53,6 +53,14 @@ async function run(data: SearchRequest) {
 			if (analysis.score != null || analysis.iteration)
 				send({ id: data.id, type: 'progress', analysis });
 		};
+		if (data.control && session.supportsContinuous) {
+			const analysis = session.run(data.settings, new Int32Array(data.control), publish);
+			publish(analysis);
+			send({ id: data.id, type: 'result', analysis });
+			return;
+		}
+		// Compatibility path for hosts without cross-origin isolation. Search
+		// state, root frontiers and sampling batches survive every yield.
 		while (current()) {
 			const remaining = data.settings.timeMs - (performance.now() - started);
 			const analysis = session.chunk(

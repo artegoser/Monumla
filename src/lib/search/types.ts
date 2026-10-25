@@ -57,6 +57,7 @@ export interface MoveAssessment {
 }
 
 export interface SearchRequest {
+	control?: SharedArrayBuffer;
 	cancel?: boolean;
 	ply?: number;
 	id: number;
