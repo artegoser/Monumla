@@ -160,7 +160,9 @@ def settings_for(args, candidate):
     }
 
 
-def match(args):
+def match(args, cpu_slots=None, emit=None):
+    if emit is None:
+        emit = lambda message: print(message, flush=True)
     if args.games < 2 or args.games % 2 or args.opening_plies < 0 or args.jobs < 1:
         raise ValueError(
             "Use an even number of games, positive jobs and nonnegative opening plies"
@@ -197,9 +199,10 @@ def match(args):
     rows = []
     lock = threading.Lock()
     stop = threading.Event()
-    slots = SimpleQueue()
-    for cpu in (cpus[: args.jobs] if cpus else [None] * args.jobs):
-        slots.put(cpu)
+    slots = cpu_slots if cpu_slots is not None else SimpleQueue()
+    if cpu_slots is None:
+        for cpu in (cpus[: args.jobs] if cpus else [None] * args.jobs):
+            slots.put(cpu)
 
     def pair(pair_index):
         cpu = slots.get()
@@ -262,6 +265,7 @@ def match(args):
                                     "game": game + 1,
                                     "ply": ply,
                                     "actor": actor,
+                                    "cpu": cpu,
                                     "candidate": bool(index),
                                     "wall_ms": (time.monotonic() - started) * 1000,
                                     "settings": settings,
@@ -298,7 +302,7 @@ def match(args):
                         writer = csv.DictWriter(table, fields, delimiter="\t")
                         writer.writeheader()
                         writer.writerows(sorted(rows, key=lambda r: r["game"]))
-                    print(json.dumps(row), flush=True)
+                    emit(json.dumps(row))
             return pair_rows
         except Exception:
             stop.set()
@@ -315,7 +319,7 @@ def match(args):
             future.result()
     report = summarize(rows)
     (out / "strength.json").write_text(json.dumps(report, indent=2))
-    print(json.dumps(report, indent=2))
+    emit(json.dumps(report, indent=2))
 
 
 def main():

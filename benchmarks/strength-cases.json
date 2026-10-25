@@ -1,0 +1,11 @@
+[
+  {"id":"chess", "ruleset":"chess", "games":12, "time_ms":500, "max_plies":300},
+  {"id":"checkers-russian", "ruleset":"checkers", "games":12, "time_ms":500, "max_plies":300},
+  {"id":"checkers-international", "ruleset":"checkers-international", "games":12, "time_ms":500, "max_plies":400},
+  {"id":"go-9", "ruleset":"go:9", "games":12, "time_ms":500, "max_plies":400},
+  {"id":"go-19", "ruleset":"go:19", "games":2, "time_ms":500, "max_plies":800},
+  {"id":"battleship", "ruleset":"battleship", "games":12, "time_ms":500, "max_plies":300},
+  {"id":"tictactoe-3", "ruleset":"tictactoe", "games":12, "time_ms":500, "max_plies":20},
+  {"id":"tictactoe-5", "ruleset":"tictactoe:5x5:4", "games":12, "time_ms":500, "max_plies":40},
+  {"id":"tictactoe-rectangular", "ruleset":"tictactoe:7x5:5", "games":12, "time_ms":500, "max_plies":50}
+]
