@@ -432,6 +432,14 @@ fn main() -> Result<()> {
                     break;
                 };
                 let next = domain.play(&timeline, &action)?;
+                if let Some(outcome) = rules.status(next.current(), next.history())?.outcome {
+                    if matches!(outcome, monumla_games_chess::ChessOutcome::ThreefoldRepetition | monumla_games_chess::ChessOutcome::FiftyMoveRule) {
+                        timeline = next;
+                        result = "1/2-1/2";
+                        reason = outcome.as_game_outcome().key;
+                        break;
+                    }
+                }
                 let (uci, san) = uci_for_turn(&rules, &timeline, &next)?;
                 timeline = next;
                 (

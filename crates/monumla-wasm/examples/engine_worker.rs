@@ -20,6 +20,12 @@ enum Request {
         nodes: u64,
         time_ms: u64,
     },
+    Probe {
+        label: String,
+        depth: u16,
+        nodes: u64,
+        time_ms: u64,
+    },
     Apply {
         action: BestAction,
     },
@@ -33,7 +39,7 @@ fn execute(game: &mut Option<Session>, request: Request) -> Result<Value, String
         opening_plies,
     } = request
     {
-        let mut session = Session::new(&ruleset, pgn.as_deref())?;
+        let mut session = Session::new_seeded(&ruleset, pgn.as_deref(), seed)?;
         let status = session.opening(seed, opening_plies)?;
         *game = Some(session);
         return serde_json::to_value(status).map_err(|e| e.to_string());
@@ -45,6 +51,23 @@ fn execute(game: &mut Option<Session>, request: Request) -> Result<Value, String
             nodes,
             time_ms,
         } => serde_json::to_value(session.analyze(
+            SearchOptions {
+                limits: SearchLimits {
+                    max_depth: depth,
+                    max_nodes: Some(nodes),
+                },
+                transposition_entries: 16384,
+                ..Default::default()
+            },
+            time_ms,
+        )?),
+        Request::Probe {
+            label,
+            depth,
+            nodes,
+            time_ms,
+        } => serde_json::to_value(session.probe(
+            &label,
             SearchOptions {
                 limits: SearchLimits {
                     max_depth: depth,

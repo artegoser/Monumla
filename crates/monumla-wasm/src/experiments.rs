@@ -13,6 +13,15 @@ pub struct Session {
     >,
 }
 #[derive(Serialize)]
+pub struct Probe {
+    pub depth: u16,
+    pub score: Option<i32>,
+    pub nodes: u64,
+    pub elapsed_ms: f64,
+    pub stop_reason: String,
+    pub principal_variation: Vec<String>,
+}
+#[derive(Serialize)]
 pub struct Status {
     pub key: String,
     pub active: Vec<u32>,
@@ -21,6 +30,9 @@ pub struct Status {
 }
 impl Session {
     pub fn new(ruleset: &str, pgn: Option<&str>) -> Result<Self, String> {
+        Self::new_seeded(ruleset, pgn, 1)
+    }
+    pub fn new_seeded(ruleset: &str, pgn: Option<&str>, seed: usize) -> Result<Self, String> {
         let game = if let Some(pgn) = pgn {
             if ruleset != "chess" {
                 return Err("PGN is a chess interchange format".into());
@@ -28,10 +40,44 @@ impl Session {
             GameHandle {
                 inner: Runtime::Chess(ChessRuntime::from_pgn(pgn)?),
             }
-        } else if ruleset == "go" {
+        } else if ruleset == "battleship" {
+            GameHandle {
+                inner: Runtime::Rules(RulesRuntime::new(
+                    Kind::Battleship,
+                    monumla_games_battleship::initial_state(seed as u64),
+                )?),
+            }
+        } else if let Some(config) = ruleset.strip_prefix("tictactoe:") {
+            let (board, connect) = config
+                .split_once(':')
+                .ok_or("Use tictactoe:WIDTHxHEIGHT:CONNECT")?;
+            let (width, height) = board.split_once('x').ok_or("Use WIDTHxHEIGHT")?;
+            let config = monumla_games_tictactoe::Config::new(
+                width.parse().map_err(string_error)?,
+                height.parse().map_err(string_error)?,
+                connect.parse().map_err(string_error)?,
+            )
+            .map_err(string_error)?;
+            GameHandle {
+                inner: Runtime::Rules(RulesRuntime::new(
+                    Kind::TicTacToe,
+                    monumla_games_tictactoe::initial_state(config).map_err(string_error)?,
+                )?),
+            }
+        } else if ruleset == "go" || ruleset.starts_with("go:") {
             GameHandle {
                 inner: Runtime::Go(GoRuntime::new(
-                    GoConfig::aga(9, GoScoring::Area, 0).map_err(js_error_string)?,
+                    GoConfig::aga(
+                        ruleset
+                            .strip_prefix("go:")
+                            .map(|s| s.parse::<u16>())
+                            .transpose()
+                            .map_err(string_error)?
+                            .unwrap_or(9),
+                        GoScoring::Area,
+                        0,
+                    )
+                    .map_err(js_error_string)?,
                 )?),
             }
         } else {
@@ -43,6 +89,24 @@ impl Session {
             domain,
             memory: monumla_search::SearchMemory::new(16384),
         })
+    }
+    pub fn domain(&self) -> &monumla_search::runtime::RuntimeDomain {
+        &self.domain
+    }
+    /// Profiling and dataset callers receive the active player's observation.
+    pub fn search_observation(&self) -> Result<GameTimeline, String> {
+        let actor = self
+            .game
+            .timeline()
+            .current()
+            .turn
+            .active_players
+            .first()
+            .copied()
+            .unwrap_or(monumla_core::PlayerId::new(1));
+        self.domain
+            .observation(self.game.timeline(), actor)
+            .map_err(js_error_string)
     }
     pub fn status(&self) -> Result<Status, String> {
         Ok(Status {
@@ -79,6 +143,61 @@ impl Session {
             |_| {},
             true,
         )
+    }
+    /// Diagnostic restricted-root search. Labels select ordinary legal actions;
+    /// scoring and search are unchanged. Hidden-information games require sampling.
+    pub fn probe(
+        &self,
+        label: &str,
+        mut options: SearchOptions,
+        time_ms: u64,
+    ) -> Result<Probe, String> {
+        if self.domain.has_hidden_information() {
+            return Err(
+                "Restricted-root perfect-information probes cannot inspect hidden games".into(),
+            );
+        }
+        let root = self.search_observation()?;
+        let mut selected = None;
+        for action in self.domain.actions(&root).map_err(js_error_string)? {
+            if self.game.action_label(&self.domain, &root, &action)? == label {
+                if selected.is_some() {
+                    return Err("Ambiguous action label".into());
+                }
+                selected = Some(action);
+            }
+        }
+        let action = selected.ok_or("No legal action with that label")?;
+        let perspective = *root.current().players.keys().next().ok_or("No players")?;
+        options.late_move_reductions = true;
+        let start = Instant::now();
+        let result = monumla_search::analyze_action(
+            &self.domain,
+            &root,
+            perspective,
+            action,
+            options,
+            || time_ms > 0 && start.elapsed() >= Duration::from_millis(time_ms),
+            |_| {},
+        )
+        .map_err(js_error_string)?;
+        let mut position = root;
+        let mut pv = Vec::new();
+        for action in &result.principal_variation {
+            pv.push(self.game.action_label(&self.domain, &position, action)?);
+            position = self
+                .domain
+                .play(&position, action)
+                .map_err(js_error_string)?;
+        }
+        Ok(Probe {
+            depth: result.completed_depth,
+            score: result.score,
+            nodes: result.nodes,
+            elapsed_ms: start.elapsed().as_secs_f64() * 1000.,
+            stop_reason: format!("{:?}", result.stop_reason),
+            principal_variation: pv,
+        })
     }
     pub fn apply(&mut self, action: BestAction) -> Result<Status, String> {
         self.game.apply_analyzed_action(action)?;

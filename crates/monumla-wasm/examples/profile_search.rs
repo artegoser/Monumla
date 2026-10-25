@@ -1,21 +1,17 @@
 //! Profile shared search hooks on a recorded chess position, without an opponent.
-use monumla_core::{GameTimeline, PlayerId, RuleRegistry};
-use monumla_games_chess::{ChessInteractionRules, ChessRules};
-use monumla_search::{
-    analyze, runtime::RuntimeDomain, NodeRole, Quiescence, SearchDomain, SearchLimits,
-    SearchOptions,
-};
+use monumla_core::PlayerId;
+use monumla_search::{analyze, NodeRole, Quiescence, SearchDomain, SearchLimits, SearchOptions};
+use monumla_wasm::experiments::Session;
 use std::{
     cell::RefCell,
     collections::BTreeMap,
-    rc::Rc,
     time::{Duration, Instant},
 };
-struct Profile<D> {
-    domain: D,
+struct Profile<'a, D> {
+    domain: &'a D,
     times: RefCell<BTreeMap<&'static str, (usize, Duration)>>,
 }
-impl<D> Profile<D> {
+impl<D> Profile<'_, D> {
     fn measure<T>(&self, name: &'static str, f: impl FnOnce() -> T) -> T {
         let start = Instant::now();
         let result = f();
@@ -26,7 +22,7 @@ impl<D> Profile<D> {
         result
     }
 }
-impl<D: SearchDomain> SearchDomain for Profile<D> {
+impl<D: SearchDomain> SearchDomain for Profile<'_, D> {
     type Position = D::Position;
     type Action = D::Action;
     type Perspective = D::Perspective;
@@ -89,10 +85,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ok_or("Usage: profile_search PGN_FILE [DEPTH] [NODES]")?;
     let depth = args.next().map(|s| s.parse()).transpose()?.unwrap_or(1);
     let nodes = args.next().map(|s| s.parse()).transpose()?.unwrap_or(10000);
-    let source = if file == "-" {
+    let ruleset = if matches!(
+        file.as_str(),
+        "go" | "checkers" | "checkers-international" | "tictactoe"
+    ) || file.starts_with("go:")
+        || file.starts_with("tictactoe:")
+    {
+        file.as_str()
+    } else {
+        "chess"
+    };
+    let source = if file == "-" || ruleset != "chess" {
         "*".to_owned()
     } else {
-        std::fs::read_to_string(file)?
+        std::fs::read_to_string(&file)?
     };
     let mut source = source
         .lines()
@@ -108,23 +114,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     source.push_str(" *");
-    let rules = ChessRules::standard();
-    let timeline: GameTimeline = rules.from_pgn(&source)?.timeline;
-    let perspective: PlayerId = *timeline
-        .current()
-        .turn
-        .active_players
-        .first()
-        .ok_or("Position has no active player")?;
-    let mut registry = RuleRegistry::new();
-    registry.register_outcome(rules.outcome_rule());
+    let session = Session::new(
+        ruleset,
+        if ruleset == "chess" {
+            Some(&source)
+        } else {
+            None
+        },
+    )?;
+    let timeline = session.search_observation()?;
+    let perspective: PlayerId = timeline.current().turn.active_players[0];
     let domain = Profile {
-        domain: RuntimeDomain::new(registry, move |p| {
-            Ok(Rc::new(ChessInteractionRules::with_history(
-                &rules,
-                p.history(),
-            )))
-        }),
+        domain: session.domain(),
         times: RefCell::default(),
     };
     let start = Instant::now();
