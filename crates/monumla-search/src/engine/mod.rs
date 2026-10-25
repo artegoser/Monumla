@@ -215,36 +215,51 @@ fn analyze_roots<D: SearchDomain>(
         context.completed = result.clone();
         let mut width = i64::from(options.aspiration_window);
         let center = result.score;
-        let line = loop {
-            let (alpha, beta) = match center {
-                Some(center) if width > 0 && width < i64::from(u32::MAX) => (
-                    (i64::from(center) - width).clamp(i64::from(i32::MIN), i64::from(i32::MAX))
-                        as i32,
-                    (i64::from(center) + width).clamp(i64::from(i32::MIN), i64::from(i32::MAX))
-                        as i32,
-                ),
-                _ => (i32::MIN, i32::MAX),
+        let saved = root_key
+            .and_then(|key| context.memory.partial_iterations.get(&key))
+            .filter(|(d, _)| *d == depth)
+            .map(|(_, v)| v.clone());
+        let line = if let Some(saved) = &saved {
+            let primary = &saved[0];
+            let line = Line {
+                score: primary.score,
+                actions: primary.actions.clone(),
+                terminal: false,
             };
-            match context.visit(position, depth, 0, alpha, beta, &result.principal_variation) {
-                Ok(line) => {
-                    let fail = (line.score <= alpha && alpha != i32::MIN)
-                        || (line.score >= beta && beta != i32::MAX);
-                    if fail {
-                        width = (width * 4).max(1);
-                        context.statistics.researches += 1;
-                        continue;
+            context.root_result(depth, 0, 0, &line, ScoreBound::Exact);
+            line
+        } else {
+            loop {
+                let (alpha, beta) = match center {
+                    Some(center) if width > 0 && width < i64::from(u32::MAX) => (
+                        (i64::from(center) - width).clamp(i64::from(i32::MIN), i64::from(i32::MAX))
+                            as i32,
+                        (i64::from(center) + width).clamp(i64::from(i32::MIN), i64::from(i32::MAX))
+                            as i32,
+                    ),
+                    _ => (i32::MIN, i32::MAX),
+                };
+                match context.visit(position, depth, 0, alpha, beta, &result.principal_variation) {
+                    Ok(line) => {
+                        let fail = (line.score <= alpha && alpha != i32::MIN)
+                            || (line.score >= beta && beta != i32::MAX);
+                        if fail {
+                            width = (width * 4).max(1);
+                            context.statistics.researches += 1;
+                            continue;
+                        }
+                        break line;
                     }
-                    break line;
+                    Err(Abort::Stopped(reason)) => {
+                        result.stop_reason = reason;
+                        break 'iterations;
+                    }
+                    Err(Abort::Error(error)) => return Err(error),
                 }
-                Err(Abort::Stopped(reason)) => {
-                    result.stop_reason = reason;
-                    break 'iterations;
-                }
-                Err(Abort::Error(error)) => return Err(error),
             }
         };
-        let mut variations = Vec::new();
-        if !line.actions.is_empty() {
+        let mut variations = saved.unwrap_or_default();
+        if variations.is_empty() && !line.actions.is_empty() {
             variations.push(SearchVariation {
                 score: line.score,
                 actions: line.actions.clone(),
@@ -252,15 +267,21 @@ fn analyze_roots<D: SearchDomain>(
         }
         let mut interrupted = None;
         if depth > 0 && !line.terminal {
-            for _ in 1..options.multi_pv {
-                if let Some(first) = variations.last().and_then(|v| v.actions.first()) {
-                    context.excluded_root.push(first.clone());
-                }
+            context.excluded_root = variations
+                .iter()
+                .filter_map(|v| v.actions.first().cloned())
+                .collect();
+            for _ in variations.len()..options.multi_pv {
                 match context.visit(position, depth, 0, i32::MIN, i32::MAX, &[]) {
-                    Ok(next) => variations.push(SearchVariation {
-                        score: next.score,
-                        actions: next.actions,
-                    }),
+                    Ok(next) => {
+                        if let Some(first) = next.actions.first() {
+                            context.excluded_root.push(first.clone());
+                        }
+                        variations.push(SearchVariation {
+                            score: next.score,
+                            actions: next.actions,
+                        });
+                    }
                     Err(Abort::Stopped(reason)) => {
                         interrupted = Some(reason);
                         break;
@@ -272,8 +293,20 @@ fn analyze_roots<D: SearchDomain>(
         }
         context.excluded_root.clear();
         if let Some(reason) = interrupted {
+            if let Some(key) = root_key {
+                if context.memory.partial_iterations.len() >= 32 {
+                    context.memory.partial_iterations.clear();
+                }
+                context
+                    .memory
+                    .partial_iterations
+                    .insert(key, (depth, variations));
+            }
             result.stop_reason = reason;
             break 'iterations;
+        }
+        if let Some(key) = root_key {
+            context.memory.partial_iterations.remove(&key);
         }
         result.variations = variations;
         result.completed_depth = depth;

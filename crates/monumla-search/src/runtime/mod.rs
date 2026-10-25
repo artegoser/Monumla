@@ -61,7 +61,8 @@ pub struct RuntimeDomain {
     outcomes: Mutex<HashMap<u128, Option<GameOutcome>>>,
     cache: Mutex<HashMap<u128, Vec<RuntimeAction>>>,
     weights: Mutex<HashMap<u128, i32>>,
-    pub information_memory: std::cell::RefCell<crate::InformationMemory<RuntimeAction>>,
+    pub information_memory:
+        std::cell::RefCell<crate::InformationMemory<RuntimeAction, GameTimeline>>,
 }
 impl RuntimeDomain {
     pub fn new(

@@ -2,6 +2,25 @@
 use super::*;
 
 impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
+    fn store_quiet(
+        &mut self,
+        key: Option<u128>,
+        depth: u8,
+        ply: u16,
+        line: &Line<D::Action>,
+        bound: Bound,
+    ) {
+        if let Some(key) = key {
+            self.memory.quiet_table.store(Entry {
+                key,
+                depth: u16::from(depth),
+                score: self.domain.score_to_cache(line.score, ply),
+                bound,
+                line: line.actions.clone(),
+                generation: self.generation,
+            });
+        }
+    }
     pub(super) fn quiet(
         &mut self,
         position: &D::Position,
@@ -53,11 +72,18 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             };
             if cutoff && self.domain.allows_stand_pat(position)? == Some(true) {
                 self.statistics.cutoffs += 1;
-                return Ok(Line {
+                let line = Line {
                     score: evaluation,
                     actions: Vec::new(),
                     terminal: false,
-                });
+                };
+                let bound = if evaluation >= beta {
+                    Bound::Lower
+                } else {
+                    Bound::Upper
+                };
+                self.store_quiet(quiet_key, depth, ply, &line, bound);
+                return Ok(line);
             }
         }
         let Some(mut tactical) = (if depth > 0 {
@@ -65,11 +91,13 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         } else {
             None
         }) else {
-            return Ok(Line {
+            let line = Line {
                 score: evaluation,
                 actions: Vec::new(),
                 terminal: false,
-            });
+            };
+            self.store_quiet(quiet_key, depth, ply, &line, Bound::Exact);
+            return Ok(line);
         };
         let role = self.domain.role(position, self.perspective)?;
         let mut best = if tactical.stand_pat {
@@ -88,7 +116,14 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             }
             if alpha >= beta {
                 self.statistics.cutoffs += 1;
-                return Ok(best.unwrap());
+                let line = best.unwrap();
+                let bound = if line.score >= original_beta {
+                    Bound::Lower
+                } else {
+                    Bound::Upper
+                };
+                self.store_quiet(quiet_key, depth, ply, &line, bound);
+                return Ok(line);
             }
         } else if tactical.actions.is_empty() {
             return Err(Abort::Error(SearchError::NoActions));
@@ -121,22 +156,14 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             }
         }
         let best = best.expect("standing pat or tactical response");
-        if let Some(key) = quiet_key {
-            self.memory.quiet_table.store(Entry {
-                key,
-                depth: u16::from(depth),
-                score: self.domain.score_to_cache(best.score, ply),
-                bound: if best.score <= original_alpha {
-                    Bound::Upper
-                } else if best.score >= original_beta {
-                    Bound::Lower
-                } else {
-                    Bound::Exact
-                },
-                line: best.actions.clone(),
-                generation: self.generation,
-            });
-        }
+        let bound = if best.score <= original_alpha {
+            Bound::Upper
+        } else if best.score >= original_beta {
+            Bound::Lower
+        } else {
+            Bound::Exact
+        };
+        self.store_quiet(quiet_key, depth, ply, &best, bound);
         Ok(best)
     }
 }

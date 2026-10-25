@@ -793,3 +793,45 @@ fn enabling_live_reports_preserves_exact_search_work_and_answer() {
     assert!(reports > 0);
     assert_eq!(plain, live);
 }
+
+#[test]
+fn small_chunks_finish_root_prefixes_and_all_multi_pv_passes() {
+    let mut nodes = vec![node(NodeRole::Maximize, 0, &(1..=8).collect::<Vec<_>>())];
+    nodes.extend((1..=8).map(|i| node(NodeRole::Minimize, i, &[])));
+    let domain = Cached(Tree(nodes));
+    let options = SearchOptions {
+        limits: SearchLimits {
+            max_depth: 1,
+            max_nodes: Some(3),
+        },
+        transposition_entries: 64,
+        multi_pv: 3,
+        report_partial: true,
+        ..Default::default()
+    };
+    let mut memory = SearchMemory::new(64);
+    let mut completed = None;
+    for _ in 0..32 {
+        let result =
+            analyze_cached(&domain, &0, true, options, &mut memory, || false, |_| {}).unwrap();
+        if result.completed_depth == 1 {
+            completed = Some(result);
+            break;
+        }
+        assert!(
+            result.best_action.is_none(),
+            "Never promote an unfinished ranking"
+        );
+    }
+    let result =
+        completed.expect("Each chunk must advance, even when a root pass exceeds the budget");
+    assert_eq!(
+        result
+            .variations
+            .iter()
+            .map(|v| v.actions[0])
+            .collect::<Vec<_>>(),
+        [8, 7, 6]
+    );
+    assert_eq!(result.score, Some(8));
+}

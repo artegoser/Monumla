@@ -1,6 +1,22 @@
 //! Alpha-beta/PVS traversal and move ordering.
 use super::*;
 
+// Only a resumable root shares its ordering. Interior nodes keep their Vec and
+// incur no extra reference-counted allocation.
+enum OrderedActions<A> {
+    Local(Vec<A>),
+    Root(std::sync::Arc<Vec<A>>),
+}
+impl<A> std::ops::Deref for OrderedActions<A> {
+    type Target = [A];
+    fn deref(&self) -> &[A] {
+        match self {
+            Self::Local(v) => v,
+            Self::Root(v) => v,
+        }
+    }
+}
+
 impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
     pub(super) fn tick(&mut self) -> Result<(), Abort<D::Error>> {
         if (self.cancel)() {
@@ -130,38 +146,83 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             }
         }
         let role = self.domain.role(position, self.perspective)?;
-        let mut actions = self.domain.actions(position)?;
-        if ply == 0 {
-            actions.retain(|a| {
-                !self.excluded_root.contains(a)
-                    && self
-                        .allowed_root
-                        .as_ref()
-                        .map_or(true, |allowed| allowed.contains(a))
-            });
-        }
-        if actions.is_empty() {
-            return Err(Abort::Error(SearchError::NoActions));
-        }
-        self.order(
-            position,
-            &mut actions,
-            preferred.first(),
-            cached.as_ref().and_then(|e| e.line.first()),
-            ply,
-        );
         let original_alpha = alpha;
         let original_beta = beta;
-        let forced = actions.len() == 1;
-        let mut best: Option<Line<D::Action>> = None;
-        let root_total = actions.len();
-        let mut root_done = 0;
-        for (index, action) in actions.into_iter().enumerate() {
-            if ply == 0 {
-                self.root_started(depth, root_total, index, &action);
+        let root_key = if ply == 0 {
+            self.domain.position_key(position)
+        } else {
+            None
+        };
+        let resumed = self
+            .memory
+            .frontier
+            .as_ref()
+            .filter(|f| {
+                Some(f.key) == root_key
+                    && f.depth == depth
+                    && f.window == (alpha, beta)
+                    && f.excluded == self.excluded_root
+                    && f.allowed == self.allowed_root
+            })
+            .cloned();
+        let (actions, next, mut best) = if let Some(frontier) = resumed {
+            alpha = frontier.alpha;
+            beta = frontier.beta;
+            let best = frontier.best.map(|v| Line {
+                score: v.score,
+                actions: v.actions,
+                terminal: false,
+            });
+            if let Some(line) = &best {
+                self.root_result(
+                    depth,
+                    frontier.next,
+                    frontier.actions.len(),
+                    line,
+                    ScoreBound::Estimate,
+                );
             }
-            let child = self.domain.play(position, &action)?;
-            let follow = if preferred.first() == Some(&action) {
+            (OrderedActions::Root(frontier.actions), frontier.next, best)
+        } else {
+            let mut actions = self.domain.actions(position)?;
+            if ply == 0 {
+                actions.retain(|a| {
+                    !self.excluded_root.contains(a)
+                        && self
+                            .allowed_root
+                            .as_ref()
+                            .map_or(true, |allowed| allowed.contains(a))
+                });
+            }
+            if actions.is_empty() {
+                return Err(Abort::Error(SearchError::NoActions));
+            }
+            self.order(
+                position,
+                &mut actions,
+                preferred.first(),
+                cached.as_ref().and_then(|e| e.line.first()),
+                ply,
+            );
+            (
+                if root_key.is_some() {
+                    OrderedActions::Root(std::sync::Arc::new(actions))
+                } else {
+                    OrderedActions::Local(actions)
+                },
+                0,
+                None,
+            )
+        };
+        let forced = actions.len() == 1;
+        let root_total = actions.len();
+        let mut root_done = next;
+        for (index, action) in actions.iter().enumerate().skip(next) {
+            if ply == 0 {
+                self.root_started(depth, root_total, index, action);
+            }
+            let child = self.domain.play(position, action)?;
+            let follow = if preferred.first() == Some(action) {
                 &preferred[1..]
             } else {
                 &[]
@@ -184,7 +245,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 && !forced
                 && follow.is_empty()
                 && i64::from(b) - i64::from(a) == 1
-                && self.domain.can_reduce(position, &action);
+                && self.domain.can_reduce(position, action);
             let mut line = self.visit(
                 &child,
                 depth - 1 - u16::from(reduced),
@@ -240,12 +301,35 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 NodeRole::Maximize => alpha = alpha.max(score),
                 NodeRole::Minimize => beta = beta.min(score),
             }
+            if let Some(key) = root_key {
+                self.memory.frontier = Some(crate::memory::RootFrontier {
+                    key,
+                    depth,
+                    window: (original_alpha, original_beta),
+                    excluded: self.excluded_root.clone(),
+                    allowed: self.allowed_root.clone(),
+                    actions: match &actions {
+                        OrderedActions::Root(v) => v.clone(),
+                        OrderedActions::Local(_) => unreachable!(),
+                    },
+                    next: index + 1,
+                    best: best.as_ref().map(|v| SearchVariation {
+                        score: v.score,
+                        actions: v.actions.clone(),
+                    }),
+                    alpha,
+                    beta,
+                });
+            }
             if alpha >= beta {
-                self.record_cutoff(&action, ply, depth);
+                self.record_cutoff(action, ply, depth);
                 break;
             }
         }
         let best = best.expect("nonempty actions");
+        if root_key.is_some() {
+            self.memory.frontier = None;
+        }
         if ply == 0 {
             let bound = if best.score <= original_alpha {
                 ScoreBound::Upper

@@ -15,9 +15,14 @@ pub trait InformationDomain: SearchDomain {
         seed: u64,
     ) -> Result<Self::Position, Self::Error>;
 }
-#[derive(Default)]
-pub struct InformationMemory<A> {
+struct SampleBatch<A, P> {
+    world: P,
+    actions: Vec<A>,
+    values: Vec<i32>,
+}
+pub struct InformationMemory<A, P> {
     root: Option<u128>,
+    batch: Option<SampleBatch<A, P>>,
     samples: u64,
     nodes: u64,
     actions: Vec<A>,
@@ -25,10 +30,16 @@ pub struct InformationMemory<A> {
     batches: Vec<Vec<i64>>,
     partial: Vec<i64>,
 }
-impl<A> InformationMemory<A> {
+impl<A, P> Default for InformationMemory<A, P> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl<A, P> InformationMemory<A, P> {
     pub fn new() -> Self {
         Self {
             root: None,
+            batch: None,
             samples: 0,
             nodes: 0,
             actions: Vec::new(),
@@ -48,8 +59,11 @@ pub struct SampleComparison {
     pub standard_error: f64,
     pub is_best: bool,
 }
-impl<A: PartialEq> InformationMemory<A> {
+impl<A: PartialEq, P> InformationMemory<A, P> {
     pub fn compare(&self, action: &A) -> Option<SampleComparison> {
+        if self.samples == 0 {
+            return None;
+        }
         let played = self.actions.iter().position(|a| a == action)?;
         let best = self
             .sums
@@ -109,7 +123,7 @@ pub fn analyze_information<D: InformationDomain>(
     position: &D::Position,
     viewer: D::Perspective,
     options: SearchOptions,
-    memory: &mut InformationMemory<D::Action>,
+    memory: &mut InformationMemory<D::Action, D::Position>,
     mut cancel: impl FnMut() -> bool,
 ) -> Result<SearchResult<D::Action>, SearchError<D::Error>> {
     let observation = domain
@@ -139,44 +153,63 @@ pub fn analyze_information<D: InformationDomain>(
     let mut stop = StopReason::Cancelled;
     // A per-call work budget allows a persistent worker to resume the same root.
     let initial_nodes = memory.nodes;
-    loop {
-        if cancel() && memory.samples > 0 {
+    'batches: loop {
+        if cancel() {
             break;
         }
         if memory.nodes - initial_nodes >= options.limits.max_nodes.unwrap_or(10_000) {
             stop = StopReason::NodeLimit;
             break;
         }
-        let world = domain
-            .sample(&observation, viewer, memory.samples.wrapping_add(1))
-            .map_err(SearchError::Domain)?;
-        let actions = domain.actions(&world).map_err(SearchError::Domain)?;
-        if actions.is_empty() {
-            return Err(SearchError::NoActions);
-        }
-        if memory.actions.is_empty() {
-            memory.actions = actions.clone();
-            memory.sums = vec![0; actions.len()];
-            memory.partial = vec![0; actions.len()];
-        }
-        // Visibility must not alter the set or identity of available root inputs.
-        if actions.len() != memory.actions.len()
-            || actions.iter().any(|a| !memory.actions.contains(a))
-        {
-            return Err(SearchError::InvalidOptions);
-        }
-        let mut values = Vec::with_capacity(actions.len());
-        let mut interrupted = false;
-        for stored in &memory.actions {
-            if cancel() && memory.samples > 0 {
-                interrupted = true;
-                break;
+        let mut batch = if let Some(batch) = memory.batch.take() {
+            batch
+        } else {
+            let world = domain
+                .sample(&observation, viewer, memory.samples.wrapping_add(1))
+                .map_err(SearchError::Domain)?;
+            let mut actions = domain.actions(&world).map_err(SearchError::Domain)?;
+            if actions.is_empty() {
+                return Err(SearchError::NoActions);
             }
-            let action = actions
-                .iter()
-                .find(|a| *a == stored)
-                .expect("checked root input set");
-            let child = domain.play(&world, action).map_err(SearchError::Domain)?;
+            if memory.actions.is_empty() {
+                memory.actions = actions.clone();
+                memory.sums = vec![0; actions.len()];
+                memory.partial = vec![0; actions.len()];
+            }
+            if actions.len() != memory.actions.len() {
+                return Err(SearchError::InvalidOptions);
+            }
+            if actions != memory.actions {
+                // Match a bijection, not just membership; reject duplicate/missing inputs.
+                let mut ordered = Vec::with_capacity(actions.len());
+                for stored in &memory.actions {
+                    let index = actions
+                        .iter()
+                        .position(|a| a == stored)
+                        .ok_or(SearchError::InvalidOptions)?;
+                    ordered.push(actions.swap_remove(index));
+                }
+                actions = ordered;
+            }
+            SampleBatch {
+                world,
+                actions,
+                values: Vec::with_capacity(memory.actions.len()),
+            }
+        };
+        for action in batch.actions.iter().skip(batch.values.len()) {
+            let limited =
+                memory.nodes - initial_nodes >= options.limits.max_nodes.unwrap_or(10_000);
+            if cancel() || limited {
+                if limited {
+                    stop = StopReason::NodeLimit;
+                }
+                memory.batch = Some(batch);
+                break 'batches;
+            }
+            let child = domain
+                .play(&batch.world, action)
+                .map_err(SearchError::Domain)?;
             let visible = domain
                 .observe(&child, viewer)
                 .map_err(SearchError::Domain)?;
@@ -191,11 +224,9 @@ pub fn analyze_information<D: InformationDomain>(
                     .map_err(SearchError::Domain)?
             };
             memory.nodes += 1;
-            values.push(value);
+            batch.values.push(value);
         }
-        if interrupted {
-            break;
-        }
+        let values = batch.values;
         for ((sum, partial), value) in memory.sums.iter_mut().zip(&mut memory.partial).zip(values) {
             *sum += i64::from(value);
             *partial += i64::from(value);
@@ -219,6 +250,7 @@ pub fn analyze_information<D: InformationDomain>(
         .iter()
         .cloned()
         .zip(&memory.sums)
+        .filter(|_| memory.samples > 0)
         .map(|(action, sum)| SearchVariation {
             score: (sum / memory.samples.max(1) as i64) as i32,
             actions: vec![action],
@@ -242,3 +274,7 @@ pub fn analyze_information<D: InformationDomain>(
         variations: ranked,
     })
 }
+
+#[cfg(test)]
+#[path = "information_tests.rs"]
+mod tests;
