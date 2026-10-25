@@ -252,3 +252,60 @@ fn a_losing_declaration_is_not_a_quiet_witness_for_forced_captures() {
     assert!(!domain.quiescence(&position).unwrap().unwrap().stand_pat);
     assert_eq!(domain.allows_stand_pat(&position).unwrap(), Some(false));
 }
+
+// Two routes can record identical metadata while producing different states;
+// aliases can also produce the same state. Deduplicate only the latter.
+struct Aliases;
+impl InteractionRules for Aliases {
+    fn choices(&self, _: &TurnSession, _: &StateMap) -> Result<Vec<ChoiceSpec>, InteractionError> {
+        Ok(["one", "alias", "two"]
+            .into_iter()
+            .map(ChoiceSpec::option)
+            .collect())
+    }
+    fn apply_choice(
+        &self,
+        turn: &mut TurnSession,
+        _: &mut StateMap,
+        choice: &Choice,
+    ) -> Result<InteractionFlow, InteractionError> {
+        let monumla_core::ChoiceKind::SelectOption { key } = &choice.kind else {
+            unreachable!()
+        };
+        let value = if key == "two" { 2_u64 } else { 1 };
+        turn.apply_step(RecordedAction::new("same-metadata"), |state| {
+            state.ruleset_state.insert("value", value);
+            Ok(())
+        })?;
+        Ok(InteractionFlow::FinishTurn)
+    }
+}
+#[test]
+fn duplicate_routes_preserve_distinct_states_even_with_identical_recorded_metadata() {
+    let mut state = GameState::new(1, 1).unwrap();
+    state
+        .add_player(PlayerState::new(PlayerId::new(1)))
+        .unwrap();
+    state.set_active_players(vec![PlayerId::new(1)]).unwrap();
+    let root = GameTimeline::new(state).unwrap();
+    let domain = RuntimeDomain::new(RuleRegistry::new(), |_| Ok(Rc::new(Aliases)));
+    let actions = domain.actions(&root).unwrap();
+    assert_eq!(actions.len(), 2);
+    let mut values = actions
+        .iter()
+        .map(|action| {
+            domain
+                .play(&root, action)
+                .unwrap()
+                .current()
+                .ruleset_state
+                .get("value")
+                .unwrap()
+                .as_u64()
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    values.sort();
+    assert_eq!(values, [1, 2]);
+    assert!(!root.current().ruleset_state.contains_key("value"));
+}

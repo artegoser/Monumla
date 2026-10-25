@@ -1,6 +1,19 @@
 //! Enumerate and deduplicate complete ordinary interaction turns.
 use super::*;
 
+struct Representatives {
+    first: Arc<TurnSession>,
+    alternatives: Vec<Arc<TurnSession>>,
+}
+fn same_outcome(a: &TurnSession, b: &TurnSession) -> bool {
+    a.working == b.working
+        && a.steps.len() == b.steps.len()
+        && a.steps
+            .iter()
+            .zip(&b.steps)
+            .all(|(x, y)| x.action.kind == y.action.kind && x.action.data == y.action.data)
+}
+
 impl RuntimeDomain {
     pub(super) fn enumerate(
         &self,
@@ -10,7 +23,7 @@ impl RuntimeDomain {
         let key = position.semantic_digest();
         let mut stack = vec![(self.driver(position)?, Vec::new())];
         let mut visited = HashSet::new();
-        let mut outcomes = HashSet::new();
+        let mut outcomes: HashMap<u128, Representatives> = HashMap::new();
         while let Some((driver, path)) = stack.pop() {
             if path.len() > 128 {
                 return Err(InteractionError::RuleViolation(
@@ -46,14 +59,33 @@ impl RuntimeDomain {
                         .iter()
                         .map(|step| (&step.action.kind, &step.action.data))
                         .collect();
-                    let outcome_key = fingerprint(&(turn.working.semantic_digest(), semantic));
-                    if outcomes.insert(outcome_key)
-                        && !finish(RuntimeAction {
-                            input: TurnInput { choices },
-                            position_key: Some(key),
-                            turn: Some(Arc::new(turn)),
-                        })?
-                    {
+                    // Most inputs have distinct recorded actions. Do not hash
+                    // an entire speculative board just to discover that fact.
+                    let action_key = fingerprint(&semantic);
+                    if outcomes.get(&action_key).is_some_and(|seen| {
+                        std::iter::once(&seen.first)
+                            .chain(&seen.alternatives)
+                            .any(|old| same_outcome(old, &turn))
+                    }) {
+                        continue;
+                    }
+                    let turn = Arc::new(turn);
+                    match outcomes.entry(action_key) {
+                        std::collections::hash_map::Entry::Vacant(entry) => {
+                            entry.insert(Representatives {
+                                first: turn.clone(),
+                                alternatives: Vec::new(),
+                            });
+                        }
+                        std::collections::hash_map::Entry::Occupied(mut entry) => {
+                            entry.get_mut().alternatives.push(turn.clone());
+                        }
+                    }
+                    if !finish(RuntimeAction {
+                        input: TurnInput { choices },
+                        position_key: Some(key),
+                        turn: Some(turn),
+                    })? {
                         return Ok(());
                     }
                 } else {
