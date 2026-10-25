@@ -1,0 +1,650 @@
+{
+  "schema": 1,
+  "measured_at": "2026-10-25T22:17:27.799613+00:00",
+  "revisions": {
+    "baseline": "44fa55c",
+    "candidate": "07a2c49"
+  },
+  "native_binary_sha256": {
+    "baseline": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+    "candidate": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377"
+  },
+  "wasm_binary_sha256": {
+    "baseline": "a9fae43c61f9c34e6559402ac15cfaa171a819063cd972e3575ed0ab99d19a8e",
+    "candidate": "25856ab0ba33c10561c124973873a02c7d04c4e9b323ae74a031e6ee0fbb0be5"
+  },
+  "node": "24.13.1",
+  "cpu": "AMD Ryzen 7 5800X 8-Core Processor",
+  "repetitions": 5,
+  "method": "One warmup, 5 alternating repetitions, pinned CPUs; same depth, nodes, score, PV, lines and stop reason required within each runtime. Observed ranges are not confidence intervals. Native and WASM timings are separate measurements.",
+  "results": [
+    {
+      "runtime": "native",
+      "case": {
+        "id": "chess-italian",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/italian-queen-g4.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 742.4000989999513,
+        "min_ms": 734.1603800000485,
+        "max_ms": 840.8202589998837
+      },
+      "candidate": {
+        "median_ms": 658.3679529999245,
+        "min_ms": 634.092924000015,
+        "max_ms": 681.3373340000908
+      },
+      "speedup": 1.1276370540472471,
+      "verified_gain": true
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "chess-knights",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/central-knights.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 736.3515540000662,
+        "min_ms": 631.5420209998592,
+        "max_ms": 857.0284669999637
+      },
+      "candidate": {
+        "median_ms": 580.2638919999481,
+        "min_ms": 551.9095540003036,
+        "max_ms": 880.0719580003715
+      },
+      "speedup": 1.2689942699383612,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "chess-queenside",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/queenside-pressure.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 488.49290599991946,
+        "min_ms": 466.62972100011757,
+        "max_ms": 523.012318000383
+      },
+      "candidate": {
+        "median_ms": 449.2635659998996,
+        "min_ms": 405.89005699985137,
+        "max_ms": 479.15958899966427
+      },
+      "speedup": 1.0873192107459446,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "checkers-russian",
+        "ruleset": "checkers",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 47.54017900040708,
+        "min_ms": 47.28831900001751,
+        "max_ms": 50.39931200008141
+      },
+      "candidate": {
+        "median_ms": 41.841824000130146,
+        "min_ms": 41.50357399976201,
+        "max_ms": 48.94514600027833
+      },
+      "speedup": 1.136188016092683,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "checkers-international",
+        "ruleset": "checkers-international",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 114.30504899999505,
+        "min_ms": 109.65454999995927,
+        "max_ms": 147.95281299984708
+      },
+      "candidate": {
+        "median_ms": 134.3285980001383,
+        "min_ms": 99.33844700026384,
+        "max_ms": 150.07131799984563
+      },
+      "speedup": 0.8509360679836573,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "go-9",
+        "ruleset": "go:9",
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 152.71774099983304,
+        "min_ms": 135.07218599988846,
+        "max_ms": 161.026960000072
+      },
+      "candidate": {
+        "median_ms": 94.064200000048,
+        "min_ms": 80.12888599978396,
+        "max_ms": 126.08056799990663
+      },
+      "speedup": 1.6235479704261038,
+      "verified_gain": true
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "go-19",
+        "ruleset": "go:19",
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 5123.9076889996795,
+        "min_ms": 4774.169739000172,
+        "max_ms": 5541.171235999627
+      },
+      "candidate": {
+        "median_ms": 2185.622002999935,
+        "min_ms": 2063.73884300001,
+        "max_ms": 2666.6914580000594
+      },
+      "speedup": 2.344370473012589,
+      "verified_gain": true
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "go-19-midgame",
+        "ruleset": "go:19",
+        "opening_plies": 35,
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 5744.547107000017,
+        "min_ms": 5211.9038040000305,
+        "max_ms": 7862.276772999849
+      },
+      "candidate": {
+        "median_ms": 2818.610394999723,
+        "min_ms": 2584.6612730001652,
+        "max_ms": 3709.8958700003095
+      },
+      "speedup": 2.038077741141865,
+      "verified_gain": true
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "battleship-setup",
+        "ruleset": "battleship",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 172.50087200000053,
+        "min_ms": 170.67010700020546,
+        "max_ms": 183.9337940000405
+      },
+      "candidate": {
+        "median_ms": 172.8567509999266,
+        "min_ms": 170.50101699987863,
+        "max_ms": 244.0843610002048
+      },
+      "speedup": 0.997941191200995,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "battleship-ready",
+        "ruleset": "battleship",
+        "prelude": "benchmarks/positions/battleship/ready.json",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 725.0584690000323,
+        "min_ms": 718.1833770000594,
+        "max_ms": 907.6002560000234
+      },
+      "candidate": {
+        "median_ms": 629.0202630002568,
+        "min_ms": 626.5870890001679,
+        "max_ms": 702.1240680001029
+      },
+      "speedup": 1.1526790338067954,
+      "verified_gain": true
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "battleship-damaged",
+        "ruleset": "battleship",
+        "prelude": "benchmarks/positions/battleship/twelve-shots.json",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 938.8831659998687,
+        "min_ms": 832.1182380000209,
+        "max_ms": 1092.2475880001912
+      },
+      "candidate": {
+        "median_ms": 753.2369279997511,
+        "min_ms": 650.0422499998422,
+        "max_ms": 990.8171950000906
+      },
+      "speedup": 1.2464645997815165,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "tictactoe-3",
+        "ruleset": "tictactoe",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 5.460316000153398,
+        "min_ms": 4.02754000015193,
+        "max_ms": 8.803208000244922
+      },
+      "candidate": {
+        "median_ms": 3.491431000384182,
+        "min_ms": 3.320862000236957,
+        "max_ms": 4.73686799978168
+      },
+      "speedup": 1.5639192066383578,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 46.46797199984576,
+        "min_ms": 40.084888999899704,
+        "max_ms": 64.56143600007636
+      },
+      "candidate": {
+        "median_ms": 33.67398399996091,
+        "min_ms": 25.35404499985816,
+        "max_ms": 44.90284599978622
+      },
+      "speedup": 1.3799368675800197,
+      "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "tictactoe-rectangular",
+        "ruleset": "tictactoe:7x5:5",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 108.76672399990639,
+        "min_ms": 105.29138299989427,
+        "max_ms": 118.9115980000679
+      },
+      "candidate": {
+        "median_ms": 73.4059139999772,
+        "min_ms": 71.7974479998702,
+        "max_ms": 88.03369699990071
+      },
+      "speedup": 1.4817160917026408,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "chess-italian",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/italian-queen-g4.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 893.3919720000004,
+        "min_ms": 861.5205229999992,
+        "max_ms": 928.7714329999999
+      },
+      "candidate": {
+        "median_ms": 820.1633179999999,
+        "min_ms": 742.9035139999996,
+        "max_ms": 839.6342589999999
+      },
+      "speedup": 1.089285453753981,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "chess-knights",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/central-knights.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 790.6979920000012,
+        "min_ms": 762.6129849999998,
+        "max_ms": 893.279423
+      },
+      "candidate": {
+        "median_ms": 651.6120360000004,
+        "min_ms": 629.3587619999998,
+        "max_ms": 702.631206
+      },
+      "speedup": 1.2134490284338466,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "chess-queenside",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/queenside-pressure.pgn",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 501.86649600000237,
+        "min_ms": 491.1557130000001,
+        "max_ms": 507.8950999999979
+      },
+      "candidate": {
+        "median_ms": 428.27376300000105,
+        "min_ms": 423.8889240000026,
+        "max_ms": 444.5671719999991
+      },
+      "speedup": 1.1718357260190164,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "checkers-russian",
+        "ruleset": "checkers",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 58.79924099999698,
+        "min_ms": 57.644742999997106,
+        "max_ms": 65.3803540000008
+      },
+      "candidate": {
+        "median_ms": 50.91859100000147,
+        "min_ms": 50.158102000001236,
+        "max_ms": 56.21417699999802
+      },
+      "speedup": 1.1547696007533925,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "checkers-international",
+        "ruleset": "checkers-international",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 127.94047500000306,
+        "min_ms": 126.6281590000035,
+        "max_ms": 131.71200599999793
+      },
+      "candidate": {
+        "median_ms": 112.92029299999922,
+        "min_ms": 109.76082099999985,
+        "max_ms": 114.19977999999901
+      },
+      "speedup": 1.1330157901733744,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "go-9",
+        "ruleset": "go:9",
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 142.69460700000127,
+        "min_ms": 131.91821499999787,
+        "max_ms": 149.69826000000103
+      },
+      "candidate": {
+        "median_ms": 86.42633999999816,
+        "min_ms": 85.21903399999792,
+        "max_ms": 92.23182599999927
+      },
+      "speedup": 1.6510546090463196,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "go-19",
+        "ruleset": "go:19",
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 5440.104490000005,
+        "min_ms": 5286.1546610000005,
+        "max_ms": 6106.879067000002
+      },
+      "candidate": {
+        "median_ms": 2532.4697319999977,
+        "min_ms": 2466.4029489999957,
+        "max_ms": 3767.380096000008
+      },
+      "speedup": 2.1481419585235186,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "go-19-midgame",
+        "ruleset": "go:19",
+        "opening_plies": 35,
+        "depth": 2,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 6732.1441290000075,
+        "min_ms": 6613.029731999995,
+        "max_ms": 7046.97113000002
+      },
+      "candidate": {
+        "median_ms": 3607.151622999998,
+        "min_ms": 3440.8354450000043,
+        "max_ms": 4038.738057999988
+      },
+      "speedup": 1.8663324508108738,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "battleship-setup",
+        "ruleset": "battleship",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 278.4409929999965,
+        "min_ms": 247.03197300000465,
+        "max_ms": 284.9424160000053
+      },
+      "candidate": {
+        "median_ms": 278.740363000019,
+        "min_ms": 245.8498870000185,
+        "max_ms": 309.70646399998805
+      },
+      "speedup": 0.9989259897748557,
+      "verified_gain": false
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "battleship-ready",
+        "ruleset": "battleship",
+        "prelude": "benchmarks/positions/battleship/ready.json",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 1043.644570000004,
+        "min_ms": 975.5797029999958,
+        "max_ms": 1108.809425000014
+      },
+      "candidate": {
+        "median_ms": 802.3449439999822,
+        "min_ms": 787.5374109999975,
+        "max_ms": 832.34928699999
+      },
+      "speedup": 1.300743000631443,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "battleship-damaged",
+        "ruleset": "battleship",
+        "prelude": "benchmarks/positions/battleship/twelve-shots.json",
+        "depth": 1,
+        "nodes": 10000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 1102.5386909999943,
+        "min_ms": 1095.9721480000007,
+        "max_ms": 1145.0820729999978
+      },
+      "candidate": {
+        "median_ms": 942.6420070000167,
+        "min_ms": 930.4781779999903,
+        "max_ms": 980.6368099999963
+      },
+      "speedup": 1.1696260964529397,
+      "verified_gain": true
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "tictactoe-3",
+        "ruleset": "tictactoe",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 3.3795820000232197,
+        "min_ms": 3.223792000004323,
+        "max_ms": 9.292276000021957
+      },
+      "candidate": {
+        "median_ms": 3.968029999989085,
+        "min_ms": 2.7037940000009257,
+        "max_ms": 6.301123999990523
+      },
+      "speedup": 0.8517027341105072,
+      "verified_gain": false
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 39.69229899998754,
+        "min_ms": 39.14546999998856,
+        "max_ms": 47.56814899999881
+      },
+      "candidate": {
+        "median_ms": 30.49173300000257,
+        "min_ms": 30.129022999986773,
+        "max_ms": 44.51257699998678
+      },
+      "speedup": 1.3017396879339131,
+      "verified_gain": false
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "tictactoe-rectangular",
+        "ruleset": "tictactoe:7x5:5",
+        "depth": 3,
+        "nodes": 100000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 142.3361889999942,
+        "min_ms": 120.59524399999646,
+        "max_ms": 149.44387099999585
+      },
+      "candidate": {
+        "median_ms": 86.70406899999944,
+        "min_ms": 84.72319499999867,
+        "max_ms": 115.51949599999352
+      },
+      "speedup": 1.6416321706884958,
+      "verified_gain": true
+    }
+  ]
+}

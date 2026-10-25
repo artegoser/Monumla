@@ -92,7 +92,7 @@ def plot(history, path):
     from matplotlib.figure import Figure
 
     series = list(history.get("series", {"single": history}).values())
-    columns = min(2, len(series))
+    columns = min(3, len(series))
     fig = Figure(
         figsize=(6.4 * columns, 4.5 * math.ceil(len(series) / columns)),
         layout="constrained",
@@ -140,7 +140,7 @@ def plot(history, path):
         ax.set_ylim(0, max(hi) * 1.2)
         ax.set_ylabel("Fixed-depth throughput / suite baseline")
         ax.set_title(
-            f"{entry['runtime']} · {entry['suite']['ruleset']} · depth {entry['suite']['depth']}",
+            f"{entry['runtime']} · {entry['suite'].get('id', entry['suite']['ruleset'])} · depth {entry['suite']['depth']}",
             loc="left",
             fontsize=11,
             pad=18,

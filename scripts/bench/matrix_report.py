@@ -2,6 +2,7 @@
 """Publish complete matrix coverage, including noisy or slower cases."""
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,7 +39,7 @@ def compact(native, wasm):
             )
             if source.get("error") or source.get("returncode"):
                 row["error"] = source.get(
-                    "error", f"native process exit {source['returncode']}"
+                    "error", f"native process exit {source.get('returncode')}"
                 )
             row["verified_gain"] = (
                 not row.get("error")
@@ -89,9 +90,8 @@ def plot(report, destination):
                 capsize=3,
                 fmt="none",
             )
-            ax.text(
-                max(high, value) + 0.04, index, f"{value:.2f}×", va="center", fontsize=9
-            )
+            label = f"{value:.3f}×" if abs(value - 1) < 0.01 else f"{value:.2f}×"
+            ax.text(max(high, value) + 0.04, index, label, va="center", fontsize=9)
         ax.set_yticks(
             range(len(rows)),
             [f"{r['case']['id']} · d{r['case']['depth']}" for r in rows],
@@ -130,6 +130,52 @@ def plot(report, destination):
     fig.savefig(destination, dpi=150)
 
 
+def record_gains(database, report):
+    """Append only clear, fixed-work gains; never erase a slower matrix row."""
+    for row in report["results"]:
+        if not row["verified_gain"]:
+            continue
+        runtime, case = row["runtime"], row["case"]
+        name = f"{runtime}-{case['id']}"
+        fingerprints = {
+            key: hashlib.sha256(Path(case[key]).read_bytes()).hexdigest()
+            for key in ["pgn", "prelude"]
+            if key in case
+        }
+        suite = dict(**case, lines=1, seed=1, fixture_sha256=fingerprints)
+        binaries = report[f"{runtime}_binary_sha256"]
+        history = database["series"].get(name)
+        if history and (
+            history["suite"] != suite
+            or history["points"][-1]["binary_sha256"] != binaries["baseline"]
+        ):
+            raise ValueError(
+                f"{name}: compare against the last accepted binary with the same workload"
+            )
+
+        def point(side, relative):
+            return dict(
+                revision=report["revisions"][side],
+                binary_sha256=binaries[side],
+                measured_at=report["measured_at"],
+                timings={case["id"]: row[side]},
+                relative_throughput=relative,
+            )
+
+        if not history:
+            history = dict(
+                runtime=runtime, suite=suite, points=[point("baseline", 1.0)]
+            )
+            database["series"][name] = history
+        history["points"].append(
+            point(
+                "candidate",
+                history["points"][-1]["relative_throughput"] * row["speedup"],
+            )
+        )
+    return database
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--native", type=Path, required=True)
@@ -140,12 +186,22 @@ def main():
     parser.add_argument(
         "--image", type=Path, default=Path("benchmarks/performance.png")
     )
+    parser.add_argument("--journal", type=Path)
     args = parser.parse_args()
     report = compact(
         json.loads(args.native.read_text()), json.loads(args.wasm.read_text())
     )
     args.out.write_text(json.dumps(report, indent=2) + "\n")
     plot(report, args.image)
+    if args.journal:
+        database = (
+            json.loads(args.journal.read_text())
+            if args.journal.exists()
+            else dict(schema=2, series={})
+        )
+        args.journal.write_text(
+            json.dumps(record_gains(database, report), indent=2) + "\n"
+        )
 
 
 if __name__ == "__main__":
