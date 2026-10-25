@@ -231,7 +231,7 @@ pub struct InteractionDriver<R> {
     turn: TurnSession,
     draft: StateMap,
     issuer: ChoiceIssuer,
-    current: Interaction,
+    current: std::sync::Arc<Interaction>,
     finished: bool,
 }
 
@@ -242,7 +242,7 @@ impl<R: InteractionRules> InteractionDriver<R> {
             turn,
             draft: StateMap::new(),
             issuer: ChoiceIssuer::default(),
-            current: Interaction::default(),
+            current: std::sync::Arc::default(),
             finished: false,
         };
         driver.refresh()?;
@@ -279,7 +279,7 @@ impl<R: InteractionRules> InteractionDriver<R> {
             self.turn.input = crate::TurnInput::default();
         }
         self.refresh()?;
-        Ok(self.current.clone())
+        Ok((*self.current).clone())
     }
 
     pub fn choose(&mut self, id: ChoiceId) -> Result<InteractionUpdate, InteractionError> {
@@ -319,11 +319,11 @@ impl<R: InteractionRules> InteractionDriver<R> {
         match flow {
             InteractionFlow::Continue => {
                 self.refresh()?;
-                Ok(InteractionUpdate::Continued(self.current.clone()))
+                Ok(InteractionUpdate::Continued((*self.current).clone()))
             }
             InteractionFlow::FinishTurn => {
                 self.finished = true;
-                self.current = self.issuer.issue(Vec::new());
+                self.current = std::sync::Arc::new(self.issuer.issue(Vec::new()));
                 Ok(InteractionUpdate::Finished)
             }
         }
@@ -339,7 +339,7 @@ impl<R: InteractionRules> InteractionDriver<R> {
 
     fn refresh(&mut self) -> Result<(), InteractionError> {
         let choices = self.rules.choices(&self.turn, &self.draft)?;
-        self.current = self.issuer.issue(choices);
+        self.current = std::sync::Arc::new(self.issuer.issue(choices));
         Ok(())
     }
 }
