@@ -360,7 +360,7 @@
 			aria-label="Best continuations"
 			style:grid-template-rows={`repeat(${lineCount}, 42px)`}
 		>
-			{#each Array.from({ length: lineCount }) as _, index}
+			{#each Array.from({ length: lineCount }, (_, index) => index) as index}
 				{@const line = displayedLines[index]}
 				{#if line}
 					<button
