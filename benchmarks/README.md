@@ -128,3 +128,21 @@ python3 scripts/bench/league.py target/monumla-bench/chess-budget-match \
 ```
 
 The same runner supports `battleship`, `tictactoe`, `tictactoe:5x5:4`, `tictactoe:7x5:5`, and `go:SIZE`, in addition to chess/checkers. Entrants include both binary identity and search budget, so a single binary at 1 and 10 seconds is two entrants. Every ruleset/size has a separate pool. Online Elo starts at an explicit convention (1000, K=20 per game); it is a useful internal tracking system, not an externally calibrated rating. Import complete paired matches in chronological order. Unfinished pairs are excluded and duplicate imports rejected. Pair-based uncertainty in `strength.py` remains the evidence for strength comparisons; the online rating does not replace it.
+
+## Strength statistics use the same evidence rules
+
+```sh
+python3 scripts/bench/strength_history.py \
+  target/monumla-bench/chess-budget-match \
+  --out benchmarks/latest-strength.json --image benchmarks/strength.png \
+  --journal benchmarks/strength-history.json \
+  --history-image benchmarks/strength-history.png --league benchmarks/elo-pools.json
+```
+
+Pass all desired match directories in chronological order. The complete strength report keeps W/D/L, complete and excluded pairs, pentanomial counts, relative Elo estimates and conservative 95% bounds, predeclared schedule size, actual binary SHA-256, budgets, and source revisions when supplied. `strength.py match --baseline-revision ... --candidate-revision ...` labels the **frozen binaries'** verified source revisions separately from the runner's revision; unknown source provenance stays unknown. New matches also record their start time. The chart includes every pool declared by `cases.json`; pools without completed comparisons explicitly remain unrated. Older pilot data is identified by binary hash because the original manifests do not establish clean source provenance or timestamps. These pilots must not be presented as a same-revision all-game strength matrix.
+
+The full report/graph retains losses, draws, incomplete schedules and inconclusive samples. The improvement journal/graph accepts a match only after its full predeclared paired schedule finishes without excluded pairs **and** its conservative lower expected-score bound exceeds 0.5. Reimporting the same supported result cannot add another milestone. No finite estimate is fabricated for all wins/losses, and no zero is inserted for an unrated game. Do not aggregate different games, budgets, board sizes or opponents into one engine Elo. Internal online pool ratings remain separate from match-based evidence. For a revision-to-revision matrix, freeze the same two revisions, hold budgets/opening protocol fixed and run every pool; do not substitute the historical asymmetric-budget pilots for that experiment.
+
+These are fixed-N per-comparison intervals, not an SPRT or a family-wise guarantee across repeated experiments. Predeclare the sample and acceptance criteria before a match; do not stop when the results look favorable. Elo uncertainty and incomplete coverage are evidence limitations, not quantities that can be repaired by plotting a smoother line.
+
+Within a strength-history series, keep the pool, budgets, opening protocol, move cap and platform fixed. A later milestone must beat the last accepted entrant, identified by binary **and** settings; reusing an older baseline is rejected. An asymmetric-budget comparison is evidence for those two entrants, not a cumulative release-strength curve. Changing the protocol starts a separate series.

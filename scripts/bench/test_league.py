@@ -53,6 +53,16 @@ class LeagueTests(unittest.TestCase):
                 self.assertEqual(pool["matches"][0]["excluded_pairs"], 1)
             with self.assertRaises(ValueError):
                 league([matches[0], matches[0]])
+            (matches[0] / "games.tsv").write_text(
+                "game\tpair\tside\tscore\n0\t0\t1\tNA\n1\t0\t2\tNA\n"
+            )
+            unrated = league([matches[0]])["pools"]["chess"]["entrants"]
+            self.assertTrue(
+                all(
+                    e["rating"] is None and e["rating_status"] == "unrated"
+                    for e in unrated.values()
+                )
+            )
 
 
 if __name__ == "__main__":

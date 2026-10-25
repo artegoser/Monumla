@@ -1,0 +1,371 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-25T22:21:53.938895+00:00",
+  "method": "Relative Elo from complete swapped-side pairs, conservative fixed-N 95% bounds. Missing pools are unrated. Gain history requires the full predeclared schedule and lower expected-score bound > 0.5. Not an absolute FIDE/Lichess rating or a sequential test.",
+  "pools": {
+    "chess": [
+      {
+        "match_sha256": "3f626b7a19102cbe3fd4a48d7901945f6b0a09b4fa28a0344c7a4bc19d013576",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "31f708e7a8f9059d",
+            "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 1000
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "35b03e382870bcdf",
+            "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 10000
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 300,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 8,
+        "plan_complete": true,
+        "runner_revision": "49920fb7dc5dc3302c343db5a0c5abc7f1e865d4",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          8,
+          0,
+          0
+        ],
+        "complete_pairs": 4,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          0,
+          0,
+          4
+        ],
+        "score_interval_95": [
+          0.3976353643835253,
+          1.0
+        ],
+        "delta_elo": {
+          "point": "+inf",
+          "low": -72.1,
+          "high": "+inf"
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "checkers": [
+      {
+        "match_sha256": "5cf23c69bdff59ce81f39a1ba5116aa13e40d74e18e850202ba9e764d86ba997",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "6b862a750523a7fb",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 50
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "2c4cf6c22219e421",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 250
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 240,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 2,
+        "plan_complete": true,
+        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          1,
+          0,
+          1
+        ],
+        "complete_pairs": 1,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.000156274421694876,
+          0.999843725578305
+        ],
+        "delta_elo": {
+          "point": 0.0,
+          "low": -1522.4,
+          "high": 1522.4
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "checkers-international": [
+      {
+        "match_sha256": "12f1705231036e50627375b74f733a611ebea9e3f49d1de246bcbe1757d724c0",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "6b862a750523a7fb",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 50
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "2c4cf6c22219e421",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 250
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 240,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 2,
+        "plan_complete": true,
+        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          1,
+          1,
+          0
+        ],
+        "complete_pairs": 1,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "score_interval_95": [
+          0.0034577695223631435,
+          0.9999999588012645
+        ],
+        "delta_elo": {
+          "point": 190.8,
+          "low": -983.9,
+          "high": 2954.0
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "go:9": [],
+    "go:19": [],
+    "battleship": [
+      {
+        "match_sha256": "fafd3ccf5fda33898603b55ab8659361858ba03a6ac91297e9ac607e26861026",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "6b862a750523a7fb",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 50
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "2c4cf6c22219e421",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 250
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 240,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 2,
+        "plan_complete": true,
+        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          0,
+          0,
+          2
+        ],
+        "complete_pairs": 1,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.0,
+          0.9750000000000001
+        ],
+        "delta_elo": {
+          "point": "-inf",
+          "low": "-inf",
+          "high": 636.4
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "tictactoe:3x3:3": [
+      {
+        "match_sha256": "e62a0f84fd293365d447bcd21da656410d3cc053f888ce50e8b2146bcc47bcab",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "6b862a750523a7fb",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 50
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "2c4cf6c22219e421",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 250
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 240,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 2,
+        "plan_complete": true,
+        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          1,
+          0,
+          1
+        ],
+        "complete_pairs": 1,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.000156274421694876,
+          0.999843725578305
+        ],
+        "delta_elo": {
+          "point": 0.0,
+          "low": -1522.4,
+          "high": 1522.4
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "tictactoe:5x5:4": [],
+    "tictactoe:7x5:5": [],
+    "go:5": [
+      {
+        "match_sha256": "431863659a4c7384ccd50538d8e40cd7c71d7c5c2df9d4264710ae7a7f490daf",
+        "measured_at": null,
+        "identities": {
+          "baseline": {
+            "id": "6b862a750523a7fb",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 50
+            },
+            "revision": null
+          },
+          "candidate": {
+            "id": "2c4cf6c22219e421",
+            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 250
+            },
+            "revision": null
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 240,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 2,
+        "plan_complete": false,
+        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
+        "runner_dirty": true,
+        "supported_gain": false,
+        "wdl": [
+          0,
+          0,
+          0
+        ],
+        "complete_pairs": 0,
+        "excluded_pairs": 1,
+        "pentanomial": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.0,
+          1.0
+        ],
+        "delta_elo": {
+          "point": null,
+          "low": "-inf",
+          "high": "+inf"
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ]
+  }
+}

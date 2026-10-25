@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import select
@@ -181,6 +182,7 @@ def match(args):
         **vars(args),
         "runner_revision": revision,
         "runner_dirty": bool(dirty),
+        "started_at": datetime.now(timezone.utc).isoformat(),
         "baseline_sha256": sha256(args.baseline),
         "candidate_sha256": sha256(args.candidate),
         "baseline_settings": settings_for(args, False),
@@ -329,6 +331,10 @@ def main():
     run.add_argument("--jobs", type=int, default=1)
     run.add_argument("--cpus", help="Comma-separated allowed CPUs, one per job")
     for side in ["baseline", "candidate"]:
+        run.add_argument(
+            f"--{side}-revision",
+            help="Source revision of the frozen binary, if verified; distinct from runner_revision",
+        )
         run.add_argument(f"--{side}-time-ms", type=int)
         run.add_argument(f"--{side}-depth", type=int)
         run.add_argument(f"--{side}-nodes", type=int)

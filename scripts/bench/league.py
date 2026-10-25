@@ -95,6 +95,11 @@ def league(directories, initial=1000, k=20):
                 comparison=summarize(rows),
             )
         )
+    for pool in pools.values():
+        for entry in pool["entrants"].values():
+            entry["rating_status"] = "provisional" if entry["games"] else "unrated"
+            if not entry["games"]:
+                entry["rating"] = None
     return dict(
         schema=1,
         method="paired online Elo; ratings initialized by convention; K per game",
@@ -125,10 +130,18 @@ def main():
     for ruleset, pool in result["pools"].items():
         print(ruleset)
         for identity, entry in sorted(
-            pool["entrants"].items(), key=lambda item: -item[1]["rating"]
+            pool["entrants"].items(),
+            key=lambda item: -(
+                item[1]["rating"] if item[1]["rating"] is not None else -math.inf
+            ),
         ):
+            label = (
+                f"{entry['rating']:.1f} provisional"
+                if entry["rating"] is not None
+                else "unrated"
+            )
             print(
-                f"  {identity} {entry['rating']:.1f} provisional · {entry['games']} games · {entry['wdl']} W/D/L · {entry['settings']}"
+                f"  {identity} {label} · {entry['games']} games · {entry['wdl']} W/D/L · {entry['settings']}"
             )
 
 

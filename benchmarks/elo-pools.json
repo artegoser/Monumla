@@ -1,0 +1,447 @@
+{
+  "schema": 1,
+  "method": "paired online Elo; ratings initialized by convention; K per game",
+  "initial_rating": 1000,
+  "k_per_game": 20,
+  "calibration": "Internal pool only. Not FIDE, Lichess or transferable across games. Provisional ratings depend on opponents, match order and initialization.",
+  "pools": {
+    "chess": {
+      "entrants": {
+        "31f708e7a8f9059d": {
+          "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 1000
+          },
+          "rating": 932.5315796767361,
+          "games": 8,
+          "wdl": [
+            0,
+            0,
+            8
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        },
+        "35b03e382870bcdf": {
+          "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 10000
+          },
+          "rating": 1067.468420323264,
+          "games": 8,
+          "wdl": [
+            8,
+            0,
+            0
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/chess-1s-vs-10s-49920fb",
+          "candidate": "35b03e382870bcdf",
+          "baseline": "31f708e7a8f9059d",
+          "accepted_pairs": 4,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              8,
+              0,
+              0
+            ],
+            "complete_pairs": 4,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              0,
+              0,
+              4
+            ],
+            "score_interval_95": [
+              0.3976353643835253,
+              1.0
+            ],
+            "delta_elo": {
+              "point": "+inf",
+              "low": -72.1,
+              "high": "+inf"
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "checkers": {
+      "entrants": {
+        "6b862a750523a7fb": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 50
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        },
+        "2c4cf6c22219e421": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 250
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/game-pool-pilots/checkers",
+          "candidate": "2c4cf6c22219e421",
+          "baseline": "6b862a750523a7fb",
+          "accepted_pairs": 1,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              1,
+              0,
+              1
+            ],
+            "complete_pairs": 1,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.000156274421694876,
+              0.999843725578305
+            ],
+            "delta_elo": {
+              "point": 0.0,
+              "low": -1522.4,
+              "high": 1522.4
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "checkers-international": {
+      "entrants": {
+        "6b862a750523a7fb": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 50
+          },
+          "rating": 990.0,
+          "games": 2,
+          "wdl": [
+            0,
+            1,
+            1
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        },
+        "2c4cf6c22219e421": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 250
+          },
+          "rating": 1010.0,
+          "games": 2,
+          "wdl": [
+            1,
+            1,
+            0
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/game-pool-pilots/checkers-international",
+          "candidate": "2c4cf6c22219e421",
+          "baseline": "6b862a750523a7fb",
+          "accepted_pairs": 1,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              1,
+              1,
+              0
+            ],
+            "complete_pairs": 1,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            "score_interval_95": [
+              0.0034577695223631435,
+              0.9999999588012645
+            ],
+            "delta_elo": {
+              "point": 190.8,
+              "low": -983.9,
+              "high": 2954.0
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "battleship": {
+      "entrants": {
+        "6b862a750523a7fb": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 50
+          },
+          "rating": 1020.0,
+          "games": 2,
+          "wdl": [
+            2,
+            0,
+            0
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        },
+        "2c4cf6c22219e421": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 250
+          },
+          "rating": 980.0,
+          "games": 2,
+          "wdl": [
+            0,
+            0,
+            2
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/game-pool-pilots/battleship",
+          "candidate": "2c4cf6c22219e421",
+          "baseline": "6b862a750523a7fb",
+          "accepted_pairs": 1,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              0,
+              0,
+              2
+            ],
+            "complete_pairs": 1,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.0,
+              0.9750000000000001
+            ],
+            "delta_elo": {
+              "point": "-inf",
+              "low": "-inf",
+              "high": 636.4
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "tictactoe:3x3:3": {
+      "entrants": {
+        "6b862a750523a7fb": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 50
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        },
+        "2c4cf6c22219e421": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 250
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/game-pool-pilots/tictactoe",
+          "candidate": "2c4cf6c22219e421",
+          "baseline": "6b862a750523a7fb",
+          "accepted_pairs": 1,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              1,
+              0,
+              1
+            ],
+            "complete_pairs": 1,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.000156274421694876,
+              0.999843725578305
+            ],
+            "delta_elo": {
+              "point": 0.0,
+              "low": -1522.4,
+              "high": 1522.4
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "go:5": {
+      "entrants": {
+        "6b862a750523a7fb": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 50
+          },
+          "rating": null,
+          "games": 0,
+          "wdl": [
+            0,
+            0,
+            0
+          ],
+          "provisional": true,
+          "rating_status": "unrated"
+        },
+        "2c4cf6c22219e421": {
+          "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 250
+          },
+          "rating": null,
+          "games": 0,
+          "wdl": [
+            0,
+            0,
+            0
+          ],
+          "provisional": true,
+          "rating_status": "unrated"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/game-pool-pilots/go-5",
+          "candidate": "2c4cf6c22219e421",
+          "baseline": "6b862a750523a7fb",
+          "accepted_pairs": 0,
+          "excluded_pairs": 1,
+          "comparison": {
+            "wdl": [
+              0,
+              0,
+              0
+            ],
+            "complete_pairs": 0,
+            "excluded_pairs": 1,
+            "pentanomial": [
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.0,
+              1.0
+            ],
+            "delta_elo": {
+              "point": null,
+              "low": "-inf",
+              "high": "+inf"
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    }
+  }
+}
