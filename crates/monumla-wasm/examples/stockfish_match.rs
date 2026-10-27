@@ -5,7 +5,10 @@ use monumla_core::{
 use monumla_games_chess::{
     ChessInteractionRules, ChessRules, BISHOP, KNIGHT, QUEEN, ROOK, STANDARD_FEN,
 };
-use monumla_search::{analyze, runtime::RuntimeDomain, SearchDomain, SearchLimits, SearchOptions};
+use monumla_search::{
+    analyze_cached, runtime::RuntimeDomain, DecisionPolicy, SearchDomain, SearchLimits,
+    SearchMemory, SearchOptions,
+};
 use std::{
     collections::BTreeMap,
     fs,
@@ -27,6 +30,7 @@ struct Config {
     elo: Option<u32>,
     clock_ms: Option<u64>,
     increment_ms: u64,
+    game_offset: usize,
 }
 impl Config {
     fn parse() -> Result<Self> {
@@ -36,6 +40,7 @@ impl Config {
             elo: None,
             clock_ms: None,
             increment_ms: 1000,
+            game_offset: 0,
             time_ms: 1000,
             max_plies: 160,
             out: "target/monumla-bench/stockfish/latest".into(),
@@ -49,6 +54,7 @@ impl Config {
                 "--elo" => c.elo = Some(value.parse()?),
                 "--clock-ms" => c.clock_ms = Some(value.parse()?),
                 "--increment-ms" => c.increment_ms = value.parse()?,
+                "--game-offset" => c.game_offset = value.parse()?,
                 "--movetime-ms" => c.time_ms = value.parse()?,
                 "--max-plies" => c.max_plies = value.parse()?,
                 "--out" => c.out = value.into(),
@@ -56,12 +62,12 @@ impl Config {
             }
         }
         if c.games == 0
-            || c.games % 2 != 0
             || c.games > 1000
+            || c.game_offset.checked_add(c.games).is_none()
             || !(20..=60000).contains(&c.time_ms)
             || !(2..=500).contains(&c.max_plies)
         {
-            return Err("Use an even game count (2..1000), 20..60000 ms, and 2..500 plies".into());
+            return Err("Use 1..1000 games, 20..60000 ms, and 2..500 plies".into());
         }
         if c.clock_ms.is_some_and(|v| !(1000..=3_600_000).contains(&v)) || c.increment_ms > 60000 {
             return Err("Clock must be 1000..3600000 ms; increment 0..60000 ms".into());
@@ -325,6 +331,9 @@ fn uci_for_turn(
 fn main() -> Result<()> {
     let c = Config::parse()?;
     fs::create_dir_all(&c.out)?;
+    if fs::read_dir(&c.out)?.next().is_some() {
+        return Err("Preserve prior match output; choose an empty directory".into());
+    }
     let mut opponent = Opponent::new(&c.stockfish)?;
     if let Some(elo) = c.elo {
         opponent.limit_strength(elo)?;
@@ -333,8 +342,8 @@ fn main() -> Result<()> {
     fs::write(
         c.out.join("settings.tsv"),
         format!(
-            "opponent\t{}\nelo\t{:?}\nclock_ms\t{:?}\nincrement_ms\t{}\nmovetime_ms\t{}\n",
-            opponent.name, c.elo, c.clock_ms, c.increment_ms, c.time_ms
+            "opponent\t{}\nelo\t{:?}\nclock_ms\t{:?}\nincrement_ms\t{}\nmovetime_ms\t{}\ngame_offset\t{}\n",
+            opponent.name, c.elo, c.clock_ms, c.increment_ms, c.time_ms, c.game_offset
         ),
     )?;
     let mut scores = fs::File::create(c.out.join("games.tsv"))?;
@@ -358,7 +367,8 @@ fn main() -> Result<()> {
     ];
     let mut results = [0_usize; 4]; // Monumla wins, draws, losses, unfinished.
     let mut game_rows = String::new();
-    for game in 0..c.games {
+    for local_game in 0..c.games {
+        let game = local_game + c.game_offset;
         opponent.new_game()?;
         let rules = ChessRules::standard();
         let mut timeline = rules.from_fen(STANDARD_FEN)?.timeline;
@@ -368,6 +378,16 @@ fn main() -> Result<()> {
             moves.push(uci.to_owned());
         }
         let mut clocks = [c.clock_ms.unwrap_or(0); 2];
+        let mut registry = RuleRegistry::new();
+        registry.register_outcome(rules.outcome_rule());
+        let shared_rules = rules.clone();
+        let domain = RuntimeDomain::new(registry, move |p| {
+            Ok(Rc::new(ChessInteractionRules::with_history(
+                &shared_rules,
+                p.history(),
+            )))
+        });
+        let mut memory = SearchMemory::new(16384);
         let our_side = PlayerId::new(if game % 2 == 0 { 1 } else { 2 });
         let mut result = "*";
         let mut reason = "ply limit".to_owned();
@@ -400,20 +420,12 @@ fn main() -> Result<()> {
             };
             let start = Instant::now();
             let (uci, san, depth, nodes, stop) = if player == our_side {
-                let mut registry = RuleRegistry::new();
-                registry.register_outcome(rules.outcome_rule());
-                let shared_rules = rules.clone();
-                let domain = RuntimeDomain::new(registry, move |p| {
-                    Ok(Rc::new(ChessInteractionRules::with_history(
-                        &shared_rules,
-                        p.history(),
-                    )))
-                });
-                let report = analyze(
+                let report = analyze_cached(
                     &domain,
                     &timeline,
                     player,
                     SearchOptions {
+                        decision_policy: DecisionPolicy::BestAvailable,
                         limits: SearchLimits {
                             max_depth: 32,
                             max_nodes: Some(50_000_000),
@@ -423,6 +435,7 @@ fn main() -> Result<()> {
                         late_move_reductions: true,
                         ..Default::default()
                     },
+                    &mut memory,
                     || start.elapsed() >= Duration::from_millis(budget),
                     |_| {},
                 )?;
@@ -433,7 +446,11 @@ fn main() -> Result<()> {
                 };
                 let next = domain.play(&timeline, &action)?;
                 if let Some(outcome) = rules.status(next.current(), next.history())?.outcome {
-                    if matches!(outcome, monumla_games_chess::ChessOutcome::ThreefoldRepetition | monumla_games_chess::ChessOutcome::FiftyMoveRule) {
+                    if matches!(
+                        outcome,
+                        monumla_games_chess::ChessOutcome::ThreefoldRepetition
+                            | monumla_games_chess::ChessOutcome::FiftyMoveRule
+                    ) {
                         timeline = next;
                         result = "1/2-1/2";
                         reason = outcome.as_game_outcome().key;
@@ -447,7 +464,13 @@ fn main() -> Result<()> {
                     san,
                     report.completed_depth,
                     report.nodes,
-                    format!("{:?}", report.stop_reason),
+                    if report.score.is_none()
+                        && report.stop_reason != monumla_search::StopReason::ForcedMove
+                    {
+                        "legal_fallback".into()
+                    } else {
+                        format!("{:?}", report.stop_reason)
+                    },
                 )
             } else {
                 let (uci, depth, nodes) =
