@@ -146,3 +146,24 @@ The full report/graph retains losses, draws, incomplete schedules and inconclusi
 These are fixed-N per-comparison intervals, not an SPRT or a family-wise guarantee across repeated experiments. Predeclare the sample and acceptance criteria before a match; do not stop when the results look favorable. Elo uncertainty and incomplete coverage are evidence limitations, not quantities that can be repaired by plotting a smoother line.
 
 Within a strength-history series, keep the pool, budgets, opening protocol, move cap and platform fixed. A later milestone must beat the last accepted entrant, identified by binary **and** settings; reusing an older baseline is rejected. An asymmetric-budget comparison is evidence for those two entrants, not a cumulative release-strength curve. Changing the protocol starts a separate series.
+
+## Run and resume a complete strength matrix
+
+`strength-cases.json` predeclares one schedule per pool, with the same frozen engine pair throughout. The default plan uses 500 ms per move and 12 games per pool, except the explicitly smaller Go 19×19 pilot (two games). Move caps are separate per game; reaching one excludes the game rather than adjudicating a draw. This is a short-control experiment, not a calibrated absolute rating.
+
+```sh
+python3 scripts/bench/strength_matrix.py \
+  --baseline target/monumla-bench/bin/baseline \
+  --candidate target/monumla-bench/bin/candidate \
+  --baseline-revision BASELINE_COMMIT --candidate-revision CANDIDATE_COMMIT \
+  --cpus 0,1,2,3 --out target/monumla-bench/strength-matrix
+# After an interruption, use the identical arguments plus --resume.
+python3 scripts/bench/strength_history.py \
+  --matrix target/monumla-bench/strength-matrix
+```
+
+The matrix shares CPU slots across all pairs, so at most one pair owns each selected CPU. Atomic result-table updates preserve completed games across interruption. Resume verifies binary hashes, search budgets, opening protocol, pool plan, CPU settings and move caps; it runs only missing game numbers, including a missing counterpart of an already completed game. It archives interrupted move traces and records the restart. Completed results, including exclusions and losses, are never rerun to improve their score. Do not build over the frozen executable paths during an experiment.
+
+Publishing a matrix verifies coverage and the common source/binary pair against each pool's own manifest. The complete report includes termination counts and explicitly labels search forfeits; a budget failure is not silently described as a checkmate or a tactical strength gain. Failed pools remain visible and do not update the league. All pools must finish processing before publication.
+
+The online league export now continues its saved ratings instead of resetting them on each report. Imported matches are fingerprinted; regenerating a report cannot count them twice. Once fingerprinted, the saved league can continue even after older raw logs are removed. Predeclared schedules must finish before import. The standalone `league.py --previous OLD_JSON --out NEW_JSON ...` also supports continuation. Disconnected opponent networks are labeled by `rating_component`; their independently initialized ratings must not be compared. All these ratings remain provisional internal measurements.

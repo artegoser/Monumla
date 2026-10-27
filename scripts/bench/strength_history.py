@@ -8,12 +8,10 @@ import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
-from league import entrant, league
+from collections import Counter
+from league import canonical_ruleset as pool_name, entrant, league
+from match_storage import write_json
 from strength import summarize
-
-
-def pool_name(ruleset):
-    return {"go": "go:9", "tictactoe": "tictactoe:3x3:3"}.get(ruleset, ruleset)
 
 
 def collect(directories, cases):
@@ -71,6 +69,11 @@ def collect(directories, cases):
             plan_complete=complete_plan,
             runner_revision=manifest.get("runner_revision"),
             runner_dirty=manifest.get("runner_dirty"),
+            resumes=manifest.get("resumes", []),
+            terminations=dict(
+                Counter(row.get("termination", "unspecified") for row in rows)
+            ),
+            forfeits=sum("forfeit" in row.get("termination", "") for row in rows),
             supported_gain=supported_gain
             and identities["baseline"]["id"] != identities["candidate"]["id"],
             **summary,
@@ -187,7 +190,13 @@ def plot(report, destination, title="Monumla · strength evidence by pool"):
                 ax.text(
                     cap + 35,
                     index,
-                    f"{label('baseline')} → {label('candidate')}\n{row['wdl']} W/D/L · {row['complete_pairs']} pairs · {point_text}",
+                    f"{label('baseline')} → {label('candidate')}\n{row['wdl']} W/D/L · {row['complete_pairs']} pairs · {point_text}"
+                    + (f"\nForfeits: {row['forfeits']}" if row.get("forfeits") else "")
+                    + (
+                        f" · excluded pairs: {row['excluded_pairs']}"
+                        if row["excluded_pairs"]
+                        else ""
+                    ),
                     va="center",
                     fontsize=8,
                 )
@@ -200,6 +209,9 @@ def plot(report, destination, title="Monumla · strength evidence by pool"):
         "Candidate relative Elo · 95% pair-based bounds · arrows indicate bounds/estimates beyond plotted range"
     )
     ax.spines[["top", "right"]].set_visible(False)
+    if report.get("matrix"):
+        revisions = report["matrix"]["revisions"]
+        title += f" · {revisions['baseline'][:7]} → {revisions['candidate'][:7]}"
     fig.suptitle(title, fontsize=17)
     fig.supxlabel(
         "All results retained. Missing/unfinished pools remain unrated. Budgets identify distinct entrants; unknown source revisions are labeled by binary hash.",
@@ -243,7 +255,10 @@ def plot_history(history, destination):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("matches", nargs="+", type=Path)
+    parser.add_argument("matches", nargs="*", type=Path)
+    parser.add_argument(
+        "--matrix", type=Path, help="Verify and publish a complete all-pool tournament"
+    )
     parser.add_argument("--cases", type=Path, default=Path("benchmarks/cases.json"))
     parser.add_argument(
         "--out", type=Path, default=Path("benchmarks/latest-strength.json")
@@ -259,17 +274,36 @@ def main():
         "--league", type=Path, default=Path("benchmarks/elo-pools.json")
     )
     args = parser.parse_args()
-    report = collect(args.matches, json.loads(args.cases.read_text()))
-    args.out.write_text(json.dumps(report, indent=2) + "\n")
-    plot(report, args.image)
+    if bool(args.matches) == bool(args.matrix):
+        parser.error("Supply match directories or --matrix, exclusively")
+    coverage = json.loads(args.cases.read_text())
+    if args.matrix:
+        from strength_matrix_report import verify_matrix
+
+        metadata, directories, completed = verify_matrix(args.matrix, coverage)
+        report = collect(directories, coverage)
+        report["matrix"] = metadata
+        for pool, error in metadata["failures"].items():
+            for row in report["pools"][pool]:
+                row.update(run_error=error, supported_gain=False, plan_complete=False)
+    else:
+        directories = completed = args.matches
+        report = collect(directories, coverage)
     history = (
         json.loads(args.journal.read_text())
         if args.journal.exists()
         else dict(schema=1, milestones=[])
     )
-    args.journal.write_text(json.dumps(record_gains(history, report), indent=2) + "\n")
+    history = record_gains(history, report)
+    previous_league = (
+        json.loads(args.league.read_text()) if args.league.exists() else None
+    )
+    updated_league = league(completed, previous=previous_league)
+    write_json(args.out, report)
+    write_json(args.journal, history)
+    write_json(args.league, updated_league)
+    plot(report, args.image)
     plot_history(history, args.history_image)
-    args.league.write_text(json.dumps(league(args.matches), indent=2) + "\n")
 
 
 if __name__ == "__main__":
