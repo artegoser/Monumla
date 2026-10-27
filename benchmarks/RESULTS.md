@@ -58,4 +58,25 @@ Native Go 19×19 speedups were 2.34× initially and 2.04× in the generated midg
 
 [The performance journal](performance.json) contains only fixed-work observations with non-overlapping timing ranges; [its history graph](performance-history.png) uses the same source pair for every newly established series. The complete matrix retains every excluded/noisy/regressing case. These are throughput measurements, not evidence that playing strength improved.
 
-[Strength statistics](latest-strength.json) and [their graph](strength.png) currently show the historical pilots above, with explicit unrated rows for missing pools. [The strength improvement journal](strength-history.json) is empty, and [its graph](strength-history.png) says so: none of these small pilots has a conservative lower bound above equal expected score. Online ratings in [elo-pools.json](elo-pools.json) are separately labeled internal/provisional. No current absolute Elo or all-game strength improvement is established.
+[Strength statistics](latest-strength.json) and [their graph](strength.png) now show the complete matched tournament below. [The strength improvement journal](strength-history.json) remains empty: none of the comparisons establishes a positive lower confidence bound. Online ratings in [elo-pools.json](elo-pools.json) retain the historical pilots and the new results, with disconnected rating components labeled explicitly. No calibrated absolute Elo or all-game strength improvement is established.
+
+
+## Matched all-pool strength run (2026-10-27)
+
+The frozen **`44fa55c` → `07a2c49`** pair from the performance matrix played all **98 predeclared games**, 500 ms/move for both entrants. Eight pools had six swapped-side pairs each; Go 19×19 had one explicitly declared pilot pair. Four shared physical-core slots bounded concurrency. The run was interrupted and resumed with the same binaries, seeds, settings and game numbers; completed scores were preserved and interrupted traces archived. Restart metadata remains in the report. A dirty runner workspace at restart contained a separate, unbuilt optimization prototype; the exact experiment binaries remained unchanged.
+
+| Pool | Candidate paired W–D–L | Complete / excluded pairs | Relative Elo estimate | 95% bound | Search forfeits, all games |
+|---|---|---|---|---|---|
+| Chess | 6–2–4 | 6 / 0 | +58.5 | −347.6 to +519.0 | 1 |
+| Russian checkers | 3–5–4 | 6 / 0 | −29.0 | −469.9 to +385.2 | 0 |
+| International checkers | 3–3–6 | 6 / 0 | −88.7 | −574.6 to +312.1 | 0 |
+| Go 9×9 | 3–0–1 | 2 / 4 | +190.8 | −547.8 to +1672.4 | 8 |
+| Go 19×19 | 1–0–1 | 1 / 0 | 0.0 | −1522.4 to +1522.4 | 2 |
+| Battleship | 4–0–8 | 6 / 0 | −120.4 | −639.1 to +278.2 | 0 |
+| Tic-tac-toe 3×3 | 5–2–5 | 6 / 0 | 0.0 | −425.7 to +425.7 | 0 |
+| Tic-tac-toe 5×5, connect 4 | 3–7–2 | 6 / 0 | +29.0 | −385.2 to +469.9 | 0 |
+| Tic-tac-toe 7×5, connect 5 | 0–12–0 | 6 / 0 | 0.0 | −425.7 to +425.7 | 0 |
+
+The Go 9×9 raw scored-game W–D–L was 7–0–1, with four additional unfinished games. Four finished wins had unfinished counterparts and therefore did **not** contribute to the paired Elo estimate. The report now gives both raw and paired W–D–L. Go 19×19 split two search forfeits; this is an operational failure result, not evidence of normal Go playing strength. In total, the run contains 11 search forfeits and four move-cap exclusions. None of the intervals establishes an improvement. The negative Battleship/checkers estimates are retained rather than discarded.
+
+The native harness requires a completed search iteration before choosing a move. At this short control it sometimes fails to return one. Those losses identify an actual search-budget limitation; they must not be relabeled checkmates, hidden as draws, or used to claim a tactical improvement. Two ordinary opening plies can already create a forced win in tic-tac-toe, so wins from such paired starts do not imply that perfect play from the empty board should be decisive.

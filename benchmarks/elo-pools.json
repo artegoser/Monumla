@@ -3,7 +3,7 @@
   "method": "paired online Elo; ratings initialized by convention; K per game",
   "initial_rating": 1000,
   "k_per_game": 20,
-  "calibration": "Internal pool only. Not FIDE, Lichess or transferable across games. Provisional ratings depend on opponents, match order and initialization.",
+  "calibration": "Internal pool only. Not FIDE, Lichess or transferable across games. Compare only entrants in the same rating_component; disconnected components have independent anchors. Provisional ratings depend on opponents, match order and initialization.",
   "pools": {
     "chess": {
       "entrants": {
@@ -22,7 +22,8 @@
             8
           ],
           "provisional": true,
-          "rating_status": "provisional"
+          "rating_status": "provisional",
+          "rating_component": "31f708e7a8f9059d"
         },
         "35b03e382870bcdf": {
           "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
@@ -39,6 +40,49 @@
             0
           ],
           "provisional": true,
+          "rating_status": "provisional",
+          "rating_component": "31f708e7a8f9059d"
+        },
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 983.5744208412649,
+          "games": 12,
+          "wdl": [
+            4,
+            2,
+            6
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1016.4255791587351,
+          "games": 12,
+          "wdl": [
+            6,
+            2,
+            4
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
           "rating_status": "provisional"
         }
       },
@@ -74,6 +118,41 @@
               "high": "+inf"
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "3f626b7a19102cbe3fd4a48d7901945f6b0a09b4fa28a0344c7a4bc19d013576"
+        },
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/chess",
+          "match_sha256": "86d831ab71ebd921a8c9c439193b658298728a39482c4f1e2847b6638cad5e06",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              6,
+              2,
+              4
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              1,
+              0,
+              2,
+              2,
+              1
+            ],
+            "score_interval_95": [
+              0.11910980028102205,
+              0.9520100702660745
+            ],
+            "delta_elo": {
+              "point": 58.5,
+              "low": -347.6,
+              "high": 519.0
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }
         }
       ]
@@ -95,7 +174,8 @@
             1
           ],
           "provisional": true,
-          "rating_status": "provisional"
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
         },
         "2c4cf6c22219e421": {
           "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
@@ -112,6 +192,49 @@
             1
           ],
           "provisional": true,
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
+        },
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1007.949163040316,
+          "games": 12,
+          "wdl": [
+            4,
+            5,
+            3
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 992.050836959684,
+          "games": 12,
+          "wdl": [
+            3,
+            5,
+            4
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
           "rating_status": "provisional"
         }
       },
@@ -147,6 +270,41 @@
               "high": 1522.4
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "5cf23c69bdff59ce81f39a1ba5116aa13e40d74e18e850202ba9e764d86ba997"
+        },
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/checkers-russian",
+          "match_sha256": "dec3a3a15e9e790b0157dcd5e32d862b4dd7064b683e746c8a60be82eb3f83ee",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              3,
+              5,
+              4
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              2,
+              3,
+              1,
+              0
+            ],
+            "score_interval_95": [
+              0.06268444498412348,
+              0.90180744343126
+            ],
+            "delta_elo": {
+              "point": -29.0,
+              "low": -469.9,
+              "high": 385.2
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }
         }
       ]
@@ -168,7 +326,8 @@
             1
           ],
           "provisional": true,
-          "rating_status": "provisional"
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
         },
         "2c4cf6c22219e421": {
           "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
@@ -185,6 +344,49 @@
             0
           ],
           "provisional": true,
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
+        },
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1024.5443645247783,
+          "games": 12,
+          "wdl": [
+            6,
+            3,
+            3
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 975.4556354752216,
+          "games": 12,
+          "wdl": [
+            3,
+            3,
+            6
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
           "rating_status": "provisional"
         }
       },
@@ -220,6 +422,41 @@
               "high": 2954.0
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "12f1705231036e50627375b74f733a611ebea9e3f49d1de246bcbe1757d724c0"
+        },
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/checkers-international",
+          "match_sha256": "93908ca3f34c60379a793d59a894dcbb26a675267d08fc6cb8a21f0c6dafed56",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              3,
+              3,
+              6
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              1,
+              1,
+              4,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.035303704774092476,
+              0.8577448824238447
+            ],
+            "delta_elo": {
+              "point": -88.7,
+              "low": -574.6,
+              "high": 312.1
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }
         }
       ]
@@ -241,7 +478,8 @@
             0
           ],
           "provisional": true,
-          "rating_status": "provisional"
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
         },
         "2c4cf6c22219e421": {
           "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
@@ -258,6 +496,49 @@
             2
           ],
           "provisional": true,
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
+        },
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1037.7075346495083,
+          "games": 12,
+          "wdl": [
+            8,
+            0,
+            4
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 962.2924653504917,
+          "games": 12,
+          "wdl": [
+            4,
+            0,
+            8
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
           "rating_status": "provisional"
         }
       },
@@ -293,6 +574,41 @@
               "high": 636.4
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "fafd3ccf5fda33898603b55ab8659361858ba03a6ac91297e9ac607e26861026"
+        },
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/battleship",
+          "match_sha256": "193cbc57d23669cdfba82ceb77382535cd2f509abfd7aa52c966da21c5b00a51",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              4,
+              0,
+              8
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              2,
+              0,
+              4,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.024621820464407536,
+              0.8322312339605986
+            ],
+            "delta_elo": {
+              "point": -120.4,
+              "low": -639.1,
+              "high": 278.2
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }
         }
       ]
@@ -314,7 +630,8 @@
             1
           ],
           "provisional": true,
-          "rating_status": "provisional"
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
         },
         "2c4cf6c22219e421": {
           "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
@@ -331,6 +648,49 @@
             1
           ],
           "provisional": true,
+          "rating_status": "provisional",
+          "rating_component": "2c4cf6c22219e421"
+        },
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 12,
+          "wdl": [
+            5,
+            2,
+            5
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 12,
+          "wdl": [
+            5,
+            2,
+            5
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
           "rating_status": "provisional"
         }
       },
@@ -366,6 +726,41 @@
               "high": 1522.4
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "e62a0f84fd293365d447bcd21da656410d3cc053f888ce50e8b2146bcc47bcab"
+        },
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/tictactoe-3",
+          "match_sha256": "8a0c513694afa7b8dce1fdd6e60f95d6a5ebc5ff682f74ffe2fe86bfc7bdc38c",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              5,
+              2,
+              5
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              6,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.07940571028046711,
+              0.9205942897195329
+            ],
+            "delta_elo": {
+              "point": 0.0,
+              "low": -425.7,
+              "high": 425.7
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }
         }
       ]
@@ -387,7 +782,8 @@
             0
           ],
           "provisional": true,
-          "rating_status": "unrated"
+          "rating_status": "unrated",
+          "rating_component": null
         },
         "2c4cf6c22219e421": {
           "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
@@ -404,7 +800,8 @@
             0
           ],
           "provisional": true,
-          "rating_status": "unrated"
+          "rating_status": "unrated",
+          "rating_component": null
         }
       },
       "matches": [
@@ -437,6 +834,335 @@
               "point": null,
               "low": "-inf",
               "high": "+inf"
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          },
+          "match_sha256": "431863659a4c7384ccd50538d8e40cd7c71d7c5c2df9d4264710ae7a7f490daf"
+        }
+      ]
+    },
+    "go:9": {
+      "entrants": {
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 982.2924653504917,
+          "games": 4,
+          "wdl": [
+            1,
+            0,
+            3
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1017.7075346495083,
+          "games": 4,
+          "wdl": [
+            3,
+            0,
+            1
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/go-9",
+          "match_sha256": "cc6df1181c289d08c2d2d6e8e4ac4f28447aa2f8f01f346f80ec90443b51ab56",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 2,
+          "excluded_pairs": 4,
+          "comparison": {
+            "wdl": [
+              7,
+              0,
+              1
+            ],
+            "complete_pairs": 2,
+            "excluded_pairs": 4,
+            "pentanomial": [
+              0,
+              0,
+              1,
+              0,
+              1
+            ],
+            "score_interval_95": [
+              0.04096278270474639,
+              0.999934068991416
+            ],
+            "delta_elo": {
+              "point": 190.8,
+              "low": -547.8,
+              "high": 1672.4
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "go:19": {
+      "entrants": {
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 2,
+          "wdl": [
+            1,
+            0,
+            1
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/go-19",
+          "match_sha256": "33b98f29c0755404888a77d1168911a7e696d03246836d0a9d6031326cc92d80",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 1,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              1,
+              0,
+              1
+            ],
+            "complete_pairs": 1,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.000156274421694876,
+              0.999843725578305
+            ],
+            "delta_elo": {
+              "point": 0.0,
+              "low": -1522.4,
+              "high": 1522.4
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "tictactoe:5x5:4": {
+      "entrants": {
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 993.0691113745419,
+          "games": 12,
+          "wdl": [
+            2,
+            7,
+            3
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1006.9308886254581,
+          "games": 12,
+          "wdl": [
+            3,
+            7,
+            2
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/tictactoe-5",
+          "match_sha256": "e4556b3a07442777be29ce5af9c2d0168614d13688bffa57d51d6a22ccd68637",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              3,
+              7,
+              2
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              5,
+              1,
+              0
+            ],
+            "score_interval_95": [
+              0.09819255656874007,
+              0.9373155550158765
+            ],
+            "delta_elo": {
+              "point": 29.0,
+              "low": -385.2,
+              "high": 469.9
+            },
+            "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+          }
+        }
+      ]
+    },
+    "tictactoe:7x5:5": {
+      "entrants": {
+        "06b246f82b6ef07a": {
+          "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 12,
+          "wdl": [
+            0,
+            12,
+            0
+          ],
+          "provisional": true,
+          "revisions": [
+            "44fa55c"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        },
+        "496559daba9dcda0": {
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "settings": {
+            "depth": 32,
+            "nodes": 50000000,
+            "time_ms": 500
+          },
+          "rating": 1000.0,
+          "games": 12,
+          "wdl": [
+            0,
+            12,
+            0
+          ],
+          "provisional": true,
+          "revisions": [
+            "07a2c49"
+          ],
+          "rating_component": "06b246f82b6ef07a",
+          "rating_status": "provisional"
+        }
+      },
+      "matches": [
+        {
+          "source": "target/monumla-bench/strength-matrix-44fa55c-07a2c49/tictactoe-rectangular",
+          "match_sha256": "0c567f9da7a98665cb5e50f5c954df7477c67051b1446ab4023557f2d5885c75",
+          "candidate": "496559daba9dcda0",
+          "baseline": "06b246f82b6ef07a",
+          "accepted_pairs": 6,
+          "excluded_pairs": 0,
+          "comparison": {
+            "wdl": [
+              0,
+              12,
+              0
+            ],
+            "complete_pairs": 6,
+            "excluded_pairs": 0,
+            "pentanomial": [
+              0,
+              0,
+              6,
+              0,
+              0
+            ],
+            "score_interval_95": [
+              0.07940571028046711,
+              0.9205942897195329
+            ],
+            "delta_elo": {
+              "point": 0.0,
+              "low": -425.7,
+              "high": 425.7
             },
             "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
           }

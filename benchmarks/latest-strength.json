@@ -1,289 +1,398 @@
 {
   "schema": 1,
-  "generated_at": "2026-10-25T22:21:53.938895+00:00",
+  "generated_at": "2026-10-27T13:57:22.961353+00:00",
   "method": "Relative Elo from complete swapped-side pairs, conservative fixed-N 95% bounds. Missing pools are unrated. Gain history requires the full predeclared schedule and lower expected-score bound > 0.5. Not an absolute FIDE/Lichess rating or a sequential test.",
   "pools": {
     "chess": [
       {
-        "match_sha256": "3f626b7a19102cbe3fd4a48d7901945f6b0a09b4fa28a0344c7a4bc19d013576",
-        "measured_at": null,
+        "match_sha256": "86d831ab71ebd921a8c9c439193b658298728a39482c4f1e2847b6638cad5e06",
+        "measured_at": "2026-10-25T22:31:11.304067+00:00",
         "identities": {
           "baseline": {
-            "id": "31f708e7a8f9059d",
-            "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 1000
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "44fa55c"
           },
           "candidate": {
-            "id": "35b03e382870bcdf",
-            "binary_sha256": "fb1bec40c1db9fd76943063e15b3dbfa8e7765139f77ba2be85358c3d9932f60",
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 10000
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "07a2c49"
           }
         },
         "opening_plies": 2,
         "max_plies": 300,
         "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-        "predeclared_games": 8,
+        "predeclared_games": 12,
         "plan_complete": true,
-        "runner_revision": "49920fb7dc5dc3302c343db5a0c5abc7f1e865d4",
-        "runner_dirty": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.867994+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "chess.checkmate": 9,
+          "no completed search iteration forfeit": 1,
+          "chess.threefold_repetition": 2
+        },
+        "forfeits": 1,
         "supported_gain": false,
         "wdl": [
-          8,
-          0,
-          0
-        ],
-        "complete_pairs": 4,
-        "excluded_pairs": 0,
-        "pentanomial": [
-          0,
-          0,
-          0,
-          0,
+          6,
+          2,
           4
         ],
+        "paired_wdl": [
+          6,
+          2,
+          4
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          1,
+          0,
+          2,
+          2,
+          1
+        ],
         "score_interval_95": [
-          0.3976353643835253,
-          1.0
+          0.11910980028102205,
+          0.9520100702660745
         ],
         "delta_elo": {
-          "point": "+inf",
-          "low": -72.1,
-          "high": "+inf"
+          "point": 58.5,
+          "low": -347.6,
+          "high": 519.0
         },
         "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
       }
     ],
     "checkers": [
       {
-        "match_sha256": "5cf23c69bdff59ce81f39a1ba5116aa13e40d74e18e850202ba9e764d86ba997",
-        "measured_at": null,
+        "match_sha256": "dec3a3a15e9e790b0157dcd5e32d862b4dd7064b683e746c8a60be82eb3f83ee",
+        "measured_at": "2026-10-25T22:31:11.303885+00:00",
         "identities": {
           "baseline": {
-            "id": "6b862a750523a7fb",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 50
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "44fa55c"
           },
           "candidate": {
-            "id": "2c4cf6c22219e421",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 250
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "07a2c49"
           }
         },
         "opening_plies": 2,
-        "max_plies": 240,
+        "max_plies": 300,
         "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-        "predeclared_games": 2,
+        "predeclared_games": 12,
         "plan_complete": true,
-        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
-        "runner_dirty": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.867671+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "checkers.five_move_draw": 4,
+          "checkers.king_moves_draw": 1,
+          "checkers.no_legal_moves": 7
+        },
+        "forfeits": 0,
         "supported_gain": false,
         "wdl": [
-          1,
-          0,
-          1
+          3,
+          5,
+          4
         ],
-        "complete_pairs": 1,
+        "paired_wdl": [
+          3,
+          5,
+          4
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
         "excluded_pairs": 0,
         "pentanomial": [
           0,
-          0,
+          2,
+          3,
           1,
-          0,
           0
         ],
         "score_interval_95": [
-          0.000156274421694876,
-          0.999843725578305
+          0.06268444498412348,
+          0.90180744343126
         ],
         "delta_elo": {
-          "point": 0.0,
-          "low": -1522.4,
-          "high": 1522.4
+          "point": -29.0,
+          "low": -469.9,
+          "high": 385.2
         },
         "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
       }
     ],
     "checkers-international": [
       {
-        "match_sha256": "12f1705231036e50627375b74f733a611ebea9e3f49d1de246bcbe1757d724c0",
-        "measured_at": null,
+        "match_sha256": "93908ca3f34c60379a793d59a894dcbb26a675267d08fc6cb8a21f0c6dafed56",
+        "measured_at": "2026-10-25T22:31:11.313051+00:00",
         "identities": {
           "baseline": {
-            "id": "6b862a750523a7fb",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 50
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "44fa55c"
           },
           "candidate": {
-            "id": "2c4cf6c22219e421",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 250
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "07a2c49"
           }
         },
         "opening_plies": 2,
-        "max_plies": 240,
+        "max_plies": 400,
         "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-        "predeclared_games": 2,
+        "predeclared_games": 12,
         "plan_complete": true,
-        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
-        "runner_dirty": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869079+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "checkers.no_legal_moves": 9,
+          "checkers.limited_ending_draw": 1,
+          "checkers.five_move_draw": 2
+        },
+        "forfeits": 0,
         "supported_gain": false,
         "wdl": [
-          1,
-          1,
-          0
+          3,
+          3,
+          6
         ],
-        "complete_pairs": 1,
+        "paired_wdl": [
+          3,
+          3,
+          6
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
         "excluded_pairs": 0,
         "pentanomial": [
-          0,
-          0,
-          0,
           1,
+          1,
+          4,
+          0,
           0
         ],
         "score_interval_95": [
-          0.0034577695223631435,
-          0.9999999588012645
+          0.035303704774092476,
+          0.8577448824238447
+        ],
+        "delta_elo": {
+          "point": -88.7,
+          "low": -574.6,
+          "high": 312.1
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "go:9": [
+      {
+        "match_sha256": "cc6df1181c289d08c2d2d6e8e4ac4f28447aa2f8f01f346f80ec90443b51ab56",
+        "measured_at": "2026-10-25T22:31:11.303677+00:00",
+        "identities": {
+          "baseline": {
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "44fa55c"
+          },
+          "candidate": {
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "07a2c49"
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 400,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 12,
+        "plan_complete": false,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869296+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "ply limit (unfinished, excluded)": 4,
+          "no completed search iteration forfeit": 8
+        },
+        "forfeits": 8,
+        "supported_gain": false,
+        "wdl": [
+          7,
+          0,
+          1
+        ],
+        "paired_wdl": [
+          3,
+          0,
+          1
+        ],
+        "unpaired_finished_games": 4,
+        "unfinished_games": 4,
+        "complete_pairs": 2,
+        "excluded_pairs": 4,
+        "pentanomial": [
+          0,
+          0,
+          1,
+          0,
+          1
+        ],
+        "score_interval_95": [
+          0.04096278270474639,
+          0.999934068991416
         ],
         "delta_elo": {
           "point": 190.8,
-          "low": -983.9,
-          "high": 2954.0
+          "low": -547.8,
+          "high": 1672.4
         },
         "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
       }
     ],
-    "go:9": [],
-    "go:19": [],
-    "battleship": [
+    "go:19": [
       {
-        "match_sha256": "fafd3ccf5fda33898603b55ab8659361858ba03a6ac91297e9ac607e26861026",
-        "measured_at": null,
+        "match_sha256": "33b98f29c0755404888a77d1168911a7e696d03246836d0a9d6031326cc92d80",
+        "measured_at": "2026-10-25T22:31:11.306287+00:00",
         "identities": {
           "baseline": {
-            "id": "6b862a750523a7fb",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 50
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "44fa55c"
           },
           "candidate": {
-            "id": "2c4cf6c22219e421",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 250
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "07a2c49"
           }
         },
         "opening_plies": 2,
-        "max_plies": 240,
+        "max_plies": 800,
         "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
         "predeclared_games": 2,
         "plan_complete": true,
-        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
-        "runner_dirty": true,
-        "supported_gain": false,
-        "wdl": [
-          0,
-          0,
-          2
-        ],
-        "complete_pairs": 1,
-        "excluded_pairs": 0,
-        "pentanomial": [
-          1,
-          0,
-          0,
-          0,
-          0
-        ],
-        "score_interval_95": [
-          0.0,
-          0.9750000000000001
-        ],
-        "delta_elo": {
-          "point": "-inf",
-          "low": "-inf",
-          "high": 636.4
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [],
+        "terminations": {
+          "no completed search iteration forfeit": 2
         },
-        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
-      }
-    ],
-    "tictactoe:3x3:3": [
-      {
-        "match_sha256": "e62a0f84fd293365d447bcd21da656410d3cc053f888ce50e8b2146bcc47bcab",
-        "measured_at": null,
-        "identities": {
-          "baseline": {
-            "id": "6b862a750523a7fb",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
-            "settings": {
-              "depth": 32,
-              "nodes": 50000000,
-              "time_ms": 50
-            },
-            "revision": null
-          },
-          "candidate": {
-            "id": "2c4cf6c22219e421",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
-            "settings": {
-              "depth": 32,
-              "nodes": 50000000,
-              "time_ms": 250
-            },
-            "revision": null
-          }
-        },
-        "opening_plies": 2,
-        "max_plies": 240,
-        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-        "predeclared_games": 2,
-        "plan_complete": true,
-        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
-        "runner_dirty": true,
+        "forfeits": 2,
         "supported_gain": false,
         "wdl": [
           1,
           0,
           1
         ],
+        "paired_wdl": [
+          1,
+          0,
+          1
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
         "complete_pairs": 1,
         "excluded_pairs": 0,
         "pentanomial": [
@@ -305,67 +414,423 @@
         "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
       }
     ],
-    "tictactoe:5x5:4": [],
-    "tictactoe:7x5:5": [],
-    "go:5": [
+    "battleship": [
       {
-        "match_sha256": "431863659a4c7384ccd50538d8e40cd7c71d7c5c2df9d4264710ae7a7f490daf",
-        "measured_at": null,
+        "match_sha256": "193cbc57d23669cdfba82ceb77382535cd2f509abfd7aa52c966da21c5b00a51",
+        "measured_at": "2026-10-25T22:31:11.308547+00:00",
         "identities": {
           "baseline": {
-            "id": "6b862a750523a7fb",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 50
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "44fa55c"
           },
           "candidate": {
-            "id": "2c4cf6c22219e421",
-            "binary_sha256": "de6e9d69914ef3e80406dff308e88ad7b2a59d7946f3428a1c6fbdea6d791561",
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
             "settings": {
               "depth": 32,
               "nodes": 50000000,
-              "time_ms": 250
+              "time_ms": 500
             },
-            "revision": null
+            "revision": "07a2c49"
           }
         },
         "opening_plies": 2,
-        "max_plies": 240,
+        "max_plies": 300,
         "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-        "predeclared_games": 2,
-        "plan_complete": false,
-        "runner_revision": "44fa55c47b2ea15afefbd37863bc8d1383f89fda",
-        "runner_dirty": true,
+        "predeclared_games": 12,
+        "plan_complete": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869721+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "battleship.fleet_sunk": 12
+        },
+        "forfeits": 0,
         "supported_gain": false,
         "wdl": [
+          4,
           0,
-          0,
-          0
+          8
         ],
-        "complete_pairs": 0,
-        "excluded_pairs": 1,
+        "paired_wdl": [
+          4,
+          0,
+          8
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
+        "excluded_pairs": 0,
         "pentanomial": [
+          2,
           0,
-          0,
-          0,
+          4,
           0,
           0
         ],
         "score_interval_95": [
-          0.0,
-          1.0
+          0.024621820464407536,
+          0.8322312339605986
         ],
         "delta_elo": {
-          "point": null,
-          "low": "-inf",
-          "high": "+inf"
+          "point": -120.4,
+          "low": -639.1,
+          "high": 278.2
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "tictactoe:3x3:3": [
+      {
+        "match_sha256": "8a0c513694afa7b8dce1fdd6e60f95d6a5ebc5ff682f74ffe2fe86bfc7bdc38c",
+        "measured_at": "2026-10-25T22:31:11.313116+00:00",
+        "identities": {
+          "baseline": {
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "44fa55c"
+          },
+          "candidate": {
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "07a2c49"
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 20,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 12,
+        "plan_complete": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869212+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "tictactoe.line": 10,
+          "tictactoe.draw": 2
+        },
+        "forfeits": 0,
+        "supported_gain": false,
+        "wdl": [
+          5,
+          2,
+          5
+        ],
+        "paired_wdl": [
+          5,
+          2,
+          5
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          6,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.07940571028046711,
+          0.9205942897195329
+        ],
+        "delta_elo": {
+          "point": 0.0,
+          "low": -425.7,
+          "high": 425.7
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "tictactoe:5x5:4": [
+      {
+        "match_sha256": "e4556b3a07442777be29ce5af9c2d0168614d13688bffa57d51d6a22ccd68637",
+        "measured_at": "2026-10-25T22:31:11.306340+00:00",
+        "identities": {
+          "baseline": {
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "44fa55c"
+          },
+          "candidate": {
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "07a2c49"
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 40,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 12,
+        "plan_complete": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869576+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "tictactoe.draw": 7,
+          "tictactoe.line": 5
+        },
+        "forfeits": 0,
+        "supported_gain": false,
+        "wdl": [
+          3,
+          7,
+          2
+        ],
+        "paired_wdl": [
+          3,
+          7,
+          2
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          5,
+          1,
+          0
+        ],
+        "score_interval_95": [
+          0.09819255656874007,
+          0.9373155550158765
+        ],
+        "delta_elo": {
+          "point": 29.0,
+          "low": -385.2,
+          "high": 469.9
+        },
+        "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
+      }
+    ],
+    "tictactoe:7x5:5": [
+      {
+        "match_sha256": "0c567f9da7a98665cb5e50f5c954df7477c67051b1446ab4023557f2d5885c75",
+        "measured_at": "2026-10-25T22:31:11.315491+00:00",
+        "identities": {
+          "baseline": {
+            "id": "06b246f82b6ef07a",
+            "binary_sha256": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "44fa55c"
+          },
+          "candidate": {
+            "id": "496559daba9dcda0",
+            "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+            "settings": {
+              "depth": 32,
+              "nodes": 50000000,
+              "time_ms": 500
+            },
+            "revision": "07a2c49"
+          }
+        },
+        "opening_plies": 2,
+        "max_plies": 50,
+        "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
+        "predeclared_games": 12,
+        "plan_complete": true,
+        "runner_revision": "e0c57f5250d91b7465b87d285390c62434efd446",
+        "runner_dirty": false,
+        "resumes": [
+          {
+            "started_at": "2026-10-27T13:41:02.869873+00:00",
+            "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+            "runner_dirty": true,
+            "load_average_at_start": [
+              1.10986328125,
+              1.2119140625,
+              0.9091796875
+            ]
+          }
+        ],
+        "terminations": {
+          "tictactoe.draw": 12
+        },
+        "forfeits": 0,
+        "supported_gain": false,
+        "wdl": [
+          0,
+          12,
+          0
+        ],
+        "paired_wdl": [
+          0,
+          12,
+          0
+        ],
+        "unpaired_finished_games": 0,
+        "unfinished_games": 0,
+        "complete_pairs": 6,
+        "excluded_pairs": 0,
+        "pentanomial": [
+          0,
+          0,
+          6,
+          0,
+          0
+        ],
+        "score_interval_95": [
+          0.07940571028046711,
+          0.9205942897195329
+        ],
+        "delta_elo": {
+          "point": 0.0,
+          "low": -425.7,
+          "high": 425.7
         },
         "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption"
       }
     ]
+  },
+  "matrix": {
+    "revisions": {
+      "baseline": "44fa55c",
+      "candidate": "07a2c49"
+    },
+    "binary_sha256": {
+      "baseline": "16f7a3fe3662f0b004762ebb88a67b36af1479a8cfe0f325f1a34ab2f3cac8b5",
+      "candidate": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377"
+    },
+    "started_at": "2026-10-25T22:31:11.283018+00:00",
+    "resumes": [
+      {
+        "started_at": "2026-10-27T13:41:02.847366+00:00",
+        "runner_revision": "0b988e2c61da0935469939851ed55cba7def942d",
+        "runner_dirty": true
+      }
+    ],
+    "plan": [
+      {
+        "id": "chess",
+        "ruleset": "chess",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 300
+      },
+      {
+        "id": "checkers-russian",
+        "ruleset": "checkers",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 300
+      },
+      {
+        "id": "checkers-international",
+        "ruleset": "checkers-international",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 400
+      },
+      {
+        "id": "go-9",
+        "ruleset": "go:9",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 400
+      },
+      {
+        "id": "go-19",
+        "ruleset": "go:19",
+        "games": 2,
+        "time_ms": 500,
+        "max_plies": 800
+      },
+      {
+        "id": "battleship",
+        "ruleset": "battleship",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 300
+      },
+      {
+        "id": "tictactoe-3",
+        "ruleset": "tictactoe",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 20
+      },
+      {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 40
+      },
+      {
+        "id": "tictactoe-rectangular",
+        "ruleset": "tictactoe:7x5:5",
+        "games": 12,
+        "time_ms": 500,
+        "max_plies": 50
+      }
+    ],
+    "failures": {}
   }
 }

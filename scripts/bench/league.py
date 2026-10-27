@@ -47,13 +47,12 @@ def league(directories, initial=1000, k=20, previous=None):
                 source = Path(recorded["source"])
                 raw = (source / "manifest.json").read_bytes()
                 table = (source / "games.tsv").read_bytes()
-                if (
-                    summarize(
-                        list(
-                            csv.DictReader(table.decode().splitlines(), delimiter="\t")
-                        )
-                    )
-                    != recorded["comparison"]
+                actual = summarize(
+                    list(csv.DictReader(table.decode().splitlines(), delimiter="\t"))
+                )
+                if any(
+                    actual.get(key) != value
+                    for key, value in recorded["comparison"].items()
                 ):
                     raise ValueError(
                         "Legacy source results changed; do not reconstruct their import identity"

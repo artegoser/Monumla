@@ -75,6 +75,12 @@ def summarize(rows, reference=None):
             wdl[0 if score == 1 else 1 if score == 0.5 else 2] += 1
         pairs.setdefault(row["pair"], []).append(score)
     complete = [sum(v) / 2 for v in pairs.values() if len(v) == 2 and "NA" not in v]
+    paired_scores = [
+        score
+        for values in pairs.values()
+        if len(values) == 2 and "NA" not in values
+        for score in values
+    ]
     penta = [sum(value == i / 4 for value in complete) for i in range(5)]
     low, high = interval(complete)
     point = elo(sum(complete) / len(complete)) if complete else None
@@ -91,6 +97,13 @@ def summarize(rows, reference=None):
 
     result = {
         "wdl": wdl,
+        "paired_wdl": [
+            sum(score == target for score in paired_scores) for target in [1, 0.5, 0]
+        ],
+        "unpaired_finished_games": sum(wdl) - len(paired_scores),
+        "unfinished_games": sum(
+            score == "NA" for values in pairs.values() for score in values
+        ),
         "complete_pairs": len(complete),
         "excluded_pairs": len(pairs) - len(complete),
         "pentanomial": penta,

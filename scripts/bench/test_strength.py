@@ -26,6 +26,9 @@ class StrengthTests(unittest.TestCase):
         self.assertEqual(result["complete_pairs"], 3)
         self.assertEqual(result["excluded_pairs"], 1)
         self.assertEqual(result["wdl"], [2, 2, 3])
+        self.assertEqual(result["paired_wdl"], [1, 2, 3])
+        self.assertEqual(result["unpaired_finished_games"], 1)
+        self.assertEqual(result["unfinished_games"], 1)
 
     def test_interval_symmetry_and_more_data(self):
         a, b = interval([0.5] * 10)

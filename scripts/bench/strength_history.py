@@ -190,7 +190,12 @@ def plot(report, destination, title="Monumla · strength evidence by pool"):
                 ax.text(
                     cap + 35,
                     index,
-                    f"{label('baseline')} → {label('candidate')}\n{row['wdl']} W/D/L · {row['complete_pairs']} pairs · {point_text}"
+                    f"{label('baseline')} → {label('candidate')}\n{row.get('paired_wdl',row['wdl'])} paired W/D/L · {row['complete_pairs']} pairs · {point_text}"
+                    + (
+                        f"\nAll scored games: {row['wdl']}"
+                        if row.get("unpaired_finished_games")
+                        else ""
+                    )
                     + (f"\nForfeits: {row['forfeits']}" if row.get("forfeits") else "")
                     + (
                         f" · excluded pairs: {row['excluded_pairs']}"
