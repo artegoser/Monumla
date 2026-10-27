@@ -16,6 +16,7 @@ import platform
 import threading
 from queue import SimpleQueue
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from match_storage import prepare, preserve_interrupted, write_games
 
 
 def elo(score):
@@ -175,9 +176,6 @@ def match(args, cpu_slots=None, emit=None):
     ):
         raise ValueError("Supply one allowed CPU per job")
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    if any(out.iterdir()):
-        raise ValueError("Output directory must be empty (preserve previous runs)")
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     dirty = subprocess.check_output(["git", "status", "--porcelain"], text=True).strip()
     manifest = {
@@ -194,9 +192,8 @@ def match(args, cpu_slots=None, emit=None):
         "load_average_at_start": os.getloadavg(),
         "paired_game_count_predeclared": args.games,
     }
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
-    (out / "moves").mkdir()
-    rows = []
+    manifest, rows = prepare(out, manifest, getattr(args, "resume", False))
+    completed = {row["game"] for row in rows}
     lock = threading.Lock()
     stop = threading.Event()
     slots = cpu_slots if cpu_slots is not None else SimpleQueue()
@@ -213,6 +210,8 @@ def match(args, cpu_slots=None, emit=None):
             workers.append(Worker(args.candidate, cpu))
             for color in range(2):
                 game = 2 * pair_index + color
+                if game + 1 in completed:
+                    continue
                 candidate_side = 1 + color
                 status = [
                     worker.call(
@@ -228,7 +227,9 @@ def match(args, cpu_slots=None, emit=None):
                         "Version rules or opening differ; positions must match"
                     )
                 score, reason = "NA", "ply limit (unfinished, excluded)"
-                with (out / "moves" / f"game-{game+1:04d}.jsonl").open("w") as log:
+                log_path = out / "moves" / f"game-{game+1:04d}.jsonl"
+                preserve_interrupted(log_path)
+                with log_path.open("w") as log:
                     for ply in range(args.max_plies + 1):
                         if stop.is_set():
                             raise RuntimeError(
@@ -298,10 +299,7 @@ def match(args, cpu_slots=None, emit=None):
                 pair_rows.append(row)
                 with lock:
                     rows.append(row)
-                    with (out / "games.tsv").open("w") as table:
-                        writer = csv.DictWriter(table, fields, delimiter="\t")
-                        writer.writeheader()
-                        writer.writerows(sorted(rows, key=lambda r: r["game"]))
+                    write_games(out / "games.tsv", rows, fields)
                     emit(json.dumps(row))
             return pair_rows
         except Exception:
@@ -314,7 +312,11 @@ def match(args, cpu_slots=None, emit=None):
 
     fields = ["pair", "game", "side", "score", "result", "termination"]
     with ThreadPoolExecutor(max_workers=args.jobs) as executor:
-        futures = [executor.submit(pair, i) for i in range(args.games // 2)]
+        futures = [
+            executor.submit(pair, i)
+            for i in range(args.games // 2)
+            if not {2 * i + 1, 2 * i + 2}.issubset(completed)
+        ]
         for future in as_completed(futures):
             future.result()
     report = summarize(rows)
@@ -333,6 +335,7 @@ def main():
     run.add_argument("--candidate", required=True)
     run.add_argument("--ruleset", default="chess")
     run.add_argument("--jobs", type=int, default=1)
+    run.add_argument("--resume", action="store_true")
     run.add_argument("--cpus", help="Comma-separated allowed CPUs, one per job")
     for side in ["baseline", "candidate"]:
         run.add_argument(

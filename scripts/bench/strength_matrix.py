@@ -11,6 +11,7 @@ from pathlib import Path
 from queue import SimpleQueue
 from strength import match, sha256
 from strength_history import pool_name
+from match_storage import write_json
 
 
 def validate(cases, coverage):
@@ -52,6 +53,7 @@ def main():
     parser.add_argument("--coverage", type=Path, default=Path("benchmarks/cases.json"))
     parser.add_argument("--cpus", default="0,1,2,3")
     parser.add_argument("--opening-plies", type=int, default=2)
+    parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     cases = json.loads(args.cases.read_text())
     validate(cases, json.loads(args.coverage.read_text()))
@@ -64,7 +66,7 @@ def main():
     ):
         raise ValueError("Require distinct allowed CPUs and nonnegative opening plies")
     out = Path(args.out)
-    out.mkdir(parents=True)  # Preserve previous runs.
+    out.mkdir(parents=True, exist_ok=args.resume)
     manifest = dict(
         schema=1,
         started_at=datetime.now(timezone.utc).isoformat(),
@@ -83,7 +85,23 @@ def main():
         results=[],
     )
     destination = out / "matrix.json"
-    destination.write_text(json.dumps(manifest, indent=2) + "\n")
+    if args.resume and destination.exists():
+        stored = json.loads(destination.read_text())
+        for key in ["baseline_sha256", "candidate_sha256", "cases_sha256", "plan"]:
+            if stored[key] != manifest[key]:
+                raise ValueError(f"Resume requires the same {key}")
+        for key in ["baseline_revision", "candidate_revision", "opening_plies", "cpus"]:
+            if stored["settings"][key] != manifest["settings"][key]:
+                raise ValueError(f"Resume requires the same {key}")
+        stored.setdefault("resumes", []).append(
+            dict(
+                started_at=manifest["started_at"],
+                runner_revision=manifest["runner_revision"],
+                runner_dirty=manifest["runner_dirty"],
+            )
+        )
+        manifest = stored | {"results": []}
+    write_json(destination, manifest)
 
     # Share the CPU slots across all pools. A slow remaining pool can occupy
     # every free slot; inactive pools do not reserve a physical core.
@@ -108,9 +126,10 @@ def main():
             jobs=min(len(cpus), case["games"] // 2),
             cpus=args.cpus,
             out=str(out / case["id"]),
+            resume=args.resume,
         )
         row = dict(case=case, directory=settings.out, returncode=0)
-        with (out / f"{case['id']}.log").open("w") as log:
+        with (out / f"{case['id']}.log").open("a" if args.resume else "w") as log:
             try:
                 match(
                     settings,
@@ -130,7 +149,7 @@ def main():
         futures = [executor.submit(run_pool, case) for case in cases]
         for future in as_completed(futures):
             manifest["results"].append(future.result())
-            destination.write_text(json.dumps(manifest, indent=2) + "\n")
+            write_json(destination, manifest)
     if (
         sha256(args.baseline) != manifest["baseline_sha256"]
         or sha256(args.candidate) != manifest["candidate_sha256"]
