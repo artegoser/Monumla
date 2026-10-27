@@ -9,6 +9,38 @@ struct Position {
 struct Hidden {
     sampled: RefCell<Vec<u64>>,
 }
+
+#[test]
+fn incomplete_sample_decisions_use_only_a_public_legal_witness() {
+    let domain = Hidden {
+        sampled: RefCell::new(Vec::new()),
+    };
+    let result = analyze_information(
+        &domain,
+        &Position {
+            seed: 99,
+            result: None,
+        },
+        true,
+        SearchOptions {
+            decision_policy: DecisionPolicy::BestAvailable,
+            limits: SearchLimits {
+                max_depth: 1,
+                max_nodes: Some(2),
+            },
+            ..Default::default()
+        },
+        &mut InformationMemory::new(),
+        || false,
+    )
+    .unwrap();
+    // The observation's first action is 0. The sampled hidden world orders 1
+    // first and rewards it; no partial sampled score may select that action.
+    assert_eq!(result.best_action, Some(0));
+    assert_eq!(result.statistics.samples, 0);
+    assert_eq!(result.score, None);
+    assert!(result.variations.is_empty());
+}
 impl SearchDomain for Hidden {
     type Position = Position;
     type Action = usize;

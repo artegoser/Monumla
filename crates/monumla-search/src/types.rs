@@ -37,6 +37,11 @@ pub trait SearchDomain {
         perspective: Self::Perspective,
     ) -> Result<NodeRole, Self::Error>;
     fn actions(&self, position: &Self::Position) -> Result<Vec<Self::Action>, Self::Error>;
+    /// A legal witness for a time-limited decision, without requiring the full
+    /// action list. It carries no evaluation or claim of optimality.
+    fn first_action(&self, position: &Self::Position) -> Result<Option<Self::Action>, Self::Error> {
+        Ok(self.actions(position)?.into_iter().next())
+    }
     fn play(
         &self,
         position: &Self::Position,
@@ -106,6 +111,9 @@ impl Default for SearchLimits {
 }
 #[derive(Clone, Copy, Debug)]
 pub struct SearchOptions {
+    /// Analysis requires completed iterations. Play can retain a legal
+    /// unscored decision when the first iteration exceeds its budget.
+    pub decision_policy: DecisionPolicy,
     /// Publish root work separately from the last completed result.
     pub report_partial: bool,
     pub limits: SearchLimits,
@@ -122,6 +130,7 @@ pub struct SearchOptions {
 impl Default for SearchOptions {
     fn default() -> Self {
         Self {
+            decision_policy: DecisionPolicy::CompletedIterations,
             report_partial: false,
             limits: SearchLimits::default(),
             quiescence_depth: 4,
@@ -133,6 +142,11 @@ impl Default for SearchOptions {
             late_move_reductions: false,
         }
     }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DecisionPolicy {
+    CompletedIterations,
+    BestAvailable,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StopReason {

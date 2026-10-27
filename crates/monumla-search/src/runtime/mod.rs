@@ -277,6 +277,20 @@ impl SearchDomain for RuntimeDomain {
     fn position_key(&self, position: &GameTimeline) -> Option<u128> {
         Some(position.semantic_digest())
     }
+    fn first_action(&self, position: &GameTimeline) -> Result<Option<RuntimeAction>, Self::Error> {
+        if let Some(actions) = self.cache.lock().unwrap().get(&position.semantic_digest()) {
+            return Ok(actions.first().cloned());
+        }
+        let mut first = None;
+        self.enumerate(position, |action| {
+            let losing = self.losing_declaration(position, &action)?;
+            if !losing || first.is_none() {
+                first = Some(action);
+            }
+            Ok(losing)
+        })?;
+        Ok(first)
+    }
     fn action_key(&self, action: &RuntimeAction) -> Option<u64> {
         let parts: Vec<_> = action
             .input

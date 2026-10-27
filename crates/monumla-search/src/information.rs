@@ -163,6 +163,18 @@ pub fn analyze_information_with_progress<D: InformationDomain>(
         });
     }
     let mut stop = StopReason::Cancelled;
+    let fallback = if options.decision_policy == DecisionPolicy::BestAvailable
+        && options.limits.max_nodes != Some(0)
+    {
+        if cancel() {
+            return Ok(sample_report(memory, options, stop));
+        }
+        domain
+            .first_action(&observation)
+            .map_err(SearchError::Domain)?
+    } else {
+        None
+    };
     // A per-call work budget allows a persistent worker to resume the same root.
     let initial_nodes = memory.nodes;
     'batches: loop {
@@ -263,7 +275,11 @@ pub fn analyze_information_with_progress<D: InformationDomain>(
             break;
         }
     }
-    Ok(sample_report(memory, options, stop))
+    let mut report = sample_report(memory, options, stop);
+    if report.best_action.is_none() {
+        report.best_action = fallback;
+    }
+    Ok(report)
 }
 
 fn sample_report<A: Clone, P>(

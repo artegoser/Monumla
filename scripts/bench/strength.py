@@ -204,6 +204,7 @@ def match(args, cpu_slots=None, emit=None):
         "affinity": sorted(os.sched_getaffinity(0)),
         "load_average_at_start": os.getloadavg(),
         "paired_game_count_predeclared": args.games,
+        "request_play_mode": True,
     }
     manifest, rows = prepare(out, manifest, getattr(args, "resume", False))
     completed = {row["game"] for row in rows}
@@ -272,7 +273,7 @@ def match(args, cpu_slots=None, emit=None):
                         index = int(actor == candidate_side)
                         settings = settings_for(args, bool(index))
                         started = time.monotonic()
-                        result = workers[index].call("analyze", **settings)
+                        result = workers[index].call("analyze", **settings, play=True)
                         log.write(
                             json.dumps(
                                 {

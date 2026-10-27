@@ -179,7 +179,8 @@
 					maxNodes: 50_000_000,
 					timeMs: playAfter ? duration : 600_000,
 					lines: playAfter ? 1 : lineCount,
-					forcedMove: playAfter
+					forcedMove: playAfter,
+					play: playAfter
 				},
 				accept
 			);

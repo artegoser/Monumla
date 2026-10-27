@@ -107,7 +107,7 @@ fn analyze_roots<D: SearchDomain>(
     perspective: D::Perspective,
     options: SearchOptions,
     memory: &mut SearchMemory<D::Action, D::Perspective>,
-    cancel: impl FnMut() -> bool,
+    mut cancel: impl FnMut() -> bool,
     allowed_root: Option<Vec<D::Action>>,
     mut progress: impl FnMut(&SearchResult<D::Action>),
 ) -> Result<SearchResult<D::Action>, SearchError<D::Error>> {
@@ -148,9 +148,31 @@ fn analyze_roots<D: SearchDomain>(
         .and_then(|key| memory.results.get(&key))
         .filter(|r| r.completed_depth <= options.limits.max_depth)
         .cloned();
+    let mut result = SearchResult {
+        iteration: None,
+        best_action: None,
+        score: None,
+        principal_variation: Vec::new(),
+        completed_depth: 0,
+        nodes: 0,
+        stop_reason: StopReason::DepthLimit,
+        statistics: SearchStatistics::default(),
+        variations: Vec::new(),
+    };
+    if let Some(previous) = retained {
+        result = previous;
+    }
+    let decide = options.decision_policy == DecisionPolicy::BestAvailable
+        && options.limits.max_depth > 0
+        && options.limits.max_nodes != Some(0);
+    if decide && cancel() {
+        result.stop_reason = StopReason::Cancelled;
+        return Ok(result);
+    }
     // No evaluation is required when a bot has no decision to make. Terminal
     // positions still follow the normal outcome path, never an arbitrary fallback.
     if options.stop_on_forced_move
+        && allowed_root.is_none()
         && domain
             .terminal_score(position, perspective)
             .map_err(SearchError::Domain)?
@@ -171,20 +193,39 @@ fn analyze_roots<D: SearchDomain>(
             });
         }
     }
-    domain.prepare(position).map_err(SearchError::Domain)?;
-    let mut result = SearchResult {
-        iteration: None,
-        best_action: None,
-        score: None,
-        principal_variation: Vec::new(),
-        completed_depth: 0,
-        nodes: 0,
-        stop_reason: StopReason::DepthLimit,
-        statistics: SearchStatistics::default(),
-        variations: Vec::new(),
-    };
-    if let Some(previous) = retained {
-        result = previous;
+    let mut emergency = None;
+    if decide {
+        domain.prepare(position).map_err(SearchError::Domain)?;
+        if let Some(score) = domain
+            .terminal_score(position, perspective)
+            .map_err(SearchError::Domain)?
+        {
+            result.best_action = None;
+            result.score = Some(score);
+            result.principal_variation.clear();
+            result.variations.clear();
+            result.completed_depth = 0;
+            result.stop_reason = StopReason::Terminal;
+            return Ok(result);
+        }
+        if allowed_root.is_none() {
+            emergency = Some(
+                domain
+                    .first_action(position)
+                    .map_err(SearchError::Domain)?
+                    .ok_or(SearchError::NoActions)?,
+            );
+        }
+        if cancel() {
+            result.stop_reason = StopReason::Cancelled;
+            if result.score.is_none() {
+                result.best_action = emergency;
+            }
+            return Ok(result);
+        }
+    }
+    if !decide {
+        domain.prepare(position).map_err(SearchError::Domain)?;
     }
     let carried_nodes = result.nodes;
     let carried_statistics = result.statistics;
@@ -209,6 +250,7 @@ fn analyze_roots<D: SearchDomain>(
         generation: 0,
         excluded_root: Vec::new(),
         allowed_root,
+        emergency,
     };
     'iterations: for depth in start..=options.limits.max_depth {
         context.generation = depth;
@@ -259,6 +301,9 @@ fn analyze_roots<D: SearchDomain>(
             }
         };
         let mut variations = saved.unwrap_or_default();
+        if decide {
+            context.emergency = line.actions.first().cloned();
+        }
         if variations.is_empty() && !line.actions.is_empty() {
             variations.push(SearchVariation {
                 score: line.score,
@@ -330,12 +375,18 @@ fn analyze_roots<D: SearchDomain>(
         .live
         .clone()
         .filter(|live| live.depth > result.completed_depth);
+    if decide && result.score.is_none() {
+        result.best_action = context.emergency.take();
+    }
     if let Some(key) = root_key {
         if context.memory.results.len() >= 32 && !context.memory.results.contains_key(&key) {
             context.memory.results.clear();
         }
         let mut completed = result.clone();
         completed.iteration = None;
+        if completed.score.is_none() {
+            completed.best_action = None;
+        }
         context.memory.results.insert(key, completed);
     }
     Ok(result)
@@ -371,6 +422,7 @@ struct Context<'a, D: SearchDomain, F> {
     generation: u16,
     excluded_root: Vec<D::Action>,
     allowed_root: Option<Vec<D::Action>>,
+    emergency: Option<D::Action>,
 }
 
 mod progress;

@@ -545,3 +545,66 @@ test('worker failures remain visible while paused and a retry can recover', asyn
 	await expect(page.locator('.best-lines button')).toHaveCount(3, { timeout: 30000 });
 	await expect(page.locator('.engine-error')).toHaveCount(0);
 });
+
+for (const shared of [true, false]) {
+	test(`bounded play decisions stay separate from analysis (${shared ? 'shared' : 'fallback'} worker)`, async ({
+		page
+	}) => {
+		await page.addInitScript((useShared: boolean) => {
+			if (!useShared)
+				Object.defineProperty(globalThis, 'crossOriginIsolated', { get: () => false });
+			const observed = window as unknown as {
+				limitedDecisions: Array<{
+					depth: number;
+					score: number | null;
+					lines: unknown[];
+					decision_source: string;
+				}>;
+			};
+			observed.limitedDecisions = [];
+			const send = Worker.prototype.postMessage;
+			Worker.prototype.postMessage = function (message: unknown) {
+				const request = message as {
+					settings?: { play?: boolean; maxNodes: number; timeMs: number };
+				};
+				if (request.settings?.play) {
+					request.settings.maxNodes = 100;
+					request.settings.timeMs = 30000;
+					this.addEventListener('message', ({ data }) => {
+						if (data.type === 'result') observed.limitedDecisions.push(data.analysis);
+					});
+				}
+				send.call(this, message);
+			};
+		}, shared);
+		await open(page);
+		await page.getByLabel('Game variant').selectOption('go');
+		await page.getByLabel('Your side').selectOption('2');
+		await expect(page.locator('.move-row button')).toHaveCount(1, { timeout: 30000 });
+		const decisions = await page.evaluate(
+			() =>
+				(
+					window as unknown as {
+						limitedDecisions: Array<{
+							depth: number;
+							score: number | null;
+							lines: unknown[];
+							decision_source: string;
+						}>;
+					}
+				).limitedDecisions
+		);
+		expect(decisions.length).toBeGreaterThan(0);
+		expect(decisions.at(-1)).toMatchObject({
+			depth: 0,
+			lines: [],
+			decision_source: 'legal_fallback'
+		});
+		// The WASM serializer represents an absent Rust score as undefined.
+		expect(decisions.at(-1)?.score == null).toBe(true);
+		await expect(page.locator('.engine-error')).toHaveCount(0);
+		await analysis(page);
+		await expect(page.locator('.best-lines button')).toHaveCount(3, { timeout: 30000 });
+		await page.getByLabel('Pause search').click();
+	});
+}

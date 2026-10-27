@@ -19,6 +19,8 @@ enum Request {
         depth: u16,
         nodes: u64,
         time_ms: u64,
+        #[serde(default)]
+        play: bool,
     },
     Probe {
         label: String,
@@ -51,8 +53,14 @@ fn execute(game: &mut Option<Session>, request: Request) -> Result<Value, String
             depth,
             nodes,
             time_ms,
+            play,
         } => serde_json::to_value(session.analyze(
             SearchOptions {
+                decision_policy: if play {
+                    monumla_search::DecisionPolicy::BestAvailable
+                } else {
+                    monumla_search::DecisionPolicy::CompletedIterations
+                },
                 limits: SearchLimits {
                     max_depth: depth,
                     max_nodes: Some(nodes),

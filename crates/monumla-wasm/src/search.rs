@@ -3,7 +3,8 @@ use monumla_core::PlayerId;
 use monumla_search::{
     analyze, fingerprint,
     runtime::{RuntimeAction, RuntimeDomain},
-    SearchDomain, SearchLimits, SearchMemory, SearchOptions, SearchResult, StopReason,
+    DecisionPolicy, SearchDomain, SearchLimits, SearchMemory, SearchOptions, SearchResult,
+    StopReason,
 };
 use serde::{Deserialize, Serialize};
 use std::rc::Rc;
@@ -54,6 +55,7 @@ pub struct AnalysisView {
     pub nodes_per_second: f64,
     pub principal_variation: Vec<String>,
     pub best_action: Option<BestAction>,
+    pub decision_source: &'static str,
     pub stop_reason: String,
     pub transposition_hits: u64,
     pub quiescence_nodes: u64,
@@ -698,6 +700,15 @@ impl GameHandle {
                     position_key: key.clone(),
                     action,
                 }),
+                decision_source: if result.best_action.is_none() {
+                    "none"
+                } else if result.stop_reason == StopReason::ForcedMove {
+                    "forced"
+                } else if result.score.is_some() {
+                    "searched"
+                } else {
+                    "legal_fallback"
+                },
                 stop_reason: match result.stop_reason {
                     StopReason::DepthLimit => "depth_limit",
                     StopReason::NodeLimit => "node_limit",
@@ -872,6 +883,7 @@ pub struct SearchSession {
     game: GameHandle,
     domain: RuntimeDomain,
     memory: SearchMemory<RuntimeAction, PlayerId>,
+    decision_policy: DecisionPolicy,
 }
 #[wasm_bindgen]
 impl SearchSession {
@@ -886,6 +898,7 @@ impl SearchSession {
             game,
             domain,
             memory: SearchMemory::new(16384),
+            decision_policy: DecisionPolicy::CompletedIterations,
         })
     }
     #[wasm_bindgen(js_name=setPosition)]
@@ -900,6 +913,14 @@ impl SearchSession {
         }
         self.game = game;
         Ok(())
+    }
+    #[wasm_bindgen(js_name=setPlayMode)]
+    pub fn set_play_mode(&mut self, enabled: bool) {
+        self.decision_policy = if enabled {
+            DecisionPolicy::BestAvailable
+        } else {
+            DecisionPolicy::CompletedIterations
+        };
     }
     pub fn chunk(
         &mut self,
@@ -938,6 +959,7 @@ impl SearchSession {
                 &self.domain,
                 &mut self.memory,
                 SearchOptions {
+                    decision_policy: self.decision_policy,
                     report_partial: true,
                     limits: SearchLimits {
                         max_depth: depth.clamp(1, 32),
@@ -1003,6 +1025,7 @@ impl SearchSession {
             &self.domain,
             &mut self.memory,
             SearchOptions {
+                decision_policy: self.decision_policy,
                 report_partial: true,
                 limits: SearchLimits {
                     max_depth: depth.clamp(1, 32),

@@ -192,6 +192,7 @@ interface WasmHandle {
 }
 
 interface WasmSearchSession {
+	setPlayMode?(enabled: boolean): void;
 	runWithControl?(
 		depth: number,
 		nodes: number,
@@ -401,6 +402,7 @@ export class LocalSearchSession {
 		return typeof this.handle.runWithControl === 'function';
 	}
 	run(settings: SearchSettings, control: Int32Array, progress: (analysis: AnalysisView) => void) {
+		this.handle.setPlayMode?.(settings.play === true);
 		if (!this.handle.runWithControl) throw new Error('Reload to use the current analysis engine.');
 		return this.handle.runWithControl(
 			settings.maxDepth,
@@ -418,6 +420,7 @@ export class LocalSearchSession {
 		progress: (analysis: AnalysisView) => void = () => {}
 	) {
 		const chunk = this.handle.chunkWithProgress ?? this.handle.chunk;
+		this.handle.setPlayMode?.(settings.play === true);
 		return chunk.call(
 			this.handle,
 			settings.maxDepth,

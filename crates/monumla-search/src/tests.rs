@@ -1,5 +1,7 @@
 use super::*;
 use std::cell::Cell;
+#[path = "decision_tests.rs"]
+mod decisions;
 
 struct Node {
     role: NodeRole,

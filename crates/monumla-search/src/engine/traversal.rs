@@ -215,6 +215,16 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             )
         };
         let forced = actions.len() == 1;
+        if ply == 0
+            && self.excluded_root.is_empty()
+            && self.options.decision_policy == DecisionPolicy::BestAvailable
+        {
+            self.emergency = best
+                .as_ref()
+                .and_then(|line| line.actions.first())
+                .or_else(|| actions.first())
+                .cloned();
+        }
         let root_total = actions.len();
         let mut root_done = next;
         for (index, action) in actions.iter().enumerate().skip(next) {
@@ -258,6 +268,17 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 NodeRole::Maximize => line.score > alpha,
                 NodeRole::Minimize => line.score < beta,
             };
+            // A completed full-depth probe can prove that this root choice is
+            // better even if its subsequent exact-window re-search is stopped.
+            // Retain the action for play, without publishing its bound as an
+            // exact evaluation or replacing a completed analysis iteration.
+            if ply == 0
+                && self.excluded_root.is_empty()
+                && improves_bound
+                && self.options.decision_policy == DecisionPolicy::BestAvailable
+            {
+                self.emergency = Some(action.clone());
+            }
             if reduced && improves_bound {
                 self.statistics.researches += 1;
                 line = self.visit(&child, depth - 1, ply + 1, a, b, follow)?;
@@ -271,6 +292,12 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 NodeRole::Minimize => line.score < best.score,
             });
             if improves {
+                if ply == 0
+                    && self.excluded_root.is_empty()
+                    && self.options.decision_policy == DecisionPolicy::BestAvailable
+                {
+                    self.emergency = Some(action.clone());
+                }
                 let mut pv = vec![action.clone()];
                 pv.extend(line.actions);
                 best = Some(Line {
