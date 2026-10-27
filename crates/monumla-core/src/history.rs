@@ -3,7 +3,7 @@ use crate::{
     Transaction,
 };
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RecordedAction {
@@ -215,11 +215,19 @@ impl TurnSession {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GameTimeline {
     current: GameState,
     history: History,
     redo: Vec<Arc<TurnRecord>>,
+    #[serde(skip)]
+    digest: OnceLock<u128>,
+}
+
+impl PartialEq for GameTimeline {
+    fn eq(&self, other: &Self) -> bool {
+        self.current == other.current && self.history == other.history && self.redo == other.redo
+    }
 }
 
 impl GameTimeline {
@@ -229,6 +237,7 @@ impl GameTimeline {
             current,
             history: History::default(),
             redo: Vec::new(),
+            digest: OnceLock::new(),
         })
     }
 
@@ -254,7 +263,9 @@ impl GameTimeline {
                 }
             }
         }
-        crate::fingerprint(&Identity(self))
+        *self
+            .digest
+            .get_or_init(|| crate::fingerprint(&Identity(self)))
     }
 
     pub fn current(&self) -> &GameState {
@@ -284,6 +295,7 @@ impl GameTimeline {
         session.working.validate()?;
 
         let record = session.into_record();
+        self.digest.take();
         self.current = record.after.clone();
         self.redo.clear();
         self.history.push(record);
@@ -292,6 +304,7 @@ impl GameTimeline {
 
     pub fn undo(&mut self) -> Option<&GameState> {
         let record = self.history.pop()?;
+        self.digest.take();
         self.current = record.before.clone();
         self.redo.push(record);
         Some(&self.current)
@@ -303,6 +316,7 @@ impl GameTimeline {
             self.redo.push(record);
             return None;
         }
+        self.digest.take();
         self.current = record.after.clone();
         self.history.push(record);
         Some(&self.current)
@@ -370,5 +384,42 @@ mod digest_tests {
         );
         timeline.redo().unwrap();
         assert_eq!(timeline.semantic_digest(), after);
+    }
+
+    #[test]
+    fn digest_reads_and_branch_changes_preserve_logical_equality() {
+        let mut state = GameState::new(1, 1).unwrap();
+        let player = PlayerId::new(1);
+        state.add_player(crate::PlayerState::new(player)).unwrap();
+        state.set_active_players(vec![player]).unwrap();
+        let mut original = GameTimeline::new(state).unwrap();
+        let mut branch = original.clone();
+        let before = original.semantic_digest();
+        assert_eq!(
+            original, branch,
+            "Reading a digest must not change equality"
+        );
+        let mut turn = branch.begin_turn(player).unwrap();
+        turn.apply_step(RecordedAction::new("branch"), |_| Ok(()))
+            .unwrap();
+        branch.commit_turn(turn).unwrap();
+        let branched = branch.semantic_digest();
+        assert_ne!(branched, before);
+        assert_eq!(original.semantic_digest(), before);
+        assert_ne!(original, branch);
+        branch.undo().unwrap();
+        assert_eq!(branch.semantic_digest(), before);
+        branch.redo().unwrap();
+        assert_eq!(branch.semantic_digest(), branched);
+        let mut turn = original.begin_turn(player).unwrap();
+        turn.apply_step(RecordedAction::new("different action"), |_| Ok(()))
+            .unwrap();
+        original.commit_turn(turn).unwrap();
+        assert_eq!(original.current(), branch.current());
+        assert_ne!(
+            original.semantic_digest(),
+            branched,
+            "History remains part of identity"
+        );
     }
 }
