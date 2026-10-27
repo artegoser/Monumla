@@ -41,6 +41,19 @@
             }
           },
           "relative_throughput": 1.1276370540472471
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 520.3431539994199,
+              "min_ms": 518.9768460004416,
+              "max_ms": 543.2555170009437
+            }
+          },
+          "relative_throughput": 1.2691207660469288
         }
       ]
     },
@@ -245,6 +258,19 @@
             }
           },
           "relative_throughput": 1.4817160917026408
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-rectangular": {
+              "median_ms": 67.6422430005914,
+              "min_ms": 67.12148299993714,
+              "max_ms": 69.56996000008075
+            }
+          },
+          "relative_throughput": 1.5603446348512964
         }
       ]
     },
@@ -288,6 +314,19 @@
             }
           },
           "relative_throughput": 1.089285453753981
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 649.6705270000002,
+              "min_ms": 643.4218079999991,
+              "max_ms": 693.2928090000005
+            }
+          },
+          "relative_throughput": 1.2310242629254222
         }
       ]
     },
@@ -331,6 +370,19 @@
             }
           },
           "relative_throughput": 1.2134490284338466
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 536.9201070000017,
+              "min_ms": 531.2526070000004,
+              "max_ms": 539.2542839999987
+            }
+          },
+          "relative_throughput": 1.4005092124057976
         }
       ]
     },
@@ -374,6 +426,19 @@
             }
           },
           "relative_throughput": 1.1718357260190164
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 351.183391999999,
+              "min_ms": 349.5792250000013,
+              "max_ms": 354.9706960000003
+            }
+          },
+          "relative_throughput": 1.3887102556634936
         }
       ]
     },
@@ -454,6 +519,19 @@
             }
           },
           "relative_throughput": 1.1330157901733744
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "checkers-international": {
+              "median_ms": 107.49062000000049,
+              "min_ms": 106.83337100000062,
+              "max_ms": 108.20129799999995
+            }
+          },
+          "relative_throughput": 1.149945440241263
         }
       ]
     },
@@ -575,6 +653,19 @@
             }
           },
           "relative_throughput": 1.8663324508108738
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "go-19-midgame": {
+              "median_ms": 2804.608355999997,
+              "min_ms": 2794.9076820000046,
+              "max_ms": 2820.765830999997
+            }
+          },
+          "relative_throughput": 1.9301009643938598
         }
       ]
     },
@@ -701,6 +792,265 @@
             }
           },
           "relative_throughput": 1.6416321706884958
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-rectangular": {
+              "median_ms": 75.00171099998988,
+              "min_ms": 74.89485099999001,
+              "max_ms": 75.27040999999736
+            }
+          },
+          "relative_throughput": 1.7564039810251786
+        }
+      ]
+    },
+    "native-chess-knights": {
+      "runtime": "native",
+      "suite": {
+        "id": "chess-knights",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/central-knights.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "1669354ae4fffe9117b408e18017313879ba8c0a6f5f8bdd8d927ca8f043838c"
+        }
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 496.7146920025698,
+              "min_ms": 494.1786649978894,
+              "max_ms": 498.3226280019153
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 424.7552250017179,
+              "min_ms": 424.4733859995904,
+              "max_ms": 425.4829540004721
+            }
+          },
+          "relative_throughput": 1.1694139654210511
+        }
+      ]
+    },
+    "native-chess-queenside": {
+      "runtime": "native",
+      "suite": {
+        "id": "chess-queenside",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/queenside-pressure.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "da4138303fe40f7e24fc0e1ccd7c66dd1debb0aba1929975ff37dc4d9c29cf70"
+        }
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 337.50477400099044,
+              "min_ms": 336.50102600222453,
+              "max_ms": 339.3937009968795
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 282.0356019983592,
+              "min_ms": 279.69043600023724,
+              "max_ms": 283.43246999793337
+            }
+          },
+          "relative_throughput": 1.196674361710384
+        }
+      ]
+    },
+    "native-checkers-russian": {
+      "runtime": "native",
+      "suite": {
+        "id": "checkers-russian",
+        "ruleset": "checkers",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {}
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "checkers-russian": {
+              "median_ms": 40.43803500098875,
+              "min_ms": 40.132256002834765,
+              "max_ms": 40.6744259998959
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "checkers-russian": {
+              "median_ms": 39.2046279994247,
+              "min_ms": 39.096298001823016,
+              "max_ms": 39.31697699954384
+            }
+          },
+          "relative_throughput": 1.031460750031403
+        }
+      ]
+    },
+    "native-checkers-international": {
+      "runtime": "native",
+      "suite": {
+        "id": "checkers-international",
+        "ruleset": "checkers-international",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {}
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "checkers-international": {
+              "median_ms": 87.75790000072448,
+              "min_ms": 86.60632299870485,
+              "max_ms": 88.2219500017527
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "checkers-international": {
+              "median_ms": 84.62264599802438,
+              "min_ms": 84.07144599914318,
+              "max_ms": 85.53339499849244
+            }
+          },
+          "relative_throughput": 1.0370498223699278
+        }
+      ]
+    },
+    "native-tictactoe-5": {
+      "runtime": "native",
+      "suite": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {}
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 24.542800998460734,
+              "min_ms": 24.484131998178782,
+              "max_ms": 25.024630002008053
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 22.984833998634713,
+              "min_ms": 22.727534000296146,
+              "max_ms": 23.4564419988601
+            }
+          },
+          "relative_throughput": 1.0677823907676933
+        }
+      ]
+    },
+    "wasm-tictactoe-5": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {}
+      },
+      "points": [
+        {
+          "revision": "07a2c49",
+          "binary_sha256": "25856ab0ba33c10561c124973873a02c7d04c4e9b323ae74a031e6ee0fbb0be5",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 28.341715000002296,
+              "min_ms": 28.307365000000573,
+              "max_ms": 28.670924999998533
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d0ab8ac919e03b9eb6265d99d73df09b911473a8",
+          "binary_sha256": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54",
+          "measured_at": "2026-10-27T21:01:11.358096+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 26.265377999996417,
+              "min_ms": 25.9943889999995,
+              "max_ms": 26.44734800000151
+            }
+          },
+          "relative_throughput": 1.0790522413195867
         }
       ]
     }
