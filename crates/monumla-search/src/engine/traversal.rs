@@ -18,7 +18,7 @@ impl<A> std::ops::Deref for OrderedActions<A> {
 }
 
 impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
-    pub(super) fn tick(&mut self) -> Result<(), Abort<D::Error>> {
+    pub(super) fn tick(&mut self, ply: u16) -> Result<(), Abort<D::Error>> {
         if (self.cancel)() {
             return Err(Abort::Stopped(StopReason::Cancelled));
         }
@@ -31,6 +31,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             return Err(Abort::Stopped(StopReason::NodeLimit));
         }
         self.nodes += 1;
+        self.statistics.selective_depth = self.statistics.selective_depth.max(ply);
         if self.options.report_partial && self.nodes & 255 == 0 && self.live.is_some() {
             self.notify();
         }
@@ -92,7 +93,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         if depth == 0 {
             return self.quiet(position, self.options.quiescence_depth, ply, alpha, beta);
         }
-        self.tick()?;
+        self.tick(ply)?;
         if let Some(score) = self
             .domain
             .terminal_score_at_ply(position, self.perspective, ply)?
@@ -101,6 +102,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 score,
                 actions: Vec::new(),
                 terminal: true,
+                proven: true,
             });
         }
         let key = if ply == 0 && (!self.excluded_root.is_empty() || self.allowed_root.is_some()) {
@@ -111,7 +113,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         let cached = key.and_then(|key| self.memory.table.get(key)).cloned();
         if let Some(entry) = &cached {
             self.statistics.transposition_hits += 1;
-            if entry.depth >= depth {
+            if entry.proven || entry.depth >= depth {
                 let score = self.domain.score_from_cache(entry.score, ply);
                 let usable = match entry.bound {
                     Bound::Exact => true,
@@ -133,6 +135,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                                 score,
                                 actions: entry.line.clone(),
                                 terminal: false,
+                                proven: entry.proven,
                             },
                             bound,
                         );
@@ -141,6 +144,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                         score,
                         actions: entry.line.clone(),
                         terminal: false,
+                        proven: entry.proven,
                     });
                 }
             }
@@ -172,6 +176,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 score: v.score,
                 actions: v.actions,
                 terminal: false,
+                proven: v.proven,
             });
             if let Some(line) = &best {
                 self.root_result(
@@ -227,6 +232,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         }
         let root_total = actions.len();
         let mut root_done = next;
+        let mut all_proven = best.as_ref().map_or(true, |line| line.proven);
         for (index, action) in actions.iter().enumerate().skip(next) {
             if ply == 0 {
                 self.root_started(depth, root_total, index, action);
@@ -287,6 +293,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 self.statistics.researches += 1;
                 line = self.visit(&child, depth - 1, ply + 1, alpha, beta, follow)?;
             }
+            all_proven &= line.proven;
             let improves = best.as_ref().map_or(true, |best| match role {
                 NodeRole::Maximize => line.score > best.score,
                 NodeRole::Minimize => line.score < best.score,
@@ -304,8 +311,12 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     score: line.score,
                     actions: pv,
                     terminal: false,
+                    proven: all_proven,
                 });
             }
+            // Keep the proof for the whole explored prefix when resuming a root,
+            // including siblings that did not replace the principal variation.
+            best.as_mut().unwrap().proven = all_proven;
             if ply == 0 {
                 root_done = index + 1;
                 if improves && self.options.report_partial {
@@ -319,6 +330,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                         score: line.score,
                         actions: line.actions.clone(),
                         terminal: false,
+                        proven: all_proven,
                     };
                     self.root_result(depth, root_done, root_total, &line, bound);
                 }
@@ -343,6 +355,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     best: best.as_ref().map(|v| SearchVariation {
                         score: v.score,
                         actions: v.actions.clone(),
+                        proven: v.proven,
                     }),
                     alpha,
                     beta,
@@ -381,6 +394,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 depth,
                 score: self.domain.score_to_cache(best.score, ply),
                 bound,
+                proven: best.proven,
                 line: best.actions.clone(),
                 generation: self.generation,
             });

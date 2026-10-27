@@ -98,6 +98,8 @@ pub trait SearchDomain {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SearchLimits {
+    /// Maximum nominal iteration. Reductions and quiescence can make the
+    /// actually reached ply differ; solved roots stop before this limit.
     pub max_depth: u16,
     pub max_nodes: Option<u64>,
 }
@@ -154,10 +156,14 @@ pub enum StopReason {
     NodeLimit,
     Cancelled,
     Terminal,
+    /// Every requested root variation is established from terminal outcomes.
+    Solved,
     ForcedMove,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SearchStatistics {
+    /// Greatest root-relative ply actually visited, including quiescence.
+    pub selective_depth: u16,
     pub samples: u64,
     pub quiescence_nodes: u64,
     pub transposition_hits: u64,
@@ -168,6 +174,8 @@ pub struct SearchStatistics {
 pub struct SearchVariation<A> {
     pub score: i32,
     pub actions: Vec<A>,
+    /// The score is independent of heuristic horizon evaluations.
+    pub proven: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -195,6 +203,8 @@ pub struct SearchResult<A> {
     pub best_action: Option<A>,
     pub score: Option<i32>,
     pub principal_variation: Vec<A>,
+    /// Last fully completed nominal iteration, not a count of legal plies.
+    /// Use statistics.selective_depth for the greatest visited ply.
     pub completed_depth: u16,
     pub nodes: u64,
     pub stop_reason: StopReason,

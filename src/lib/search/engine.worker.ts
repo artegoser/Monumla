@@ -71,6 +71,7 @@ async function run(data: SearchRequest) {
 			publish(analysis);
 			if (
 				analysis.stop_reason === 'terminal' ||
+				analysis.stop_reason === 'solved' ||
 				analysis.stop_reason === 'forced_move' ||
 				analysis.depth >= data.settings.maxDepth ||
 				analysis.nodes >= data.settings.maxNodes ||

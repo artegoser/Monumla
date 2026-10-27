@@ -20,8 +20,30 @@ async function analysis(page: Page) {
 	await expect(page.getByLabel('Best continuations').locator('button').first()).toBeVisible({
 		timeout: 30_000
 	});
-	await expect(page.getByLabel('Position analysis')).toContainText(/depth [1-9]/, {
+	await expect(page.getByLabel('Position analysis')).toContainText(/depth [1-9]|Solved/, {
 		timeout: 30_000
+	});
+}
+
+for (const shared of [true, false]) {
+	test(`tic-tac-toe finishes with a proven draw within nine plies (${shared ? 'continuous' : 'fallback'} worker)`, async ({
+		page
+	}) => {
+		if (!shared)
+			await page.addInitScript(() => {
+				Object.defineProperty(window, 'crossOriginIsolated', { value: false });
+			});
+		await open(page, 'tictactoe');
+		await analysis(page);
+		const panel = page.getByLabel('Position analysis');
+		await expect(panel.locator('.analysis-summary')).toContainText(/Solved · reached 9 plies/, {
+			timeout: 30000
+		});
+		await expect(panel.getByLabel('Position evaluation')).toHaveText('0.00');
+		await expect(page.getByLabel('Best continuations').locator('button')).toHaveCount(3);
+		const statistics = await panel.locator('.search-details').textContent();
+		await page.waitForTimeout(1000);
+		await expect(panel.locator('.search-details')).toHaveText(statistics!);
 	});
 }
 

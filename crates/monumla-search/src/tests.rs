@@ -2,6 +2,8 @@ use super::*;
 use std::cell::Cell;
 #[path = "decision_tests.rs"]
 mod decisions;
+#[path = "proof_tests.rs"]
+mod proofs;
 
 struct Node {
     role: NodeRole,
@@ -509,7 +511,8 @@ fn progress_reports_only_completed_depths_and_budgets_include_research_and_tacti
         |r| depths.push((r.completed_depth, r.nodes, r.best_action)),
     )
     .unwrap();
-    assert_eq!(depths.iter().map(|d| d.0).collect::<Vec<_>>(), [1, 2, 3]);
+    assert_eq!(depths.iter().map(|d| d.0).collect::<Vec<_>>(), [1, 2]);
+    assert_eq!(result.stop_reason, StopReason::Solved);
     assert!(depths.windows(2).all(|d| d[0].1 < d[1].1));
     assert_eq!(result.best_action, depths.last().unwrap().2);
     for budget in 0..30 {

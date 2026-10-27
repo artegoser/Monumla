@@ -4,6 +4,10 @@ use super::*;
 impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
     pub(super) fn total_statistics(&self) -> SearchStatistics {
         SearchStatistics {
+            selective_depth: self
+                .base_statistics
+                .selective_depth
+                .max(self.statistics.selective_depth),
             samples: self.base_statistics.samples + self.statistics.samples,
             quiescence_nodes: self.base_statistics.quiescence_nodes
                 + self.statistics.quiescence_nodes,

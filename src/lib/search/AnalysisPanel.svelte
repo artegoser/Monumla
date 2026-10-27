@@ -347,10 +347,16 @@
 									: 'Searching deeper'
 								: paused
 									? `Analysis paused${live ? ` · unfinished depth ${live.depth}` : ''}`
-									: 'Search finished'}{isCurrent && analysis && !live
+									: analysis?.stop_reason === 'solved'
+										? 'Solved'
+										: 'Search finished'}{isCurrent && analysis && !live
 						? analysis.samples > 0
 							? ` · ${analysis.samples} sampled layouts`
-							: ` · depth ${analysis.depth}`
+							: analysis.stop_reason === 'solved'
+								? analysis.selective_depth
+									? ` · reached ${analysis.selective_depth} plies`
+									: ' · cached result'
+								: ` · depth ${analysis.depth}`
 						: ''}
 				</small>
 			</div>

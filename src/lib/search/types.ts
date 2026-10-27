@@ -41,7 +41,8 @@ export interface AnalysisView {
 	principal_variation: string[];
 	best_action: BestAction | null;
 	decision_source?: 'none' | 'searched' | 'forced' | 'legal_fallback';
-	stop_reason: 'depth_limit' | 'node_limit' | 'time_limit' | 'terminal' | 'forced_move';
+	stop_reason: 'depth_limit' | 'node_limit' | 'time_limit' | 'terminal' | 'forced_move' | 'solved';
+	selective_depth?: number;
 	transposition_hits: number;
 	quiescence_nodes: number;
 	cutoffs: number;

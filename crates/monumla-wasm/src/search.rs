@@ -51,6 +51,7 @@ pub struct AnalysisView {
     pub perspective: u32,
     pub depth: u16,
     pub nodes: u64,
+    pub selective_depth: u16,
     pub elapsed_ms: f64,
     pub nodes_per_second: f64,
     pub principal_variation: Vec<String>,
@@ -693,6 +694,7 @@ impl GameHandle {
                 score: result.score,
                 perspective: player.get(),
                 depth: result.completed_depth,
+                selective_depth: result.statistics.selective_depth,
                 nodes: result.nodes,
                 elapsed_ms,
                 nodes_per_second: result.nodes as f64 * 1000.0 / elapsed_ms.max(1.0),
@@ -714,6 +716,7 @@ impl GameHandle {
                     StopReason::NodeLimit => "node_limit",
                     StopReason::Cancelled => "time_limit",
                     StopReason::Terminal => "terminal",
+                    StopReason::Solved => "solved",
                     StopReason::ForcedMove => "forced_move",
                 }
                 .into(),

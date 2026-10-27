@@ -195,7 +195,7 @@ fn sampled_battleship_match_reaches_a_real_terminal_result() {
 #[test]
 fn solved_classic_tic_tac_toe_self_play_is_a_draw() {
     let mut game = GameHandle::new_ruleset("tictactoe").unwrap();
-    for _ in 0..9 {
+    for ply in 0..9 {
         if let Some(outcome) = game.domain().outcome(game.timeline()).unwrap() {
             assert!(outcome.winners.is_empty());
             return;
@@ -204,16 +204,28 @@ fn solved_classic_tic_tac_toe_self_play_is_a_draw() {
             .analyze_position(
                 SearchOptions {
                     limits: SearchLimits {
-                        max_depth: 9,
+                        max_depth: 32,
                         max_nodes: Some(1_000_000),
                     },
+                    multi_pv: 3,
                     ..Default::default()
                 },
                 || false,
                 |_| {},
             )
             .unwrap();
-        assert_eq!(report.depth, 9);
+        assert_eq!(report.stop_reason, "solved");
+        assert_eq!(report.score, Some(0));
+        assert!(report.depth <= 9 - ply);
+        assert!(report.selective_depth <= 9 - ply);
+        assert!(report
+            .lines
+            .iter()
+            .all(|v| v.moves.len() <= usize::from(9 - ply)));
+        if ply == 0 {
+            assert_eq!(report.lines.len(), 3);
+            assert!(report.lines.iter().all(|v| v.score == 0));
+        }
         game.apply_analyzed_action(report.best_action.unwrap())
             .unwrap();
     }

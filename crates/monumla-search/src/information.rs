@@ -294,6 +294,7 @@ fn sample_report<A: Clone, P>(
         .zip(&memory.sums)
         .filter(|_| memory.samples > 0)
         .map(|(action, sum)| SearchVariation {
+            proven: false,
             score: (sum / memory.samples.max(1) as i64) as i32,
             actions: vec![action],
         })

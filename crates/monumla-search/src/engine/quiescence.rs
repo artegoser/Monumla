@@ -16,6 +16,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 depth: u16::from(depth),
                 score: self.domain.score_to_cache(line.score, ply),
                 bound,
+                proven: line.proven,
                 line: line.actions.clone(),
                 generation: self.generation,
             });
@@ -29,7 +30,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
         mut alpha: i32,
         mut beta: i32,
     ) -> Result<Line<D::Action>, Abort<D::Error>> {
-        self.tick()?;
+        self.tick(ply)?;
         self.statistics.quiescence_nodes += 1;
         if let Some(score) = self
             .domain
@@ -39,6 +40,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 score,
                 actions: Vec::new(),
                 terminal: true,
+                proven: true,
             });
         }
         let quiet_key = self
@@ -59,6 +61,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     score,
                     actions: entry.line.clone(),
                     terminal: false,
+                    proven: entry.proven,
                 });
             }
         }
@@ -76,6 +79,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     score: evaluation,
                     actions: Vec::new(),
                     terminal: false,
+                    proven: false,
                 };
                 let bound = if evaluation >= beta {
                     Bound::Lower
@@ -95,6 +99,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 score: evaluation,
                 actions: Vec::new(),
                 terminal: false,
+                proven: false,
             };
             self.store_quiet(quiet_key, depth, ply, &line, Bound::Exact);
             return Ok(line);
@@ -105,6 +110,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 score: evaluation,
                 actions: Vec::new(),
                 terminal: false,
+                proven: false,
             })
         } else {
             None
@@ -129,9 +135,11 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
             return Err(Abort::Error(SearchError::NoActions));
         }
         self.order(position, &mut tactical.actions, None, None, ply);
+        let mut all_proven = !tactical.stand_pat;
         for action in tactical.actions {
             let child = self.domain.play(position, &action)?;
             let line = self.quiet(&child, depth - 1, ply + 1, alpha, beta)?;
+            all_proven &= line.proven;
             let improves = best.as_ref().map_or(true, |best| match role {
                 NodeRole::Maximize => line.score > best.score,
                 NodeRole::Minimize => line.score < best.score,
@@ -143,6 +151,7 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                     score: line.score,
                     actions,
                     terminal: false,
+                    proven: all_proven,
                 });
             }
             let score = best.as_ref().unwrap().score;
@@ -155,7 +164,8 @@ impl<D: SearchDomain, F: FnMut() -> bool> Context<'_, D, F> {
                 break;
             }
         }
-        let best = best.expect("standing pat or tactical response");
+        let mut best = best.expect("standing pat or tactical response");
+        best.proven = all_proven;
         let bound = if best.score <= original_alpha {
             Bound::Upper
         } else if best.score >= original_beta {

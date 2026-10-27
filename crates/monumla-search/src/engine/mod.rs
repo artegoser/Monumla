@@ -162,6 +162,13 @@ fn analyze_roots<D: SearchDomain>(
     if let Some(previous) = retained {
         result = previous;
     }
+    if matches!(
+        result.stop_reason,
+        StopReason::Solved | StopReason::Terminal
+    ) {
+        return Ok(result);
+    }
+    result.stop_reason = StopReason::DepthLimit;
     let decide = options.decision_policy == DecisionPolicy::BestAvailable
         && options.limits.max_depth > 0
         && options.limits.max_nodes != Some(0);
@@ -267,6 +274,7 @@ fn analyze_roots<D: SearchDomain>(
                 score: primary.score,
                 actions: primary.actions.clone(),
                 terminal: false,
+                proven: primary.proven,
             };
             context.root_result(depth, 0, 0, &line, ScoreBound::Exact);
             line
@@ -308,6 +316,7 @@ fn analyze_roots<D: SearchDomain>(
             variations.push(SearchVariation {
                 score: line.score,
                 actions: line.actions.clone(),
+                proven: line.proven,
             });
         }
         let mut interrupted = None;
@@ -325,6 +334,7 @@ fn analyze_roots<D: SearchDomain>(
                         variations.push(SearchVariation {
                             score: next.score,
                             actions: next.actions,
+                            proven: next.proven,
                         });
                     }
                     Err(Abort::Stopped(reason)) => {
@@ -362,10 +372,15 @@ fn analyze_roots<D: SearchDomain>(
         result.statistics = context.total_statistics();
         if line.terminal {
             result.stop_reason = StopReason::Terminal;
+        } else if line.proven && result.variations.iter().all(|v| v.proven) {
+            result.stop_reason = StopReason::Solved;
         }
         result.iteration = None;
         (context.progress)(&result);
-        if line.terminal {
+        if matches!(
+            result.stop_reason,
+            StopReason::Terminal | StopReason::Solved
+        ) {
             break;
         }
     }
@@ -396,6 +411,9 @@ struct Line<A> {
     score: i32,
     actions: Vec<A>,
     terminal: bool,
+    // True only when every bound used here follows from terminal outcomes.
+    // A terminal best PV alone is insufficient: other choices may be heuristic.
+    proven: bool,
 }
 enum Abort<E> {
     Stopped(StopReason),

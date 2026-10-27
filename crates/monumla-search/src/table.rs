@@ -11,6 +11,7 @@ pub(crate) struct Entry<A> {
     pub depth: u16,
     pub score: i32,
     pub bound: Bound,
+    pub proven: bool,
     pub line: Vec<A>,
     pub generation: u16,
 }
@@ -41,6 +42,9 @@ impl<A: Clone> Table<A> {
         }
         let index = self.index(entry.key);
         let replace = self.slots[index].as_ref().map_or(true, |old| {
+            if old.key == entry.key && old.proven != entry.proven {
+                return entry.proven;
+            }
             old.generation != entry.generation
                 || entry.depth >= old.depth
                 || (old.key == entry.key && entry.bound == Bound::Exact)

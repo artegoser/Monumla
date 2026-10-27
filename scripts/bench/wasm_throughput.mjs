@@ -38,7 +38,7 @@ for (let trial = 0; trial <= repeats; trial++) {
     ? session.runWithControl(depth, 50000000, budget, lines, false, new Int32Array(new SharedArrayBuffer(4)), progress)
     : session.chunkWithProgress(depth, 50000000, 250, lines, false, progress);
    chunks++;
-  } while (report.depth < depth && performance.now() - start < budget);
+  } while (!['solved', 'terminal', 'forced_move'].includes(report.stop_reason) && report.depth < depth && performance.now() - start < budget);
   const elapsed_ms = performance.now() - start;
   const row = { trial, warmup: trial === 0, elapsed_ms, nps: Number(report.nodes) * 1000 / elapsed_ms, chunks, callbacks, report };
   records.push(row); console.log(JSON.stringify({ trial, elapsed_ms, nps: row.nps, depth: report.depth, nodes: String(report.nodes), chunks, callbacks }));
