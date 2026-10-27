@@ -63,7 +63,8 @@ class MatchResumeTests(unittest.TestCase):
                     (out / "moves/game-0002.interrupted-1.jsonl").read_text(),
                     "partial search trace\n",
                 )
-                rows = list(csv.DictReader((out / "games.tsv").open(), delimiter="\t"))
+                with (out / "games.tsv").open() as table:
+                    rows = list(csv.DictReader(table, delimiter="\t"))
                 self.assertEqual([r["game"] for r in rows], ["1", "2"])
                 self.assertEqual(
                     json.loads((out / "strength.json").read_text())["wdl"], [1, 0, 1]

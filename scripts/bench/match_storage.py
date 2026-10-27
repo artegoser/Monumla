@@ -48,11 +48,10 @@ def prepare(out, manifest, resume):
     ]:
         if stored.get(key) != manifest.get(key):
             raise ValueError(f"Resume requires the same {key}")
-    rows = (
-        list(csv.DictReader((out / "games.tsv").open(), delimiter="\t"))
-        if (out / "games.tsv").exists()
-        else []
-    )
+    rows = []
+    if (out / "games.tsv").exists():
+        with (out / "games.tsv").open() as table:
+            rows = list(csv.DictReader(table, delimiter="\t"))
     seen = set()
     for row in rows:
         game = int(row["game"])
