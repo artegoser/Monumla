@@ -86,3 +86,18 @@ The native harness requires a completed search iteration before choosing a move.
 Candidate `92e4586` cached successful structural validation on immutable state snapshots, invalidating it on every mutable projection. It passed 215 release tests and Clippy and preserved depth, nodes, score, PV, ranked lines and stop reason in **all 28 native/WASM comparisons**. The same 14-case suite used one warmup and five alternating measurements against frozen `07a2c49`.
 
 It did not improve performance: the geometric mean of case speed ratios was **0.9843× native** and **0.9966× WASM**. Five native cases and three WASM cases had slower timing ranges with no overlap; WASM Battleship setup fell to **0.9323×**. These are observed ranges, not confidence intervals. The candidate was rejected and kept off `main` on `perf/validation-cache-rejected`; no gain was added to the performance journal. The full per-case measurements remain under ignored `target/monumla-bench/validation-cache-{native,wasm}-matrix/`. Passing correctness tests alone was insufficient to ship this optimization.
+
+## Stop at proven outcomes (2026-10-27)
+
+`16cb748` propagates terminal-outcome proofs through the shared alpha-beta traversal, bound-aware tables, mandatory quiescence responses and resumed MultiPV passes. A terminal principal variation alone does not prove the root: visited heuristic siblings prevent the solved flag. Once every requested variation is proven, iterative deepening stops and subsequent calls reuse the solved result. Hidden-world sampling remains an estimate, never a proof.
+
+The former 3×3 display of **depth 32** was a nominal iteration counter. It did not represent a legal 32-ply line. Reductions can also make the final nominal iteration exceed physical game length: the current reduced search solves the initial board at iteration 11 while reaching only **9 plies**. The finished UI therefore reports **Solved · reached 9 plies**. The empty board is a proven draw, including all three requested variations; optimal self-play also ends in a draw. No game-specific table or depth cap was added.
+
+Cold empty 3×3, one PV, nominal limit 32, 50 million node limit, no deadline; frozen `2811f1c` versus `16cb748`, one warmup and five alternating repetitions on the same pinned CPU within each runtime:
+
+| Runtime | Before median (observed range) | After median (observed range) | Nodes before → after |
+|---|---|---|---|
+| Native release, CPU 5 | 960.6 ms (928.1–1069.1) | 173.3 ms (167.6–179.7) | 66,247 → 11,604 |
+| WASM release, Node 24.13.1, CPU 4 | 1128.3 ms (1118.8–1144.0) | 223.0 ms (222.2–233.4) | 64,885 → 11,360 |
+
+This is avoided search work, **not a fixed-work NPS gain or an Elo improvement**, and the remaining runtime is still substantial for this small game. Raw reports, binary hashes and all samples remain under `target/monumla-bench/proof-solve-{native,wasm}-final.json`. The separate shallow 14-case suite preserved work and answers on native and WASM; its raw runs are `proof-{native,wasm}-matrix/`. All 100 desktop/mobile browser tests passed, including continuous and fallback workers stopping at the proof. Native hook profiling attributes most remaining 3×3 runtime to legal-turn generation and repeated full-history identity computation; that is the next measured optimization target.
