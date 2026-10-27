@@ -88,6 +88,17 @@ def accept(history, report, baseline_revision, candidate_revision, measured_at):
     return history
 
 
+def throughput_range(point):
+    # Chained comparisons are normalized by their own measured baseline.
+    # Absolute times from the first run cannot describe a later point's spread.
+    center = point["relative_throughput"]
+    timings = point["timings"].values()
+    return (
+        center * geometric(v["median_ms"] / v["max_ms"] for v in timings),
+        center * geometric(v["median_ms"] / v["min_ms"] for v in timings),
+    )
+
+
 def plot(history, path):
     from matplotlib.figure import Figure
 
@@ -101,20 +112,8 @@ def plot(history, path):
     axes = list(axes)
     for ax, entry in zip(axes, series):
         points = entry["points"]
-        reference = points[0]["timings"]
         y = [p["relative_throughput"] for p in points]
-        lo = [
-            geometric(
-                reference[n]["median_ms"] / v["max_ms"] for n, v in p["timings"].items()
-            )
-            for p in points
-        ]
-        hi = [
-            geometric(
-                reference[n]["median_ms"] / v["min_ms"] for n, v in p["timings"].items()
-            )
-            for p in points
-        ]
+        lo, hi = zip(*(throughput_range(point) for point in points))
         ax.errorbar(
             range(len(points)),
             y,
@@ -151,7 +150,7 @@ def plot(history, path):
         ax.set_visible(False)
     fig.suptitle("Monumla · verified performance milestones", fontsize=17)
     fig.supxlabel(
-        "Separate suites; baselines are not comparable across panels. Bars: observed spread, not confidence intervals.",
+        "Separate suites; baselines differ across panels. Bars: each point's observed timing spread, not confidence intervals.",
         fontsize=9,
     )
     fig.savefig(path, dpi=150)

@@ -1,9 +1,23 @@
 import copy
 import unittest
-from performance_history import accept
+from performance_history import accept, throughput_range
 
 
 class HistoryTests(unittest.TestCase):
+    def test_chained_point_spread_uses_its_own_timing_scale(self):
+        # A later run can have a different clock/load than the first baseline.
+        # Its normalized 2x point must not get whiskers around an absolute 10x.
+        low, high = throughput_range(
+            dict(
+                relative_throughput=2.0,
+                timings={"fixture": dict(median_ms=100, min_ms=90, max_ms=110)},
+            )
+        )
+        self.assertAlmostEqual(low, 2 * 100 / 110)
+        self.assertAlmostEqual(high, 2 * 100 / 90)
+        self.assertLessEqual(low, 2)
+        self.assertGreaterEqual(high, 2)
+
     def report(self):
         return dict(
             settings=dict(ruleset="chess", depth=3, nodes=100000, cpu=4),
