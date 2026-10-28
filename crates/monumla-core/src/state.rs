@@ -298,7 +298,7 @@ impl GameState {
             }
         }
 
-        for (index, entity) in self.board.raw_cells().iter().copied().enumerate() {
+        for (index, entity) in self.board.cells().iter().copied().enumerate() {
             let Some(entity_id) = entity else {
                 continue;
             };

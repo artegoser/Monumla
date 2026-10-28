@@ -1,4 +1,3 @@
-
 use super::*;
 use monumla_core::{GameTimeline, InteractionDriver};
 #[test]
@@ -7,6 +6,7 @@ fn group_facts_match_full_transaction_legality_during_play() {
         let mut timeline = GameTimeline::new(empty_state(size)).unwrap();
         for ply in 0..40 {
             let s = timeline.current();
+            assert_eq!(board_key(s).unwrap(), board_key_rule(s).unwrap());
             let p = active_player(s).unwrap();
             let seen = historical_play_positions(Some(timeline.history())).unwrap();
             let facts = legality::PlacementFacts::new(s).unwrap();

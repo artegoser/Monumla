@@ -71,6 +71,27 @@ mod tests {
     }
 
     #[test]
+    fn borrowed_cells_match_positions_on_a_rectangular_board() {
+        let mut board = Board::new(3, 2).unwrap();
+        board.place(Position::new(2, 0), EntityId::new(7)).unwrap();
+        board.place(Position::new(0, 1), EntityId::new(3)).unwrap();
+        assert_eq!(
+            board.cells(),
+            &[
+                None,
+                None,
+                Some(EntityId::new(7)),
+                Some(EntityId::new(3)),
+                None,
+                None
+            ]
+        );
+        for (position, cell) in board.positions().zip(board.cells()) {
+            assert_eq!(board.entity_at(position).unwrap(), *cell);
+        }
+    }
+
+    #[test]
     fn entity_lifecycle_keeps_board_and_store_in_sync() {
         let mut state = sample_state();
         let entity_id = EntityId::new(7);

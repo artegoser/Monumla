@@ -449,11 +449,9 @@ fn next_entity_id(state: &GameState) -> Result<EntityId, InteractionError> {
 struct BoardKey(Vec<u8>);
 
 fn board_key(state: &GameState) -> Result<BoardKey, InteractionError> {
-    let mut cells = Vec::with_capacity(
-        usize::from(state.board.width()).saturating_mul(usize::from(state.board.height())),
-    );
-    for position in state.board.positions() {
-        let value = match state.entity_at(position)? {
+    let mut cells = Vec::with_capacity(state.board.cells().len());
+    for occupant in state.board.cells() {
+        let value = match occupant.and_then(|id| state.entities.get(&id)) {
             None => 0,
             Some(entity) if entity.owner == BLACK => 1,
             Some(entity) if entity.owner == WHITE => 2,
@@ -1808,6 +1806,23 @@ mod tests {
                 .and_then(StateValue::as_bool),
             Some(true)
         );
+    }
+
+    #[test]
+    fn occupancy_keys_preserve_row_order_and_owner_validation() {
+        let mut state = empty_state(3);
+        add_stone(&mut state, 9, BLACK, 2, 0);
+        add_stone(&mut state, 2, WHITE, 0, 1);
+        add_stone(&mut state, 7, BLACK, 1, 2);
+        assert_eq!(board_key(&state).unwrap().0, [0, 0, 1, 2, 0, 0, 0, 1, 0]);
+        assert_eq!(board_key(&state).unwrap(), board_key_rule(&state).unwrap());
+
+        state.entities.remove(&EntityId::new(9));
+        // Match entity_at even on a dangling occupant, before state validation.
+        assert_eq!(board_key(&state).unwrap(), board_key_rule(&state).unwrap());
+        state.entity_mut(EntityId::new(2)).unwrap().owner = PlayerId::new(3);
+        assert!(board_key(&state).is_err());
+        assert!(board_key_rule(&state).is_err());
     }
 
     #[test]

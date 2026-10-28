@@ -66,6 +66,12 @@ impl Board {
         (0..self.height).flat_map(move |y| (0..self.width).map(move |x| Position::new(x, y)))
     }
 
+    /// Borrow every cell's occupant in row-major order, matching `positions()`.
+    /// Empty cells remain `None`; no coordinates or entity states are allocated.
+    pub fn cells(&self) -> &[Option<EntityId>] {
+        &self.cells
+    }
+
     pub(crate) fn place(&mut self, position: Position, entity: EntityId) -> Result<(), CoreError> {
         let index = self.index(position)?;
         if let Some(existing) = self.cells[index] {
@@ -88,10 +94,6 @@ impl Board {
             self.cells[index] = None;
         }
         Ok(())
-    }
-
-    pub(crate) fn raw_cells(&self) -> &[Option<EntityId>] {
-        &self.cells
     }
 
     pub(crate) fn validate_storage(&self) -> Result<(), CoreError> {
