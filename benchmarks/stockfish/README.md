@@ -32,6 +32,33 @@ The coordinator predeclares the full paired schedule, records binary identities,
 
 Only a finished schedule at the documented 120s+1s calibration control can publish `benchmarks/elo.json` and `benchmarks/elo.png`. The graph shows Monumla's estimate and a conservative paired confidence interval on the **Stockfish UCI_Elo reference scale**. All losses/wins yield a bound with an arrow, without a fabricated finite rating. This calibration is distinct from FIDE/Lichess ratings and from version-to-version Elo changes. External Stockfish binaries remain under ignored `target/`; no Stockfish code or weights are linked into Monumla.
 
+To find a comparable opponent automatically, import a first probe and optionally an earlier completed pilot:
+
+```sh
+python3 scripts/bench/reference_ladder.py \
+  --pilot target/monumla-bench/reference-1320 \
+  --seed target/monumla-bench/reference-1600 \
+  --out target/monumla-bench/chess-calibration
+# After an interruption:
+python3 scripts/bench/reference_ladder.py \
+  --out target/monumla-bench/chess-calibration --resume
+python3 scripts/bench/reference_ladder_report.py \
+  --run target/monumla-bench/chess-calibration
+```
+
+Discovery completes each full batch before changing levels. It steps by 200 Elo until bracketed, then tests the midpoint rounded to 25 Elo (ties to even). A combined score of 40–60% at a setting selects that opponent for a **fresh, fixed 48-game confirmation**. Repeated discovery batches at one setting are combined; discovery stops with an explicit error after eight probe batches if no equilibrium is found. Every new batch is recorded before play, and resume retains its original games, colors, binaries and controls. The driver rejects incomplete/excluded pairs instead of silently dropping them from calibration.
+
+The discovery curve is `benchmarks/elo-calibration.png`. Its points measure the same frozen Monumla against different settings; they are not strength improvements over time. Only the independent confirmation determines the final Elo estimate and interval in `elo.json`/`elo.png`. While confirmation is incomplete, plotting discovery leaves the previously published rating intact. Choosing an opponent adaptively does not justify pooling those discovery games into a fixed-sample confidence interval.
+
+Audit completed PGNs against a frozen WASM build of the same rules before accepting a result:
+
+```sh
+node scripts/bench/reference_audit.mjs /path/to/frozen/wasm \
+  target/monumla-bench/reference-1600
+```
+
+The audit checks actual clock/level settings, replays each PGN, verifies its rules outcome against the result table, and inspects every position for claimable draws. Draw claims need explicit review because UCI has no claim-draw command. The audit records its WASM checksum and findings under the ignored run directory.
+
 The deadline is checked between nodes. Rule generation, move validation, and notation can exceed the nominal time; inspect actual times in the log. This is a development match harness rather than a tournament clock manager. A small result set is a baseline, not an Elo estimate. Strength improvements need larger matched runs under the same settings and machine conditions; avoid concurrent browser/search work during measurement.
 
 Search changes belong in `monumla-search`. Keep the abstract minimax, draughts, Go, and browser regressions passing. Chess gains do not by themselves establish Go or draughts strength; their branching factors and strategic demands differ.
