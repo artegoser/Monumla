@@ -52,6 +52,8 @@ The discovery curve is `benchmarks/elo-calibration.png`. Its points measure the 
 
 If the larger confirmation shows the opponent was uneven, further predeclared level checks can refine the equilibrium. Retain the original confirmation as the primary result regardless of those later scores. The run plan may include separate `validation` batches; resume completes them without replaying confirmation. Their selection policy is retained in the published calibration metadata, and they never enter the primary rating interval.
 
+An exactly even selectable setting is not guaranteed: Stockfish 19's limiter fixes its weakened move at a depth determined by an integer skill component ([selection control](https://github.com/official-stockfish/Stockfish/blob/sf_19/src/search.h), [use during search](https://github.com/official-stockfish/Stockfish/blob/sf_19/src/search.cpp)). Nearby reference settings can therefore have steps. A follow-up search may report an observed crossover bracket at its declared grid resolution instead of repeating endpoint batches until a favorable near-50% result appears. Record that stopping decision and retain all results. The crossover bracket describes observed level scores; it is **not** a confidence interval for Monumla's rating. The independent confirmation still supplies the rating and its uncertainty.
+
 Audit completed PGNs against a frozen WASM build of the same rules before accepting a result:
 
 ```sh

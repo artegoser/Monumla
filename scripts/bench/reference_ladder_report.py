@@ -63,10 +63,9 @@ def final_report(calibration):
             confirmation_path=confirmations[0]["path"],
         ),
     )
-    if "followup_validation" in calibration:
-        result["calibration"]["followup_validation"] = calibration[
-            "followup_validation"
-        ]
+    for key in ["followup_validation", "equilibrium_search"]:
+        if key in calibration:
+            result["calibration"][key] = calibration[key]
     return result
 
 
@@ -133,8 +132,16 @@ def plot_scores(calibration, path):
     ax.grid(axis="y", alpha=0.2)
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(loc="lower left")
-    fig.suptitle("Monumla · finding an even chess opponent", fontsize=17)
-    ax.set_title("120s + 1s · frozen engines · swapped-color pairs", fontsize=11)
+    fig.suptitle("Monumla · chess reference levels", fontsize=17)
+    search = calibration.get("equilibrium_search", {})
+    if search.get("status") == "bracketed":
+        low, high = search["observed_crossover"]
+        detail = f"Observed crossover: {low}–{high} · "
+    elif search.get("status") == "observed_even":
+        detail = f"Observed even matchup: {search['level']} · "
+    else:
+        detail = ""
+    ax.set_title(detail + "120s + 1s · swapped-color pairs", fontsize=11)
     fig.supxlabel(
         "Bars: conservative paired 95% bounds for each setting. Discovery selects the opponent;\nonly the separate fixed-size confirmation determines the final rating interval.",
         fontsize=9,

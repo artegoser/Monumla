@@ -43,8 +43,11 @@ class ReferenceLadderReportTests(unittest.TestCase):
         calibration = self.calibration()
         policy = dict(primary_inference="Always retain the original 48 games")
         calibration["followup_validation"] = policy
+        search = dict(status="bracketed", observed_crossover=[1425, 1450])
+        calibration["equilibrium_search"] = search
         result = final_report(calibration)
         self.assertEqual(result["calibration"]["followup_validation"], policy)
+        self.assertEqual(result["calibration"]["equilibrium_search"], search)
         self.assertEqual(result["reference_scale_elo"]["point"], 1600)
         self.assertEqual(result["complete_pairs"], 24)
 

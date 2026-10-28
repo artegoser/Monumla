@@ -161,8 +161,9 @@ def calibration_report(plan):
         primary=confirmation,
         inference="Discovery batches select the opponent. Only fresh fixed-size confirmation games determine the final rating interval.",
     )
-    if "followup_validation" in plan:
-        result["followup_validation"] = plan["followup_validation"]
+    for key in ["followup_validation", "equilibrium_search"]:
+        if key in plan:
+            result[key] = plan[key]
     return result
 
 
