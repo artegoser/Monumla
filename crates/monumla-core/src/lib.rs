@@ -5,6 +5,7 @@ mod action;
 mod board;
 mod error;
 mod evaluation;
+mod fingerprint;
 mod history;
 mod ids;
 mod information;
@@ -18,6 +19,7 @@ pub use action::{EntityActionPath, TurnInput};
 pub use board::{Board, Position};
 pub use error::CoreError;
 pub use evaluation::PositionScoreRule;
+pub use fingerprint::fingerprint;
 pub use history::{
     GameTimeline, History, RecordedAction, StepRecord, TransactionResult, TurnRecord, TurnSession,
 };
@@ -37,7 +39,7 @@ pub use state::{
     RulesetState, TeamData, TeamState, TeamStore, TurnData, TurnState,
 };
 pub use transaction::{PresentationCue, StateChange, StateDelta, Transaction, TransactionOutcome};
-pub use value::{fingerprint, StateMap, StateValue};
+pub use value::{StateMap, StateValue};
 
 #[cfg(test)]
 mod tests {
