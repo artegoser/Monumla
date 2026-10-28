@@ -1,22 +1,24 @@
 {
   "schema": 1,
-  "measured_at": "2026-10-27T21:01:11.358096+00:00",
+  "measured_at": "2026-10-28T20:12:53.519949+00:00",
   "revisions": {
-    "baseline": "07a2c49",
-    "candidate": "d0ab8ac919e03b9eb6265d99d73df09b911473a8"
+    "baseline": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+    "candidate": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871"
   },
   "native_binary_sha256": {
-    "baseline": "313bb60100dd36978a42e16b248ddacac26d0868703ccd4579600e90dfa1c377",
-    "candidate": "9a1a5735e35b55ebf26fb71ba0eb5003746fd4efaa06932b57051d1069d723cb"
+    "baseline": "56e360b9ceea1e1b20b133771d96a6b05a4a824a4fe6d7339acc8ab27cce8e6e",
+    "candidate": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c"
   },
   "wasm_binary_sha256": {
-    "baseline": "25856ab0ba33c10561c124973873a02c7d04c4e9b323ae74a031e6ee0fbb0be5",
-    "candidate": "74b152e3bca3268307ff6b74cb1f32de365627242db5f019fee1a12af807fd54"
+    "baseline": "e94e9fdb6c94fedb2ef48b7c3bd6ce50dc4991d6e911b4703611039a2250a605",
+    "candidate": "9f8bb57a22d4fe3387599e9913f4c23e2d29ec272bba88cab2ba06993ed10701"
   },
   "node": "24.13.1",
   "cpu": "AMD Ryzen 7 5800X 8-Core Processor",
-  "repetitions": 5,
-  "method": "One warmup, 5 alternating repetitions, pinned CPUs; same depth, nodes, score, PV, lines and stop reason required within each runtime. Observed ranges are not confidence intervals. Native and WASM timings are separate measurements.",
+  "repetitions": 9,
+  "warmups": 5,
+  "warmup_ms": 1000,
+  "method": "At least 5 warmups and 1000 ms warmup work per binary, then 9 alternating measured repetitions, pinned CPUs; same depth, nodes, score, PV, lines and stop reason required within each runtime. Observed ranges are not confidence intervals. Native and WASM timings are separate measurements. Selective depth also matched on all recorded iterations; full tic-tac-toe solves reached nine plies.",
   "results": [
     {
       "runtime": "native",
@@ -29,17 +31,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 585.6301899984828,
-        "min_ms": 584.3244320021768,
-        "max_ms": 599.8144969998975
+        "median_ms": 535.5849010011298,
+        "min_ms": 520.8831229974749,
+        "max_ms": 554.4176350013004
       },
       "candidate": {
-        "median_ms": 520.3431539994199,
-        "min_ms": 518.9768460004416,
-        "max_ms": 543.2555170009437
+        "median_ms": 527.1495080014574,
+        "min_ms": 512.9009809970739,
+        "max_ms": 564.9052559965639
       },
-      "speedup": 1.1254691937373615,
-      "verified_gain": true
+      "speedup": 1.01600189864855,
+      "verified_gain": false
     },
     {
       "runtime": "native",
@@ -52,17 +54,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 496.7146920025698,
-        "min_ms": 494.1786649978894,
-        "max_ms": 498.3226280019153
+        "median_ms": 438.9425739936996,
+        "min_ms": 431.1901510009193,
+        "max_ms": 451.45333300024504
       },
       "candidate": {
-        "median_ms": 424.7552250017179,
-        "min_ms": 424.4733859995904,
-        "max_ms": 425.4829540004721
+        "median_ms": 433.39497900160495,
+        "min_ms": 425.3281450000941,
+        "max_ms": 447.5907960004406
       },
-      "speedup": 1.1694139654210511,
-      "verified_gain": true
+      "speedup": 1.0128003213255365,
+      "verified_gain": false
     },
     {
       "runtime": "native",
@@ -75,17 +77,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 337.50477400099044,
-        "min_ms": 336.50102600222453,
-        "max_ms": 339.3937009968795
+        "median_ms": 284.28800600522663,
+        "min_ms": 281.2437590037007,
+        "max_ms": 290.31276099703973
       },
       "candidate": {
-        "median_ms": 282.0356019983592,
-        "min_ms": 279.69043600023724,
-        "max_ms": 283.43246999793337
+        "median_ms": 280.671849999635,
+        "min_ms": 277.86808199743973,
+        "max_ms": 287.5968039952568
       },
-      "speedup": 1.196674361710384,
-      "verified_gain": true
+      "speedup": 1.0128839283511912,
+      "verified_gain": false
     },
     {
       "runtime": "native",
@@ -97,17 +99,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 40.43803500098875,
-        "min_ms": 40.132256002834765,
-        "max_ms": 40.6744259998959
+        "median_ms": 40.07457599800546,
+        "min_ms": 39.6869960022741,
+        "max_ms": 41.600274002121296
       },
       "candidate": {
-        "median_ms": 39.2046279994247,
-        "min_ms": 39.096298001823016,
-        "max_ms": 39.31697699954384
+        "median_ms": 39.33052699721884,
+        "min_ms": 38.92580700630788,
+        "max_ms": 48.20716899848776
       },
-      "speedup": 1.031460750031403,
-      "verified_gain": true
+      "speedup": 1.0189178497618208,
+      "verified_gain": false
     },
     {
       "runtime": "native",
@@ -119,17 +121,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 87.75790000072448,
-        "min_ms": 86.60632299870485,
-        "max_ms": 88.2219500017527
+        "median_ms": 88.36359399720095,
+        "min_ms": 86.41210600035265,
+        "max_ms": 91.02764199633384
       },
       "candidate": {
-        "median_ms": 84.62264599802438,
-        "min_ms": 84.07144599914318,
-        "max_ms": 85.53339499849244
+        "median_ms": 85.97498599556275,
+        "min_ms": 84.62214800238144,
+        "max_ms": 89.49836299871095
       },
-      "speedup": 1.0370498223699278,
-      "verified_gain": true
+      "speedup": 1.0277825925061679,
+      "verified_gain": false
     },
     {
       "runtime": "native",
@@ -141,16 +143,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 65.50807600069675,
-        "min_ms": 64.749697001389,
-        "max_ms": 67.4738729976525
+        "median_ms": 66.6349830062245,
+        "min_ms": 64.4429259991739,
+        "max_ms": 68.99253099982161
       },
       "candidate": {
-        "median_ms": 63.90251799894031,
-        "min_ms": 63.471838999248575,
-        "max_ms": 68.15157199889654
+        "median_ms": 65.43985399912344,
+        "min_ms": 63.27124599920353,
+        "max_ms": 67.02308200328844
       },
-      "speedup": 1.0251251132511408,
+      "speedup": 1.0182630145708618,
       "verified_gain": false
     },
     {
@@ -163,16 +165,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 1617.5811710018024,
-        "min_ms": 1589.7951350016228,
-        "max_ms": 1671.6380859979836
+        "median_ms": 1686.5770049989806,
+        "min_ms": 1658.9963090009405,
+        "max_ms": 1762.0581810042495
       },
       "candidate": {
-        "median_ms": 1646.2786749980296,
-        "min_ms": 1613.9519770003972,
-        "max_ms": 1685.885271999723
+        "median_ms": 1702.6484219968552,
+        "min_ms": 1648.7853379949229,
+        "max_ms": 1863.2362239950453
       },
-      "speedup": 0.9825682586842343,
+      "speedup": 0.9905609303774962,
       "verified_gain": false
     },
     {
@@ -186,16 +188,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 2189.7852620022604,
-        "min_ms": 2126.2759329983965,
-        "max_ms": 2238.028645999293
+        "median_ms": 2235.865865004598,
+        "min_ms": 2199.939705998986,
+        "max_ms": 2253.6913199946866
       },
       "candidate": {
-        "median_ms": 2095.682322000357,
-        "min_ms": 2059.602568999253,
-        "max_ms": 2136.453506998805
+        "median_ms": 2230.4659389992594,
+        "min_ms": 2173.0220680037746,
+        "max_ms": 2278.6704579993966
       },
-      "speedup": 1.0449032465531707,
+      "speedup": 1.0024209856384365,
       "verified_gain": false
     },
     {
@@ -208,16 +210,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 178.15139700178406,
-        "min_ms": 176.8255289971421,
-        "max_ms": 183.76055900080246
+        "median_ms": 163.12466000090353,
+        "min_ms": 160.92681299778633,
+        "max_ms": 165.22337799688103
       },
       "candidate": {
-        "median_ms": 172.97362499812152,
-        "min_ms": 168.32566199809662,
-        "max_ms": 176.9911189985578
+        "median_ms": 167.5904259973322,
+        "min_ms": 165.7159780006623,
+        "max_ms": 169.36656500183744
       },
-      "speedup": 1.0299338815597971,
+      "speedup": 0.9733530959787657,
       "verified_gain": false
     },
     {
@@ -231,16 +233,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 599.3354780002846,
-        "min_ms": 573.1069190005655,
-        "max_ms": 620.0049449980725
+        "median_ms": 575.8066970010987,
+        "min_ms": 563.8397869988694,
+        "max_ms": 591.4370530008455
       },
       "candidate": {
-        "median_ms": 572.8511900015292,
-        "min_ms": 565.6398710016219,
-        "max_ms": 618.894866998744
+        "median_ms": 571.6544500028249,
+        "min_ms": 561.920899002871,
+        "max_ms": 580.9870820012293
       },
-      "speedup": 1.0462324046122429,
+      "speedup": 1.0072635610520537,
       "verified_gain": false
     },
     {
@@ -254,16 +256,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 655.0125499998103,
-        "min_ms": 629.4932100026926,
-        "max_ms": 708.7679340002069
+        "median_ms": 628.9333010063274,
+        "min_ms": 623.8531549970503,
+        "max_ms": 642.7482389990473
       },
       "candidate": {
-        "median_ms": 636.6767089966743,
-        "min_ms": 623.15830100124,
-        "max_ms": 656.3707970017276
+        "median_ms": 629.5256910016178,
+        "min_ms": 619.5402390003437,
+        "max_ms": 645.7214260008186
       },
-      "speedup": 1.0287992960069658,
+      "speedup": 0.9990589899606037,
       "verified_gain": false
     },
     {
@@ -276,17 +278,39 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 2.154787001927616,
-        "min_ms": 2.0936869987053797,
-        "max_ms": 2.6686560013331473
+        "median_ms": 1.9139979995088652,
+        "min_ms": 1.8334080014028586,
+        "max_ms": 1.9583090033847839
       },
       "candidate": {
-        "median_ms": 1.9662570011860225,
-        "min_ms": 1.8466869987605605,
-        "max_ms": 2.3869060023571365
+        "median_ms": 1.838547999795992,
+        "min_ms": 1.7626780027057976,
+        "max_ms": 2.0231579983374104
       },
-      "speedup": 1.0958826850344967,
+      "speedup": 1.041037818822922,
       "verified_gain": false
+    },
+    {
+      "runtime": "native",
+      "case": {
+        "id": "tictactoe-solved",
+        "ruleset": "tictactoe",
+        "depth": 32,
+        "nodes": 1000000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 125.67827200109605,
+        "min_ms": 123.31875399831915,
+        "max_ms": 131.08276700222632
+      },
+      "candidate": {
+        "median_ms": 117.70382899703691,
+        "min_ms": 116.4194899974973,
+        "max_ms": 119.83808699733345
+      },
+      "speedup": 1.06775007297562,
+      "verified_gain": true
     },
     {
       "runtime": "native",
@@ -298,16 +322,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 24.542800998460734,
-        "min_ms": 24.484131998178782,
-        "max_ms": 25.024630002008053
+        "median_ms": 22.625989993684925,
+        "min_ms": 22.428241005400196,
+        "max_ms": 25.35663900198415
       },
       "candidate": {
-        "median_ms": 22.984833998634713,
-        "min_ms": 22.727534000296146,
-        "max_ms": 23.4564419988601
+        "median_ms": 21.55619199766079,
+        "min_ms": 21.48361099534668,
+        "max_ms": 22.0266409960459
       },
-      "speedup": 1.0677823907676933,
+      "speedup": 1.0496283386295793,
       "verified_gain": true
     },
     {
@@ -320,16 +344,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 71.23173700165353,
-        "min_ms": 70.41195800047717,
-        "max_ms": 71.85963600204559
+        "median_ms": 65.55111299530836,
+        "min_ms": 64.89826399774756,
+        "max_ms": 67.92617099563358
       },
       "candidate": {
-        "median_ms": 67.6422430005914,
-        "min_ms": 67.12148299993714,
-        "max_ms": 69.56996000008075
+        "median_ms": 63.49335500271991,
+        "min_ms": 62.60918699990725,
+        "max_ms": 64.67978499858873
       },
-      "speedup": 1.0530658630144885,
+      "speedup": 1.0324090291417156,
       "verified_gain": true
     },
     {
@@ -343,17 +367,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 734.206244,
-        "min_ms": 727.3097360000011,
-        "max_ms": 777.9080739999999
+        "median_ms": 650.6112819999998,
+        "min_ms": 642.5592499999984,
+        "max_ms": 655.6153080000004
       },
       "candidate": {
-        "median_ms": 649.6705270000002,
-        "min_ms": 643.4218079999991,
-        "max_ms": 693.2928090000005
+        "median_ms": 644.5834379999997,
+        "min_ms": 636.3993750000009,
+        "max_ms": 653.6564999999991
       },
-      "speedup": 1.1301209051153396,
-      "verified_gain": true
+      "speedup": 1.0093515340988333,
+      "verified_gain": false
     },
     {
       "runtime": "wasm",
@@ -366,17 +390,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 619.6894460000003,
-        "min_ms": 613.5118860000002,
-        "max_ms": 620.8924229999993
+        "median_ms": 537.4602000000014,
+        "min_ms": 531.3948449999989,
+        "max_ms": 541.1110459999982
       },
       "candidate": {
-        "median_ms": 536.9201070000017,
-        "min_ms": 531.2526070000004,
-        "max_ms": 539.2542839999987
+        "median_ms": 528.1693670000022,
+        "min_ms": 524.0489510000007,
+        "max_ms": 542.3824749999985
       },
-      "speedup": 1.1541557820631185,
-      "verified_gain": true
+      "speedup": 1.0175906320595058,
+      "verified_gain": false
     },
     {
       "runtime": "wasm",
@@ -389,17 +413,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 416.1777690000017,
-        "min_ms": 411.338416999999,
-        "max_ms": 418.02448699999877
+        "median_ms": 353.57159699999465,
+        "min_ms": 349.2069219999976,
+        "max_ms": 377.29843699999765
       },
       "candidate": {
-        "median_ms": 351.183391999999,
-        "min_ms": 349.5792250000013,
-        "max_ms": 354.9706960000003
+        "median_ms": 353.4055070000031,
+        "min_ms": 347.63103299999784,
+        "max_ms": 357.39633299999696
       },
-      "speedup": 1.1850724677777555,
-      "verified_gain": true
+      "speedup": 1.0004699700392374,
+      "verified_gain": false
     },
     {
       "runtime": "wasm",
@@ -411,16 +435,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 50.40850000000137,
-        "min_ms": 50.155131000003166,
-        "max_ms": 54.63923200000136
+        "median_ms": 48.932628000002296,
+        "min_ms": 48.27480800000194,
+        "max_ms": 49.72729700000491
       },
       "candidate": {
-        "median_ms": 49.87532099999953,
-        "min_ms": 49.091362000002846,
-        "max_ms": 53.86161500000162
+        "median_ms": 48.4312590000045,
+        "min_ms": 47.94478900000104,
+        "max_ms": 49.313147000000754
       },
-      "speedup": 1.0106902369611184,
+      "speedup": 1.010352177712286,
       "verified_gain": false
     },
     {
@@ -433,17 +457,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 109.09675699999934,
-        "min_ms": 108.44001799999751,
-        "max_ms": 111.22395300000062
+        "median_ms": 112.22970399999758,
+        "min_ms": 107.54614800000127,
+        "max_ms": 130.71592800000508
       },
       "candidate": {
-        "median_ms": 107.49062000000049,
-        "min_ms": 106.83337100000062,
-        "max_ms": 108.20129799999995
+        "median_ms": 109.96573499999795,
+        "min_ms": 105.29699999999866,
+        "max_ms": 116.68882999999914
       },
-      "speedup": 1.0149421130885545,
-      "verified_gain": true
+      "speedup": 1.0205879495099057,
+      "verified_gain": false
     },
     {
       "runtime": "wasm",
@@ -455,16 +479,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 82.51144900000145,
-        "min_ms": 82.40731900000173,
-        "max_ms": 89.23361899999873
+        "median_ms": 84.1401279999991,
+        "min_ms": 81.5897199999963,
+        "max_ms": 102.74769200000446
       },
       "candidate": {
-        "median_ms": 82.71493899999768,
-        "min_ms": 80.66121199999907,
-        "max_ms": 86.41115300000092
+        "median_ms": 83.2341379999998,
+        "min_ms": 79.4022729999997,
+        "max_ms": 93.96766999999818
       },
-      "speedup": 0.9975398639900316,
+      "speedup": 1.0108848367000485,
       "verified_gain": false
     },
     {
@@ -477,16 +501,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 2251.875454000001,
-        "min_ms": 2230.5910279999953,
-        "max_ms": 2298.1893290000007
+        "median_ms": 2268.835346000007,
+        "min_ms": 2244.1483880000014,
+        "max_ms": 2343.470392999996
       },
       "candidate": {
-        "median_ms": 2235.9553589999996,
-        "min_ms": 2215.5765119999996,
-        "max_ms": 2270.1098550000024
+        "median_ms": 2242.499299000003,
+        "min_ms": 2198.894205999997,
+        "max_ms": 2285.513441999996
       },
-      "speedup": 1.0071200415231552,
+      "speedup": 1.0117440603043881,
       "verified_gain": false
     },
     {
@@ -500,17 +524,17 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 2900.435712999999,
-        "min_ms": 2888.133944000001,
-        "max_ms": 2907.7370720000035
+        "median_ms": 2940.0382720000052,
+        "min_ms": 2852.0360270000238,
+        "max_ms": 3198.756219999981
       },
       "candidate": {
-        "median_ms": 2804.608355999997,
-        "min_ms": 2794.9076820000046,
-        "max_ms": 2820.765830999997
+        "median_ms": 2884.213229999994,
+        "min_ms": 2818.5179350000108,
+        "max_ms": 3117.4254699999874
       },
-      "speedup": 1.0341678212556826,
-      "verified_gain": true
+      "speedup": 1.0193553796298243,
+      "verified_gain": false
     },
     {
       "runtime": "wasm",
@@ -522,16 +546,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 237.4746829999931,
-        "min_ms": 236.12053499999456,
-        "max_ms": 239.63749900000403
+        "median_ms": 236.15303799998946,
+        "min_ms": 234.60860899998806,
+        "max_ms": 243.20504099997925
       },
       "candidate": {
-        "median_ms": 238.67334100000153,
-        "min_ms": 238.3381010000012,
-        "max_ms": 241.09160699999484
+        "median_ms": 233.29675999999745,
+        "min_ms": 232.09398100001272,
+        "max_ms": 240.60593399999198
       },
-      "speedup": 0.9949778303894927,
+      "speedup": 1.0122431104486493,
       "verified_gain": false
     },
     {
@@ -545,16 +569,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 699.7094090000028,
-        "min_ms": 697.1991629999975,
-        "max_ms": 702.1391449999937
+        "median_ms": 714.1356180000002,
+        "min_ms": 707.8251229999878,
+        "max_ms": 747.2890199999965
       },
       "candidate": {
-        "median_ms": 701.0316070000117,
-        "min_ms": 697.5643120000022,
-        "max_ms": 702.9666140000045
+        "median_ms": 706.4416750000091,
+        "min_ms": 695.7706940000062,
+        "max_ms": 748.7157289999886
       },
-      "speedup": 0.9981139252684096,
+      "speedup": 1.0108911227526194,
       "verified_gain": false
     },
     {
@@ -568,16 +592,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 795.6646460000047,
-        "min_ms": 794.3926080000092,
-        "max_ms": 799.6591800000024
+        "median_ms": 812.3922939999902,
+        "min_ms": 805.1323299999931,
+        "max_ms": 818.8371089999855
       },
       "candidate": {
-        "median_ms": 798.96923100001,
-        "min_ms": 797.1857339999988,
-        "max_ms": 800.4733680000063
+        "median_ms": 799.3555449999985,
+        "min_ms": 795.0086479999882,
+        "max_ms": 813.0303929999936
       },
-      "speedup": 0.9958639395964357,
+      "speedup": 1.0163090743306118,
       "verified_gain": false
     },
     {
@@ -590,17 +614,39 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 2.6221760000044014,
-        "min_ms": 2.5866859999950975,
-        "max_ms": 9.367255000004661
+        "median_ms": 2.34559799998533,
+        "min_ms": 2.286349000001792,
+        "max_ms": 2.4356779999798164
       },
       "candidate": {
-        "median_ms": 2.323426000002655,
-        "min_ms": 2.314796999999089,
-        "max_ms": 6.904689000002691
+        "median_ms": 2.2273690000001807,
+        "min_ms": 2.169348000024911,
+        "max_ms": 2.300807999999961
       },
-      "speedup": 1.128581672065908,
+      "speedup": 1.0530801137957562,
       "verified_gain": false
+    },
+    {
+      "runtime": "wasm",
+      "case": {
+        "id": "tictactoe-solved",
+        "ruleset": "tictactoe",
+        "depth": 32,
+        "nodes": 1000000
+      },
+      "same_work_and_answer": true,
+      "baseline": {
+        "median_ms": 127.61822100001154,
+        "min_ms": 126.51213099999586,
+        "max_ms": 143.51867699998547
+      },
+      "candidate": {
+        "median_ms": 118.04281799998716,
+        "min_ms": 116.82646999999997,
+        "max_ms": 119.58745800002362
+      },
+      "speedup": 1.0811180481986242,
+      "verified_gain": true
     },
     {
       "runtime": "wasm",
@@ -612,16 +658,16 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 28.341715000002296,
-        "min_ms": 28.307365000000573,
-        "max_ms": 28.670924999998533
+        "median_ms": 26.59041800000705,
+        "min_ms": 26.541127000004053,
+        "max_ms": 28.18201599997701
       },
       "candidate": {
-        "median_ms": 26.265377999996417,
-        "min_ms": 25.9943889999995,
-        "max_ms": 26.44734800000151
+        "median_ms": 25.62377799997921,
+        "min_ms": 25.468679000012344,
+        "max_ms": 26.036548000003677
       },
-      "speedup": 1.0790522413195867,
+      "speedup": 1.037724335577237,
       "verified_gain": true
     },
     {
@@ -634,17 +680,28 @@
       },
       "same_work_and_answer": true,
       "baseline": {
-        "median_ms": 80.24532299999555,
-        "min_ms": 80.1270829999994,
-        "max_ms": 80.39556299999822
+        "median_ms": 77.43820299999788,
+        "min_ms": 76.89588399999775,
+        "max_ms": 82.90875900001265
       },
       "candidate": {
-        "median_ms": 75.00171099998988,
-        "min_ms": 74.89485099999001,
-        "max_ms": 75.27040999999736
+        "median_ms": 74.89403599995421,
+        "min_ms": 74.18006700003752,
+        "max_ms": 78.750251999998
       },
-      "speedup": 1.069913231712892,
-      "verified_gain": true
+      "speedup": 1.0339702216081028,
+      "verified_gain": false
     }
-  ]
+  ],
+  "build_id": "stable-rust1.99.1",
+  "build_provenance": {
+    "development_toolchain": "stable",
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)\n",
+    "candidate_built_from_dirty_source": true,
+    "candidate_patch_sha256": "9995910281f9b570f0e38df7b7c27cc9793952cfdb693200327ab236b6f22b89",
+    "baseline_rust_source_sha256": "0e1bfb500a67d716248f754316ffe344e15b1e91b650126ff0b7cb7064a37ce0",
+    "candidate_rust_source_sha256": "eaba7b5386c8fa79d3bf164aae8ed9c861407cb942ed5932ce18d48a01a0b45e",
+    "original_candidate_label": "working-action-hash"
+  }
 }

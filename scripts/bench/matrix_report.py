@@ -108,7 +108,7 @@ def plot(report, destination):
             ax.text(max(high, value) + 0.04, index, label, va="center", fontsize=9)
         ax.set_yticks(
             range(len(rows)),
-            [f"{r['case']['id']} · d{r['case']['depth']}" for r in rows],
+            [f"{r['case']['id']} · cap {r['case']['depth']}" for r in rows],
             fontsize=9,
         )
         ax.invert_yaxis()

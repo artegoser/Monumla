@@ -1053,6 +1053,221 @@
           "relative_throughput": 1.0790522413195867
         }
       ]
+    },
+    "native-tictactoe-solved-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "tictactoe-solved",
+        "ruleset": "tictactoe",
+        "depth": 32,
+        "nodes": 1000000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+          "binary_sha256": "56e360b9ceea1e1b20b133771d96a6b05a4a824a4fe6d7339acc8ab27cce8e6e",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-solved": {
+              "median_ms": 125.67827200109605,
+              "min_ms": 123.31875399831915,
+              "max_ms": 131.08276700222632
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-solved": {
+              "median_ms": 117.70382899703691,
+              "min_ms": 116.4194899974973,
+              "max_ms": 119.83808699733345
+            }
+          },
+          "relative_throughput": 1.06775007297562
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-tictactoe-5-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+          "binary_sha256": "56e360b9ceea1e1b20b133771d96a6b05a4a824a4fe6d7339acc8ab27cce8e6e",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 22.625989993684925,
+              "min_ms": 22.428241005400196,
+              "max_ms": 25.35663900198415
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 21.55619199766079,
+              "min_ms": 21.48361099534668,
+              "max_ms": 22.0266409960459
+            }
+          },
+          "relative_throughput": 1.0496283386295793
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-tictactoe-rectangular-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "tictactoe-rectangular",
+        "ruleset": "tictactoe:7x5:5",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+          "binary_sha256": "56e360b9ceea1e1b20b133771d96a6b05a4a824a4fe6d7339acc8ab27cce8e6e",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-rectangular": {
+              "median_ms": 65.55111299530836,
+              "min_ms": 64.89826399774756,
+              "max_ms": 67.92617099563358
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-rectangular": {
+              "median_ms": 63.49335500271991,
+              "min_ms": 62.60918699990725,
+              "max_ms": 64.67978499858873
+            }
+          },
+          "relative_throughput": 1.0324090291417156
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-tictactoe-solved-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "tictactoe-solved",
+        "ruleset": "tictactoe",
+        "depth": 32,
+        "nodes": 1000000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+          "binary_sha256": "e94e9fdb6c94fedb2ef48b7c3bd6ce50dc4991d6e911b4703611039a2250a605",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-solved": {
+              "median_ms": 127.61822100001154,
+              "min_ms": 126.51213099999586,
+              "max_ms": 143.51867699998547
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "9f8bb57a22d4fe3387599e9913f4c23e2d29ec272bba88cab2ba06993ed10701",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-solved": {
+              "median_ms": 118.04281799998716,
+              "min_ms": 116.82646999999997,
+              "max_ms": 119.58745800002362
+            }
+          },
+          "relative_throughput": 1.0811180481986242
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-tictactoe-5-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "tictactoe-5",
+        "ruleset": "tictactoe:5x5:4",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "2575c099b50d41b4c011d91feeaf56a013eb0396",
+          "binary_sha256": "e94e9fdb6c94fedb2ef48b7c3bd6ce50dc4991d6e911b4703611039a2250a605",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 26.59041800000705,
+              "min_ms": 26.541127000004053,
+              "max_ms": 28.18201599997701
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "9f8bb57a22d4fe3387599e9913f4c23e2d29ec272bba88cab2ba06993ed10701",
+          "measured_at": "2026-10-28T20:12:53.519949+00:00",
+          "timings": {
+            "tictactoe-5": {
+              "median_ms": 25.62377799997921,
+              "min_ms": 25.468679000012344,
+              "max_ms": 26.036548000003677
+            }
+          },
+          "relative_throughput": 1.037724335577237
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
     }
   }
 }
