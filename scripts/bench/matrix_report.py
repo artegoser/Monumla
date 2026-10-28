@@ -9,6 +9,9 @@ from pathlib import Path
 
 
 def compact(native, wasm):
+    build_id = native["settings"].get("build_id")
+    if build_id != wasm["settings"].get("build-id"):
+        raise ValueError("Both runtimes must use the same compiler/build identity")
     expected = {
         name: native["settings"][f"{name}_revision"]
         for name in ["baseline", "candidate"]
@@ -20,6 +23,12 @@ def compact(native, wasm):
     repeats = native["settings"]["repeats"]
     if repeats != int(wasm["settings"].get("repeats", 5)):
         raise ValueError("Both runtimes must use the same repeat count")
+    warmups = native["settings"].get("warmups", 1)
+    if warmups != int(wasm["settings"].get("warmups", 1)):
+        raise ValueError("Both runtimes must use the same warmup count")
+    warmup_ms = native["settings"].get("warmup_ms", 0)
+    if warmup_ms != float(wasm["settings"].get("warmup-ms", 0)):
+        raise ValueError("Both runtimes must use the same warmup duration")
     rows = []
     for runtime, matrix in [("native", native), ("wasm", wasm)]:
         for source in matrix["results"]:
@@ -47,7 +56,7 @@ def compact(native, wasm):
                 and row["candidate"]["max_ms"] < row["baseline"]["min_ms"]
             )
             rows.append(row)
-    return dict(
+    report = dict(
         schema=1,
         measured_at=datetime.now(timezone.utc).isoformat(),
         revisions=expected,
@@ -56,9 +65,14 @@ def compact(native, wasm):
         node=wasm["runtime"]["node"],
         cpu=wasm["cpu"],
         repetitions=repeats,
-        method=f"One warmup, {repeats} alternating repetitions, pinned CPUs; same depth, nodes, score, PV, lines and stop reason required within each runtime. Observed ranges are not confidence intervals. Native and WASM timings are separate measurements.",
+        warmups=warmups,
+        warmup_ms=warmup_ms,
+        method=f"At least {warmups} warmups and {warmup_ms} ms warmup work per binary, then {repeats} alternating measured repetitions, pinned CPUs; same depth, nodes, score, PV, lines and stop reason required within each runtime. Observed ranges are not confidence intervals. Native and WASM timings are separate measurements.",
         results=rows,
     )
+    if build_id:
+        report["build_id"] = build_id
+    return report
 
 
 def plot(report, destination):
@@ -114,7 +128,8 @@ def plot(report, destination):
                 "Native release"
                 if runtime == "native"
                 else f"WASM release · Node {report['node']}"
-            ),
+            )
+            + (f"\n{report['build_id']}" if report.get("build_id") else ""),
             loc="left",
         )
         ax.set_xlabel("Baseline median time / candidate median time (higher is faster)")
@@ -137,12 +152,17 @@ def record_gains(database, report):
             continue
         runtime, case = row["runtime"], row["case"]
         name = f"{runtime}-{case['id']}"
+        if report.get("build_id"):
+            name += f"-{report['build_id']}"
         fingerprints = {
             key: hashlib.sha256(Path(case[key]).read_bytes()).hexdigest()
             for key in ["pgn", "prelude"]
             if key in case
         }
         suite = dict(**case, lines=1, seed=1, fixture_sha256=fingerprints)
+        if report.get("build_id"):
+            suite["warmups"] = report["warmups"]
+            suite["warmup_ms"] = report["warmup_ms"]
         binaries = report[f"{runtime}_binary_sha256"]
         history = database["series"].get(name)
         if history and (
@@ -166,6 +186,8 @@ def record_gains(database, report):
             history = dict(
                 runtime=runtime, suite=suite, points=[point("baseline", 1.0)]
             )
+            if report.get("build_id"):
+                history["build_id"] = report["build_id"]
             database["series"][name] = history
         history["points"].append(
             point(

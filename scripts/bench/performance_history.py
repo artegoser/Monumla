@@ -139,7 +139,8 @@ def plot(history, path):
         ax.set_ylim(0, max(hi) * 1.2)
         ax.set_ylabel("Fixed-depth throughput / suite baseline")
         ax.set_title(
-            f"{entry['runtime']} · {entry['suite'].get('id', entry['suite']['ruleset'])} · depth {entry['suite']['depth']}",
+            f"{entry['runtime']} · {entry['suite'].get('id', entry['suite']['ruleset'])} · depth {entry['suite']['depth']}"
+            + (f"\n{entry['build_id']}" if entry.get("build_id") else ""),
             loc="left",
             fontsize=11,
             pad=18,

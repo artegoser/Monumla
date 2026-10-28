@@ -54,6 +54,11 @@ def main():
     parser.add_argument("--cases", type=Path, default=Path("benchmarks/cases.json"))
     parser.add_argument("--cpu", type=int, default=5)
     parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--warmup-ms", type=int, default=0)
+    parser.add_argument(
+        "--build-id", help="Shared compiler/build identity for both binaries"
+    )
     args = parser.parse_args()
     out = Path(args.out)
     if out.exists():
@@ -103,6 +108,10 @@ def main():
                 str(args.cpu),
                 "--repeats",
                 str(args.repeats),
+                "--warmups",
+                str(args.warmups),
+                "--warmup-ms",
+                str(args.warmup_ms),
                 "--opening-plies",
                 str(case.get("opening_plies", 0)),
                 "--out",

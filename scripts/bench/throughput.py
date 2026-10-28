@@ -22,11 +22,15 @@ def main():
     parser.add_argument("--depth", type=int, default=3)
     parser.add_argument("--nodes", type=int, default=100000)
     parser.add_argument("--repeats", type=int, default=5)
+    parser.add_argument("--warmups", type=int, default=1)
+    parser.add_argument("--warmup-ms", type=int, default=0)
     parser.add_argument("--cpu", type=int)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     if args.repeats < 3:
         raise ValueError("Use at least three measured repetitions")
+    if args.warmups < 0 or args.warmup_ms < 0:
+        raise ValueError("Warmup count and duration cannot be negative")
     if args.out.exists():
         raise ValueError("Preserve previous measurements; choose a new output file")
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +62,12 @@ def main():
                 pgn += " *"
             answers = []
             times = {"baseline": [], "candidate": []}
-            for iteration in range(args.repeats + 1):
+            iteration, measured = 0, 0
+            warmed_ms = {"baseline": 0.0, "candidate": 0.0}
+            while measured < args.repeats:
+                warmup = (
+                    iteration < args.warmups or min(warmed_ms.values()) < args.warmup_ms
+                )
                 results = {}
                 order = (
                     ["baseline", "candidate"]
@@ -92,14 +101,19 @@ def main():
                             fixture=str(fixture),
                             side=side,
                             iteration=iteration,
-                            warmup=iteration == 0,
+                            warmup=warmup,
                             wall_ms=wall_ms,
                             analysis=result,
                         )
                     )
-                    if iteration:
+                    if warmup:
+                        warmed_ms[side] += wall_ms
+                    else:
                         times[side].append(wall_ms)
                 answers.append(results["baseline"] == results["candidate"])
+                iteration += 1
+                if not warmup:
+                    measured += 1
 
             def timing(values):
                 return dict(

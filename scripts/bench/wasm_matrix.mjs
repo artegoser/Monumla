@@ -15,8 +15,12 @@ const args = Object.fromEntries(
 for (const name of ['baseline', 'candidate', 'matrix', 'out'])
 	if (!args[name]) throw new Error(`Missing --${name}`);
 const repeats = Number(args.repeats ?? 5);
+const warmups = Number(args.warmups ?? 1);
+const warmupMs = Number(args['warmup-ms'] ?? 0);
 if (!Number.isInteger(repeats) || repeats < 3)
 	throw new Error('Require at least three measured repetitions');
+if (!Number.isInteger(warmups) || warmups < 0) throw new Error('Invalid warmup count');
+if (!Number.isFinite(warmupMs) || warmupMs < 0) throw new Error('Invalid warmup duration');
 await mkdir(args.out); // Never overwrite existing runs.
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const matrix = JSON.parse(await readFile(join(args.matrix, 'matrix.json'), 'utf8'));
@@ -76,7 +80,11 @@ for (const { case: fixture } of matrix.results) {
 		answers = [];
 	const row = { case: fixture, snapshot_sha256: hash(snapshotBytes), records };
 	try {
-		for (let iteration = 0; iteration <= repeats; iteration++) {
+		let iteration = 0,
+			measured = 0;
+		const warmedMs = { baseline: 0, candidate: 0 };
+		while (measured < repeats) {
+			const warmup = iteration < warmups || Math.min(...Object.values(warmedMs)) < warmupMs;
 			const results = {};
 			for (const side of iteration % 2 ? ['candidate', 'baseline'] : ['baseline', 'candidate']) {
 				const game = modules[side].from_search_snapshot(snapshot);
@@ -88,14 +96,24 @@ for (const { case: fixture } of matrix.results) {
 						structuredClone(value);
 					});
 					const elapsed_ms = performance.now() - start;
-					records.push({ side, iteration, warmup: iteration === 0, elapsed_ms, callbacks, report });
-					if (iteration) times[side].push(elapsed_ms);
+					records.push({
+						side,
+						iteration,
+						warmup,
+						elapsed_ms,
+						callbacks,
+						report
+					});
+					if (warmup) warmedMs[side] += elapsed_ms;
+					else times[side].push(elapsed_ms);
 					results[side] = serialize(identity(report));
 				} finally {
 					game.free();
 				}
 			}
 			answers.push(results.baseline === results.candidate);
+			iteration++;
+			if (!warmup) measured++;
 		}
 		Object.assign(row, {
 			same_work_and_answer: answers.every(Boolean),

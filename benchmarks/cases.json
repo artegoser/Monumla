@@ -11,6 +11,7 @@
   {"id":"battleship-ready", "ruleset":"battleship", "prelude":"benchmarks/positions/battleship/ready.json", "depth":1, "nodes":10000},
   {"id":"battleship-damaged", "ruleset":"battleship", "prelude":"benchmarks/positions/battleship/twelve-shots.json", "depth":1, "nodes":10000},
   {"id":"tictactoe-3", "ruleset":"tictactoe", "depth":3, "nodes":100000},
+  {"id":"tictactoe-solved", "ruleset":"tictactoe", "depth":32, "nodes":1000000},
   {"id":"tictactoe-5", "ruleset":"tictactoe:5x5:4", "depth":3, "nodes":100000},
   {"id":"tictactoe-rectangular", "ruleset":"tictactoe:7x5:5", "depth":3, "nodes":100000}
 ]

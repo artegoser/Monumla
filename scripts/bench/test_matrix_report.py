@@ -25,6 +25,40 @@ class MatrixReportTests(unittest.TestCase):
         self.assertEqual(report["results"][1]["error"], "failure")
         self.assertEqual(record_gains(dict(series={}), report), dict(series={}))
 
+    def test_new_build_identity_starts_a_separate_gain_series(self):
+        native, wasm = self.matrices()
+        native["settings"]["build_id"] = "stable-rust1.99.1"
+        with self.assertRaisesRegex(ValueError, "build identity"):
+            compact(native, wasm)
+        wasm["settings"]["build-id"] = "stable-rust1.99.1"
+        wasm["results"][0].update(
+            candidate=dict(median_ms=50, min_ms=45, max_ms=55), speedup=2
+        )
+        report = compact(native, wasm)
+        history = dict(schema=2, series={"wasm-fixture": dict(legacy="untouched")})
+        updated = record_gains(history, report)
+        self.assertEqual(updated["series"]["wasm-fixture"], dict(legacy="untouched"))
+        name = "wasm-fixture-stable-rust1.99.1"
+        self.assertEqual(updated["series"][name]["build_id"], "stable-rust1.99.1")
+        self.assertEqual(len(updated["series"][name]["points"]), 2)
+        with self.assertRaises(ValueError):
+            record_gains(updated, report)
+
+    def test_mismatched_warmup_counts_cannot_be_published(self):
+        native, wasm = self.matrices()
+        native["settings"]["warmups"] = 5
+        with self.assertRaisesRegex(ValueError, "warmup count"):
+            compact(native, wasm)
+        wasm["settings"]["warmups"] = "5"
+        report = compact(native, wasm)
+        self.assertEqual(report["warmups"], 5)
+        self.assertIn("5 warmups", report["method"])
+        native["settings"]["warmup_ms"] = 1000
+        with self.assertRaisesRegex(ValueError, "warmup duration"):
+            compact(native, wasm)
+        wasm["settings"]["warmup-ms"] = "1000"
+        self.assertEqual(compact(native, wasm)["warmup_ms"], 1000)
+
     def matrices(self):
         case = dict(id="fixture", ruleset="chess", depth=3, nodes=100)
         result = dict(
