@@ -90,13 +90,15 @@ python3 scripts/bench/matrix.py \
   --candidate target/monumla-bench/bin/candidate \
   --observer target/monumla-bench/bin/candidate \
   --baseline-revision BASELINE_COMMIT --candidate-revision CANDIDATE_COMMIT \
-  --cpu 5 --repeats 5 --out target/monumla-bench/native-matrix
+  --cpu 5 --repeats 9 --warmups 5 --warmup-ms 1000 \
+  --build-id COMPARISON_BUILD_ID --out target/monumla-bench/native-matrix
 # Build both revisions with wasm-pack --target web --out-name monumla.
 # The exported snapshots preserve the same logical roots across runtimes.
 taskset -c 4 node scripts/bench/wasm_matrix.mjs \
   --baseline target/monumla-bench/baseline-wasm \
   --candidate target/monumla-bench/candidate-wasm \
-  --matrix target/monumla-bench/native-matrix --repeats 5 \
+  --matrix target/monumla-bench/native-matrix --repeats 9 \
+  --warmups 5 --warmup-ms 1000 --build-id COMPARISON_BUILD_ID \
   --out target/monumla-bench/wasm-matrix
 # Requires Matplotlib in the chosen Python environment.
 python3 scripts/bench/matrix_report.py \
@@ -104,7 +106,14 @@ python3 scripts/bench/matrix_report.py \
   --wasm target/monumla-bench/wasm-matrix/matrix.json
 ```
 
-`latest-matrix.json` and `performance.png` show **every case**, including regressions, failures and overlapping timing ranges. Same-source revision labels are enforced across runtimes. SHA-256 values identify the distinct native and WASM binaries; they are not expected to match each other. Native timings include the JSON worker boundary; WASM timings include callbacks but exclude snapshot loading. Compare changes within each runtime, not absolute timings across them. Warmup precedes five alternating measured repetitions. Pinning reduces scheduling noise but does not isolate shared caches, CPU boost or thermal effects.
+Use the same build identity, warmup settings and repetition count for the WASM
+matrix. Warmup continues in alternating pairs until both binaries have completed
+the minimum count and analyzed work duration; warmup records remain in the raw
+report. The build identity should identify the actual compiler and build flags,
+not pin development to that compiler. Rebuild both sides when the compiler changes
+and start a separate performance series instead of joining unlike toolchains.
+
+`latest-matrix.json` and `performance.png` show **every case**, including regressions, failures and overlapping timing ranges. Same-source revision labels are enforced across runtimes. SHA-256 values identify the distinct native and WASM binaries; they are not expected to match each other. Native timings include the JSON worker boundary; WASM timings include callbacks but exclude snapshot loading. Compare changes within each runtime, not absolute timings across them. Warmup precedes the requested alternating measured repetitions. Pinning reduces scheduling noise but does not isolate shared caches, CPU boost or thermal effects.
 
 `performance_history.py` records only improvements with identical work/results and non-overlapping observed ranges on every selected fixture. Use separate series for different workloads/runtimes and compare against that series' last accepted binary. `performance.json` is the accepted history; `performance-history.png` plots it. Historical milestones naturally have different commit labels. Missing gains remain visible in the complete matrix instead of being silently promoted into the history. Observed min/max ranges are not statistical confidence intervals.
 

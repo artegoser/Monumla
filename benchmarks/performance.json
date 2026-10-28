@@ -1268,6 +1268,223 @@
         }
       ],
       "build_id": "stable-rust1.99.1"
+    },
+    "native-go-9-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "go-9",
+        "ruleset": "go:9",
+        "depth": 2,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-9": {
+              "median_ms": 62.60182800178882,
+              "min_ms": 61.91335900075501,
+              "max_ms": 66.8072900007246
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "1b9509ceb07ea134ebae11288728ec19a855331c59054b6ee119c0673a4511a2",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-9": {
+              "median_ms": 58.00226599967573,
+              "min_ms": 57.03850700228941,
+              "max_ms": 61.2415800060262
+            }
+          },
+          "relative_throughput": 1.0792996949832754
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-go-19-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "go-19",
+        "ruleset": "go:19",
+        "depth": 2,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19": {
+              "median_ms": 1706.0485580004752,
+              "min_ms": 1658.2090750016505,
+              "max_ms": 1811.8761489968165
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "1b9509ceb07ea134ebae11288728ec19a855331c59054b6ee119c0673a4511a2",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19": {
+              "median_ms": 1451.5013959971839,
+              "min_ms": 1432.1230400018976,
+              "max_ms": 1480.811433000781
+            }
+          },
+          "relative_throughput": 1.1753681827005182
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-go-19-midgame-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "go-19-midgame",
+        "ruleset": "go:19",
+        "opening_plies": 35,
+        "depth": 2,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "034e5d4899cdc38c2dabf71bd69b7592078add347efe889e26a65f6c8fa3fd6c",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19-midgame": {
+              "median_ms": 2273.2969209973817,
+              "min_ms": 2215.1474250058527,
+              "max_ms": 2355.9443529957207
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "1b9509ceb07ea134ebae11288728ec19a855331c59054b6ee119c0673a4511a2",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19-midgame": {
+              "median_ms": 1984.7357480030041,
+              "min_ms": 1894.8555899987696,
+              "max_ms": 2206.5469610024593
+            }
+          },
+          "relative_throughput": 1.1453902229980597
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-go-19-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "go-19",
+        "ruleset": "go:19",
+        "depth": 2,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "9f8bb57a22d4fe3387599e9913f4c23e2d29ec272bba88cab2ba06993ed10701",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19": {
+              "median_ms": 2292.6247460000013,
+              "min_ms": 2191.175577999995,
+              "max_ms": 2421.421344999995
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "9b812f649fc37fc851fc60dfd47c1cba84305f4c31b54b3557f4f21296047c41",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19": {
+              "median_ms": 1731.269174000001,
+              "min_ms": 1677.6091789999919,
+              "max_ms": 1783.6559089999937
+            }
+          },
+          "relative_throughput": 1.324245114757643
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-go-19-midgame-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "go-19-midgame",
+        "ruleset": "go:19",
+        "opening_plies": 35,
+        "depth": 2,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "bf2049aa4f6c8a5e5c70a0605038e0a4889b2871",
+          "binary_sha256": "9f8bb57a22d4fe3387599e9913f4c23e2d29ec272bba88cab2ba06993ed10701",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19-midgame": {
+              "median_ms": 2962.054544999992,
+              "min_ms": 2938.7305570000026,
+              "max_ms": 3087.0925810000044
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "9b812f649fc37fc851fc60dfd47c1cba84305f4c31b54b3557f4f21296047c41",
+          "measured_at": "2026-10-28T20:35:41.481291+00:00",
+          "timings": {
+            "go-19-midgame": {
+              "median_ms": 2384.9982109999983,
+              "min_ms": 2347.467077999987,
+              "max_ms": 2436.8461179999867
+            }
+          },
+          "relative_throughput": 1.2419525227895418
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
     }
   }
 }

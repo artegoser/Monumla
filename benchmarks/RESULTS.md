@@ -175,3 +175,21 @@ All 30 comparisons preserve depth, selective depth, nodes, score, PV, ranked lin
 Only **five** observations satisfy the gain journal's non-overlapping-range rule: native solved, 5×5 and rectangular tic-tac-toe; WASM solved and 5×5 tic-tac-toe. They start separately identified stable/compiler and warmup series in [the gain history](performance-history.png); all earlier series remain intact. Ranges describe observed extrema, not confidence intervals. No Elo improvement is inferred. Raw runs, build manifests and native/V8 profiles remain under ignored `target/monumla-bench/action-hash-stable-*`; the repository contains compact summaries and images only.
 
 All **227 release Rust tests**, warning-free Clippy, **40 Python benchmark tests**, Svelte checks, the production build and **100 desktop/mobile browser tests** passed. Profiling still attributes substantial Go time to occupancy lookups and superko board-key reconstruction; those remain the next optimization targets.
+
+## Borrow occupancy for Go superko keys (2026-10-28)
+
+**`d8af31c`** exposes the core board's existing occupancy as a read-only row-major slice. Go's normal superko rules use it to reconstruct the same color bytes without recreating coordinates and calling `entity_at` for every empty intersection. No cached rule result, search adapter, evaluation term or legality shortcut was added. A rectangular core-board test checks ordering; Go's independent coordinate-based reference verifies exact keys throughout capture/suicide/superko sequences on four board sizes, including owner validation and dangling-occupant behavior.
+
+The frozen **`bf2049a` → `d8af31c`** comparison uses the same stable Rust 1.99.1, CPUs, 15-case suite, five/1,000-ms minimum warmups and nine measured pairs as above. **All 30 native/WASM cases preserve depth, selective depth, nodes, score, PV, ranked lines and stop reason on every recorded iteration.** The complete matrix and comparison image now show this pass.
+
+| Go case | Native median, ms | Native ratio | WASM median, ms | WASM ratio |
+|---|---:|---:|---:|---:|
+| 9×9 initial | 62.602 → 58.002 | 1.079× | 79.255 → 74.956 | 1.057× |
+| 19×19 initial | 1706.049 → 1451.501 | 1.175× | 2292.625 → 1731.269 | 1.324× |
+| 19×19 midgame | 2273.297 → 1984.736 | 1.145× | 2962.055 → 2384.998 | 1.242× |
+
+All three native Go gains and both 19×19 WASM gains have non-overlapping observed ranges and enter the gain-only journal. The WASM 9×9 ranges overlap. Every other case remains visible with overlapping ranges; **there is no non-overlapping-range regression in this pass**. The all-case geometric means are **1.026× native and 1.045× WASM**. No Elo improvement is claimed, and the earlier action-hash pass's Battleship regression remains in its record.
+
+Native instrumentation on the same 1,915-node Go midgame search measured **2332.75 → 2064.38 ms**, including actions **760.689 → 634.285 ms** and evaluation **217.668 → 161.749 ms**. Separate named V8 profiles reduced the combined self-sample share of board-key construction and `entity_at` from **29.62% to 14.00%**; sample shares are diagnostics, not timing confidence bounds. State-delta construction and validation remain prominent costs. Raw matrices, matching source-patch/build manifests and both profiles remain under ignored `target/monumla-bench/go-occupancy-*`.
+
+Verification passed: **229 release Rust tests**, warning-free Clippy, **40 Python benchmark tests**, Svelte checks, production build, **100 desktop/mobile browser tests**, and native/WASM compatibility checks on Rust **1.80.0**. The browser WASM exactly matches the measured candidate's SHA-256.
