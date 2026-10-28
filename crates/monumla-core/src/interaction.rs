@@ -4,7 +4,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ChoiceKind {
     SelectEntity { entity: EntityId },
@@ -14,7 +14,7 @@ pub enum ChoiceKind {
     FinishTurn,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
 pub struct ChoiceInput {
     pub kind: ChoiceKind,
     pub data: StateMap,

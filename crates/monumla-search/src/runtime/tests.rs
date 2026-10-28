@@ -309,3 +309,76 @@ fn duplicate_routes_preserve_distinct_states_even_with_identical_recorded_metada
     assert_eq!(values, [1, 2]);
     assert!(!root.current().ruleset_state.contains_key("value"));
 }
+
+#[test]
+fn ordering_keys_follow_replay_inputs_without_cached_turn_identity() {
+    let (domain, position) = game();
+    for cached in domain.actions(&position).unwrap() {
+        let replay = RuntimeAction::from_input(cached.input.clone());
+        assert!(cached.turn.is_some());
+        assert!(replay.turn.is_none());
+        assert_eq!(cached, replay);
+        assert_eq!(domain.action_key(&cached), domain.action_key(&replay));
+    }
+
+    let input = |zero: f64, reverse: bool| {
+        let mut nested = StateMap::new();
+        nested.insert("zero", StateValue::F64(zero));
+        let mut data = StateMap::new();
+        if reverse {
+            data.insert("nested", nested);
+            data.insert("count", 7_u64);
+        } else {
+            data.insert("count", 7_u64);
+            data.insert("nested", nested);
+        }
+        TurnInput {
+            choices: vec![ChoiceInput {
+                kind: monumla_core::ChoiceKind::SelectOption {
+                    key: "a\"b\\c".to_owned(),
+                },
+                data,
+            }],
+        }
+    };
+    let left = RuntimeAction::from_input(input(0.0, false));
+    let right = RuntimeAction::from_input(input(-0.0, true));
+    assert_eq!(left, right);
+    assert_eq!(domain.action_key(&left), domain.action_key(&right));
+
+    let kinds = [
+        monumla_core::ChoiceKind::SelectEntity {
+            entity: monumla_core::EntityId::new(1),
+        },
+        monumla_core::ChoiceKind::SelectPosition {
+            position: Position::new(1, 2),
+        },
+        monumla_core::ChoiceKind::SelectAbility {
+            ability: monumla_core::AbilityId::new(1),
+        },
+        monumla_core::ChoiceKind::SelectOption {
+            key: "1".to_owned(),
+        },
+        monumla_core::ChoiceKind::FinishTurn,
+    ];
+    let keys: HashSet<_> = kinds
+        .into_iter()
+        .map(|kind| {
+            domain.action_key(&RuntimeAction::from_input(TurnInput {
+                choices: vec![ChoiceInput {
+                    kind,
+                    data: StateMap::new(),
+                }],
+            }))
+        })
+        .collect();
+    assert_eq!(keys.len(), 5);
+    let mut reversed = left.clone();
+    reversed.input.choices.push(ChoiceInput {
+        kind: monumla_core::ChoiceKind::FinishTurn,
+        data: StateMap::new(),
+    });
+    let forward = domain.action_key(&reversed);
+    reversed.input.choices.reverse();
+    assert_ne!(forward, domain.action_key(&reversed));
+}

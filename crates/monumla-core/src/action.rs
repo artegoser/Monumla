@@ -11,7 +11,7 @@ pub struct EntityActionPath {
 }
 
 /// Stable inputs for one complete turn, independent of transient choice IDs.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Hash, Serialize, Deserialize)]
 pub struct TurnInput {
     pub choices: Vec<ChoiceInput>,
 }

@@ -10,7 +10,8 @@ use monumla_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{hash_map::DefaultHasher, HashMap, HashSet},
+    hash::{Hash, Hasher},
     rc::Rc,
     sync::{Arc, Mutex},
 };
@@ -292,13 +293,9 @@ impl SearchDomain for RuntimeDomain {
         Ok(first)
     }
     fn action_key(&self, action: &RuntimeAction) -> Option<u64> {
-        let parts: Vec<_> = action
-            .input
-            .choices
-            .iter()
-            .map(|c| (&c.data, format!("{:?}", c.kind)))
-            .collect();
-        Some(fingerprint(&parts) as u64)
+        let mut hasher = DefaultHasher::new();
+        action.input.hash(&mut hasher);
+        Some(hasher.finish())
     }
     fn action_priority(&self, _position: &GameTimeline, action: &RuntimeAction) -> i32 {
         action.turn.as_ref().map_or(0, |turn| {
