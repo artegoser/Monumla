@@ -50,6 +50,8 @@ Discovery completes each full batch before changing levels. It steps by 200 Elo 
 
 The discovery curve is `benchmarks/elo-calibration.png`. Its points measure the same frozen Monumla against different settings; they are not strength improvements over time. Only the independent confirmation determines the final Elo estimate and interval in `elo.json`/`elo.png`. While confirmation is incomplete, plotting discovery leaves the previously published rating intact. Choosing an opponent adaptively does not justify pooling those discovery games into a fixed-sample confidence interval.
 
+If the larger confirmation shows the opponent was uneven, further predeclared level checks can refine the equilibrium. Retain the original confirmation as the primary result regardless of those later scores. The run plan may include separate `validation` batches; resume completes them without replaying confirmation. Their selection policy is retained in the published calibration metadata, and they never enter the primary rating interval.
+
 Audit completed PGNs against a frozen WASM build of the same rules before accepting a result:
 
 ```sh

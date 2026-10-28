@@ -39,6 +39,15 @@ class ReferenceLadderReportTests(unittest.TestCase):
         self.assertEqual(points[0]["pairs"], 12)
         self.assertAlmostEqual(points[0]["score"], 10 / 24)
 
+    def test_followup_policy_is_retained_without_refitting_the_primary_rating(self):
+        calibration = self.calibration()
+        policy = dict(primary_inference="Always retain the original 48 games")
+        calibration["followup_validation"] = policy
+        result = final_report(calibration)
+        self.assertEqual(result["calibration"]["followup_validation"], policy)
+        self.assertEqual(result["reference_scale_elo"]["point"], 1600)
+        self.assertEqual(result["complete_pairs"], 24)
+
     def test_partial_duplicate_or_substituted_confirmation_cannot_publish(self):
         original = self.calibration()
         changed = []

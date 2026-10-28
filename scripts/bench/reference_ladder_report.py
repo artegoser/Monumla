@@ -53,7 +53,7 @@ def final_report(calibration):
         raise ValueError("Discovery games cannot be reused as confirmation")
     if primary["excluded_pairs"] or primary["unfinished_games"]:
         raise ValueError("Resolve unfinished confirmation games before publishing")
-    return dict(
+    result = dict(
         primary,
         calibration=dict(
             discovery=discovery_points(calibration),
@@ -63,6 +63,11 @@ def final_report(calibration):
             confirmation_path=confirmations[0]["path"],
         ),
     )
+    if "followup_validation" in calibration:
+        result["calibration"]["followup_validation"] = calibration[
+            "followup_validation"
+        ]
+    return result
 
 
 def plot_scores(calibration, path):

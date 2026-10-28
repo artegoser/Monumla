@@ -153,7 +153,7 @@ def calibration_report(plan):
     confirmation = next(
         (r["report"] for r in reports if r["role"] == "confirmation"), None
     )
-    return dict(
+    result = dict(
         schema=1,
         selection=plan["selection"],
         runs=reports,
@@ -161,6 +161,9 @@ def calibration_report(plan):
         primary=confirmation,
         inference="Discovery batches select the opponent. Only fresh fixed-size confirmation games determine the final rating interval.",
     )
+    if "followup_validation" in plan:
+        result["followup_validation"] = plan["followup_validation"]
+    return result
 
 
 def main():
