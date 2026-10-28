@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from match_storage import write_json
-from reference_ladder import calibration_report
+from reference_ladder import REPORT_METADATA, calibration_report
 from reference_report import plot, publish
 from strength import interval
 
@@ -63,7 +63,7 @@ def final_report(calibration):
             confirmation_path=confirmations[0]["path"],
         ),
     )
-    for key in ["followup_validation", "equilibrium_search"]:
+    for key in REPORT_METADATA:
         if key in calibration:
             result["calibration"][key] = calibration[key]
     return result
@@ -143,7 +143,7 @@ def plot_scores(calibration, path):
         detail = ""
     ax.set_title(detail + "120s + 1s · swapped-color pairs", fontsize=11)
     fig.supxlabel(
-        "Bars: conservative paired 95% bounds for each setting. Discovery selects the opponent;\nonly the separate fixed-size confirmation determines the final rating interval.",
+        "Bars: conservative paired 95% score bounds for the level checks and separate confirmation.\nThe crossover is descriptive; only the fixed confirmation determines the rating interval.",
         fontsize=9,
     )
     fig.savefig(path, dpi=150)

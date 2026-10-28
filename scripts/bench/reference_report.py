@@ -93,13 +93,14 @@ def plot(report, path):
     ax.spines[["top", "right"]].set_visible(False)
     ax.grid(axis="y", alpha=0.2)
     wins, draws, losses = report["wdl"]
+    draw_label = "draw" if draws == 1 else "draws"
     fig.suptitle("Monumla · calibrated chess strength", fontsize=17)
     ax.set_title(
-        f"{wins} wins · {draws} draws · {losses} losses · {report['unfinished_games']} unfinished\n120s + 1s · paired colors · {report['manifest']['baseline_revision']}",
+        f"{wins} wins · {draws} {draw_label} · {losses} losses · {report['unfinished_games']} unfinished\n120s + 1s · paired colors · {report['manifest']['baseline_revision']}",
         fontsize=11,
     )
     fig.supxlabel(
-        "95% conservative paired score bound; reference-setting model, not a FIDE or Lichess rating.\nArrows mean an unbounded interval; no finite rating is invented from all losses or wins.",
+        "95% conservative paired score bound; not a FIDE or Lichess rating.\nArrows mark unbounded intervals; all-win/loss results remain bounds.",
         fontsize=9,
     )
     fig.savefig(path, dpi=150)

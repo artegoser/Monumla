@@ -34,6 +34,7 @@ DEFAULT_SELECTION = dict(
     maximum_elo=3190,
     maximum_probe_batches=8,
 )
+REPORT_METADATA = ["followup_validation", "equilibrium_search", "audit_summary"]
 
 
 def choose_level(reports, selection):
@@ -161,7 +162,7 @@ def calibration_report(plan):
         primary=confirmation,
         inference="Discovery batches select the opponent. Only fresh fixed-size confirmation games determine the final rating interval.",
     )
-    for key in ["followup_validation", "equilibrium_search"]:
+    for key in REPORT_METADATA:
         if key in plan:
             result[key] = plan[key]
     return result
