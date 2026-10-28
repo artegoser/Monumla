@@ -138,6 +138,28 @@ The confirmation shows that 1600 is stronger than the desired even opponent in t
 
 ## Intended-move draw audit
 
-The first auditor checked current-position draw flags. It now also checks claims by an intended move and verifies claimed terminations without trusting PGN result tags. All **96 games completed so far** were re-audited with the frozen WASM rules. The 48-game primary match contains **15 optional intended-move claim positions**: 13 offered to Stockfish in games it eventually won, and two offered to Monumla in a game it won. No Stockfish draw opportunity was missed in a game Monumla won. Scores and the primary estimate are unchanged.
+The first auditor checked current-position draw flags. It now also checks claims by an intended move and verifies claimed terminations without trusting PGN result tags. The first **96 completed games** were re-audited with the frozen WASM rules. The 48-game primary match contains **15 optional intended-move claim positions**: 13 offered to Stockfish in games it eventually won, and two offered to Monumla in a game it won. No Stockfish draw opportunity was missed in a game Monumla won. Scores and the primary estimate are unchanged.
 
 The 1375 follow-up batch finished **8–1–3**. Its draw is a valid fifty-move claim by an intended move at halfmove 99. The exported PGN imports it as a generic recorded draw and omits the original intended SAN. The auditor independently verified legal witnesses `Kf5` and `Kf4`, applied a legal claim through the frozen API, and checked the exact resulting outcome. It records a witness rather than claiming to recover the original choice. Three optional repetition claims earlier in that game were available to Stockfish; the game ultimately ended drawn. Seven frozen-WASM integration checks cover valid current/intended claims, fabricated results, the claiming player and natural checkmate. These audit changes affect no engine, rules or match result.
+
+## Six-level chess calibration completed (2026-10-28)
+
+All **120 games** finished at **120s+1s**, with the same frozen Monumla and Stockfish binaries, one thread per engine, paired openings and four CPU slots. No game was discarded, forfeited or left unfinished.
+
+| Stockfish UCI_Elo | Stage | Monumla W–D–L | Score |
+|---|---|---|---|
+| 1320 | Initial pilot | 10–0–2 | 83.3% |
+| 1375 | Follow-up check | 8–1–3 | 70.8% |
+| 1400 | Follow-up check | 11–0–1 | 91.7% |
+| 1425 | Follow-up check | 9–0–3 | 75.0% |
+| 1450 | Follow-up check | 2–0–10 | 16.7% |
+| 1600 | Discovery probe | 5–0–7 | 41.7% |
+| 1600 | Independent fixed confirmation | 13–1–34 | 28.1% |
+
+[The complete level curve](elo-calibration.png) retains every batch, including the sharp and nonmonotone sample results. The **observed crossover is 1425–1450**, at the search's 25-Elo grid resolution. This is descriptive evidence from small batches, **not an exact equal-strength setting or a rating confidence interval**. Stockfish 19 chooses its weakened move at a depth determined by an integer skill component ([control definition](https://github.com/official-stockfish/Stockfish/blob/sf_19/src/search.h), [selection during search](https://github.com/official-stockfish/Stockfish/blob/sf_19/src/search.cpp)); this can introduce steps between nearby settings. Sampling noise remains substantial.
+
+The follow-up initially allowed up to eight probe/check batches. After inspecting that limiter, a separate resolution-stop declaration was recorded **before inspecting the completed 1425 result**: finish that entire batch, then stop at an observed near-even score or a crossover bracket no wider than the existing grid. This timing and the reason are retained in the published metadata. The final bracket has no fresh interior setting on that grid, so endpoint batches were not repeated to obtain an apparently even score. No Stockfish code or calibration coefficients were copied into Monumla.
+
+[The primary Elo result](elo.json) and [rating image](elo.png) remain **1437.0 [1195.5, 1638.5]** on the Stockfish UCI_Elo reference scale, using only the original **48-game confirmation**. Later checks did not refit, replace or select that estimate. This is a calibration baseline for the unchanged engine, not an Elo gain for its history journal.
+
+All **120 PGNs and 11,973 positions** passed the expanded frozen-WASM audit. It recorded **28 intended-move claim opportunities**, zero current-position claims, one independently reconstructed legal fifty-move claim, and zero invalid results. No unclaimed Stockfish draw opportunity occurred in a game Monumla won. The published JSON retains aggregate audit counts and the frozen WASM checksum; detailed records remain in ignored run directories. **38 Python benchmark tests, seven frozen-WASM result/claim checks, formatting and changed-file ESLint passed.**
