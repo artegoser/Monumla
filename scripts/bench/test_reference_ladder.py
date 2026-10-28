@@ -171,6 +171,34 @@ class ReferenceLadderLifecycleTests(unittest.TestCase):
             ):
                 main()
             self.assertEqual(len(calls), 1)
+            # A later equilibrium check is a new batch, never a replacement
+            # for an unfavorable confirmation or a reason to replay it.
+            from reference_ladder import calibration_report
+            from reference_ladder_report import final_report
+
+            validation = root / "validation"
+            plan["runs"].append(
+                dict(role="validation", path=str(validation), elo=1450, games=12)
+            )
+            write_json(out / "plan.json", plan)
+            pending = calibration_report(plan)
+            self.assertFalse(pending["complete"])
+            with self.assertRaises(ValueError):
+                final_report(pending)
+
+            def validate(command, check):
+                self.assertEqual(command[command.index("--games") + 1], "12")
+                self.assertEqual(command[command.index("--elo") + 1], "1450")
+                batch(validation, 1450, [1] * 12)
+
+            with patch("sys.argv", ["ladder", "--out", str(out), "--resume"]), patch(
+                "reference_ladder.subprocess.run", side_effect=validate
+            ) as played:
+                main()
+                self.assertEqual(played.call_count, 1)
+            result = final_report(calibration_report(plan))
+            self.assertEqual(result["wdl"], [0, 0, 48])
+            self.assertEqual(result["reference_scale_elo"]["point"], "-inf")
 
 
 if __name__ == "__main__":

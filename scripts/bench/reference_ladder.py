@@ -157,7 +157,7 @@ def calibration_report(plan):
         schema=1,
         selection=plan["selection"],
         runs=reports,
-        complete=confirmation is not None,
+        complete=confirmation is not None and len(reports) == len(plan["runs"]),
         primary=confirmation,
         inference="Discovery batches select the opponent. Only fresh fixed-size confirmation games determine the final rating interval.",
     )
