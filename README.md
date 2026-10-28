@@ -26,7 +26,7 @@ Monumla is a local-first programmable game runtime with a Svelte frontend. Its g
 
 - Node.js 22+
 - pnpm
-- Rust 1.80+
+- Rust stable for development (supported minimum: 1.80)
 - `wasm-pack` for browser WASM builds
 
 Install `wasm-pack` if necessary:
@@ -36,6 +36,10 @@ cargo install wasm-pack
 ```
 
 ## Development
+
+The toolchain file follows `stable` without pinning a compiler version and installs
+Clippy, rustfmt and the WASM target. Older compilers are used only for compatibility
+checks; benchmark comparisons record the exact compiler used for both builds.
 
 Install frontend dependencies:
 
@@ -66,6 +70,20 @@ cargo test --workspace
 cargo check --workspace
 cargo clippy --workspace --all-targets --all-features
 ```
+
+The supported minimum is checked with the locked dependencies, including examples,
+tests and all features:
+
+```bash
+cargo install cargo-msrv --locked
+cargo msrv --workspace find -- cargo check --workspace --all-targets --all-features --locked
+```
+
+On 2026-10-28, cargo-msrv 0.19.6 found Rust **1.80.1**. Explicit checks also
+passed on **1.80.0**, both for the complete native workspace and for
+`monumla-wasm --lib --target wasm32-unknown-unknown`. A separate find using
+`--ignore-rust-version` reached 1.71.0; bypassing package requirements does not
+change the supported minimum. Neither check writes a pinned toolchain file.
 
 The normal workspace suite keeps expensive depth-4 perft cases ignored so the development loop stays fast. Run the slow correctness gate explicitly when changing move generation, history semantics, or special-move execution:
 
