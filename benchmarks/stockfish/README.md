@@ -59,7 +59,13 @@ node scripts/bench/reference_audit.mjs /path/to/frozen/wasm \
   target/monumla-bench/reference-1600
 ```
 
-The audit checks actual clock/level settings, replays each PGN, verifies its rules outcome against the result table, and inspects every position for claimable draws. Draw claims need explicit review because UCI has no claim-draw command. The audit records its WASM checksum and findings under the ignored run directory.
+The audit checks actual clock/level settings, replays each PGN, verifies its rules outcome against the result table, and inspects every position for both current and intended-move draw claims. A PGN result tag alone cannot validate a claimed draw: the auditor reconstructs a legal claim through the frozen rules. PGN omits the original intended move, so the audit explicitly records an independently legal witness rather than pretending to recover that move. Draw claims need review because UCI has no claim-draw command; an optional claim declined by the eventual winner does not require changing the result. The audit records its WASM checksum and findings under the ignored run directory.
+
+```sh
+node scripts/bench/reference_audit_test.mjs /path/to/frozen/wasm
+```
+
+These integration checks cover current and intended-move claims, reject fabricated result tags and claims by the wrong player, and verify a natural checkmate.
 
 The deadline is checked between nodes. Rule generation, move validation, and notation can exceed the nominal time; inspect actual times in the log. This is a development match harness rather than a tournament clock manager. A small result set is a baseline, not an Elo estimate. Strength improvements need larger matched runs under the same settings and machine conditions; avoid concurrent browser/search work during measurement.
 
