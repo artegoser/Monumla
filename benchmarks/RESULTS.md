@@ -1,6 +1,6 @@
 # Engine experiment summary
 
-Raw artifacts are generated under ignored `target/monumla-bench/`. This file is a compact record of selected observations, not an append-only dump of runs. None of these match pairs establishes an Elo rating.
+Raw artifacts are generated under ignored `target/monumla-bench/`. This file is a compact record of selected observations, not an append-only dump of runs. Historical tiny matches are not calibrated ratings; the completed reference calibration is recorded below.
 
 ## Initial Stockfish reference (2026-10-23)
 
@@ -114,7 +114,7 @@ All **226 release Rust tests**, Clippy, the production build and **100 desktop/m
 
 ## First Stockfish reference calibration
 
-[The chess Elo graph](elo.png) and [complete result](elo.json) now contain the first finished reference match: **10 wins, 0 draws, 2 losses** against **Stockfish 19, UCI_Elo 1320**, at **120 seconds + 1 second increment**, one search thread per engine. All six swapped-color pairs finished; every game ended by checkmate, with no time/search forfeits or exclusions. The frozen host source is `f05cb34`, with the shared engine implementation from `d0ab8ac` unchanged. Binary identities and all options are retained in the result.
+The first finished reference match scored **10 wins, 0 draws, 2 losses** against **Stockfish 19, UCI_Elo 1320**, at **120 seconds + 1 second increment**, one search thread per engine. All six swapped-color pairs finished; every game ended by checkmate, with no time/search forfeits or exclusions. The frozen host source is `f05cb34`, with the shared engine implementation from `d0ab8ac` unchanged. Binary identities and all options are retained in the result.
 
 The estimate is **1599.6 Elo on the Stockfish UCI_Elo reference scale**, with a conservative paired 95% interval of **1172.0–2428.7**. Twelve games give only a coarse initial calibration, not a precise human rating or evidence of an improvement over an older Monumla version. Additional reference levels are being tested to find a closer, approximately equal-strength opponent.
 
@@ -124,6 +124,14 @@ The exact calibration control and CCRL anchor are documented in [Stockfish's UCI
 
 The same frozen Monumla host and Stockfish 19 binaries completed the second predeclared discovery batch at **UCI_Elo 1600**, still at **120s+1s**. Monumla scored **5 wins, 0 draws, 7 losses (41.7%)**. All six color-swapped pairs finished by checkmate, without forfeits or exclusions. The interrupted run preserved its three completed games and archived incomplete traces before resuming. All **1,113 positions** passed the rules audit, with no claimable draws; actual level and clock settings matched the plan.
 
-[The discovery curve](elo-calibration.png) shows both tested settings: 10–0–2 at 1320 and 5–0–7 at 1600. These are different opponents for the same engine, not successive engine improvements. The per-setting 95% bounds remain broad. The 1600 result is inside the predeclared 40–60% target band, selecting it for a **fresh 48-game confirmation**, whose complete schedule was recorded before play. This confirmation is in progress; the published `elo.json` and `elo.png` retain the older preliminary result until all 48 games finish and pass review.
+[The discovery curve](elo-calibration.png) shows both tested settings: 10–0–2 at 1320 and 5–0–7 at 1600. These are different opponents for the same engine, not successive engine improvements. The per-setting 95% bounds remain broad. The 1600 result is inside the predeclared 40–60% target band, selecting it for a **fresh 48-game confirmation**, whose complete schedule was recorded before play. The confirmation subsequently completed; its result replaces the older preliminary estimate below.
 
 The durable driver in `scripts/bench/reference_ladder.py` records every batch before play and resumes the same schedule after interruption. Discovery chooses the reference setting; only the independent confirmation determines the final fixed-sample Elo interval. Raw discovery, confirmation, plans and restart metadata remain under ignored `target/monumla-bench/chess-calibration-d0ab8ac/` and the original reference directories.
+
+## Fixed chess confirmation (2026-10-28)
+
+[The Elo graph](elo.png) and [complete reference result](elo.json) now use all **48 predeclared confirmation games** against Stockfish 19 at **UCI_Elo 1600**, **120s+1s**, one search thread each: **13 wins, 1 draw, 34 losses (28.125%)**. All 24 swapped-color pairs finished, with **zero forfeits, unfinished games or exclusions**. There were 47 checkmates and one rules-defined dead-position draw. All **5,047 positions** passed the frozen WASM rules audit, with no claimable draws or result mismatches; each settings file matched the declared clocks and reference level.
+
+The estimate is **1437.0 Elo on the Stockfish UCI_Elo reference scale**, with a conservative paired 95% interval of **1195.5–1638.5**. The original 12-game pilot's higher point estimate was uncertain; this is a larger calibration of the **same frozen engine**, not a measured regression or improvement. The host remains `f05cb34`, shared engine implementation `d0ab8ac`, and the binary SHA-256 remains `2f0fbe22f5af0e110f872aac361f42f828dd579c9f94efe88358799dc206b0a6`. The small three-prefix opening suite limits how representative this reference is; it is not a FIDE or Lichess rating.
+
+The confirmation shows that 1600 is stronger than the desired even opponent in this sample. A follow-up selection plan, recorded when 24 confirmation games had completed, calls for further full 12-game level checks if needed. These checks use the existing bracket rule and retain every result. **The original 48-game confirmation always determines the primary estimate and interval**, regardless of later scores; later checks cannot replace or improve that result selectively. The level checks appear separately in [the calibration curve](elo-calibration.png). Raw results, PGNs, immutable declarations and audits remain under ignored `target/monumla-bench/chess-calibration-d0ab8ac/`.

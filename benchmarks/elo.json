@@ -2,7 +2,7 @@
   "manifest": {
     "mode": "stockfish_reference",
     "ruleset": "chess",
-    "games": 12,
+    "games": 48,
     "max_plies": 500,
     "opening_plies": "three built-in paired prefixes",
     "baseline": "/home/artemy/Documents/GitHub/nydra/target/monumla-bench/tools/stockfish-19/stockfish",
@@ -12,7 +12,7 @@
     "baseline_sha256": "0f83d24cc46d2c66c60f16001af5444873bc112b7d028594513426894c12da19",
     "candidate_sha256": "2f0fbe22f5af0e110f872aac361f42f828dd579c9f94efe88358799dc206b0a6",
     "baseline_settings": {
-      "elo": 1320,
+      "elo": 1600,
       "clock_ms": 120000,
       "increment_ms": 1000,
       "threads": 1,
@@ -29,60 +29,105 @@
     "jobs": 4,
     "cpus": "0,1,2,3",
     "platform": "Linux-7.2.10-200.fc44.x86_64-x86_64-with-glibc2.43",
-    "runner_revision": "f05cb342646d4dd048e43d0fe9a4b15d366b9a3e",
+    "runner_revision": "83caebc1169894e3d66e06d86df44cbcb5f6c3ae",
     "runner_dirty": false,
-    "started_at": "2026-10-27T21:09:32.822326+00:00",
+    "started_at": "2026-10-28T08:32:23.175091+00:00",
     "load_average_at_start": [
-      0.43798828125,
-      0.638671875,
-      0.90869140625
+      4.07470703125,
+      5.58056640625,
+      4.14990234375
     ],
     "opponent_uci": "Stockfish 19 by the Stockfish developers (see AUTHORS file)\nid name Stockfish 19\nid author the Stockfish developers (see AUTHORS file)\n\noption name Debug Log File type string default <empty>\noption name NumaPolicy type string default auto\noption name Threads type spin default 1 min 1 max 1024\noption name Hash type spin default 16 min 1 max 33554432\noption name Clear Hash type button\noption name Ponder type check default false\noption name MultiPV type spin default 1 min 1 max 256\noption name Skill Level type spin default 20 min 0 max 20\noption name Move Overhead type spin default 10 min 0 max 5000\noption name nodestime type spin default 0 min 0 max 10000\noption name UCI_Chess960 type check default false\noption name UCI_LimitStrength type check default false\noption name UCI_Elo type spin default 1320 min 1320 max 3190\noption name UCI_ShowWDL type check default false\noption name SyzygyPath type string default <empty>\noption name SyzygyProbeDepth type spin default 1 min 1 max 100\noption name Syzygy50MoveRule type check default true\noption name SyzygyProbeLimit type spin default 7 min 0 max 7\noption name EvalFile type string default nn-1a298aa575a0.nnue\nuciok\n",
     "reference_scale": "Stockfish UCI_Elo; documented calibration is 120 seconds + 1 second increment",
     "calibrated_time_control": true,
-    "paired_game_count_predeclared": 12
+    "paired_game_count_predeclared": 48
   },
   "complete_schedule": true,
-  "completed_games": 12,
-  "planned_games": 12,
+  "completed_games": 48,
+  "planned_games": 48,
   "wdl": [
-    10,
-    0,
-    2
+    13,
+    1,
+    34
   ],
   "paired_wdl": [
-    10,
-    0,
-    2
+    13,
+    1,
+    34
   ],
   "unpaired_finished_games": 0,
   "unfinished_games": 0,
-  "complete_pairs": 6,
+  "complete_pairs": 24,
   "excluded_pairs": 0,
   "pentanomial": [
+    12,
+    1,
+    9,
     0,
-    0,
-    2,
-    0,
-    4
+    2
   ],
   "score_interval_95": [
-    0.29897118416860435,
-    0.9983112996477639
+    0.08880639806682741,
+    0.5552513353970772
   ],
   "delta_elo": {
-    "point": 279.6,
-    "low": -148.0,
-    "high": 1108.7
+    "point": -163.0,
+    "low": -404.5,
+    "high": 38.5
   },
   "method": "fixed-N conservative paired KL/Chernoff bound; independent pair assumption",
-  "reference_setting": 1320,
+  "reference_setting": 1600,
   "reference_scale_elo": {
-    "point": 1599.6,
-    "low": 1172.0,
-    "high": 2428.7
+    "point": 1437.0,
+    "low": 1195.5,
+    "high": 1638.5
   },
   "rating_caveat": "Opponent-setting reference scale, not FIDE/CCRL rating; calibration depends on time control and pool.",
   "rating_label": "Stockfish UCI_Elo reference scale",
-  "rating_status": "estimate"
+  "rating_status": "estimate",
+  "calibration": {
+    "discovery": [
+      {
+        "level": 1320,
+        "wdl": [
+          10,
+          0,
+          2
+        ],
+        "pairs": 6,
+        "score": 0.8333333333333334,
+        "interval_95": [
+          0.29897118416860435,
+          0.9983112996477639
+        ]
+      },
+      {
+        "level": 1600,
+        "wdl": [
+          5,
+          0,
+          7
+        ],
+        "pairs": 6,
+        "score": 0.4166666666666667,
+        "interval_95": [
+          0.047989929733925435,
+          0.880890199718978
+        ]
+      }
+    ],
+    "selection": {
+      "target_score_band": [
+        0.4,
+        0.6
+      ],
+      "unbracketed_step": 200,
+      "minimum_elo": 1320,
+      "maximum_elo": 3190,
+      "maximum_probe_batches": 8
+    },
+    "inference": "Discovery batches select the opponent. Only fresh fixed-size confirmation games determine the final rating interval.",
+    "confirmation_games": 48,
+    "confirmation_path": "/home/artemy/Documents/GitHub/nydra/target/monumla-bench/chess-calibration-d0ab8ac/02-confirmation-1600"
+  }
 }
