@@ -1,10 +1,12 @@
 use crate::{
-    piece::set_has_moved, pieces::pawn::turn_records_entity_move, ChessError, ChessRules, ChessSide,
-    BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK,
+    piece::set_has_moved, pieces::pawn::turn_records_entity_move, ChessError, ChessRules,
+    ChessSide, BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK,
 };
 pub const STANDARD_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-use monumla_core::{EntityId, EntityState, EntityTypeId, GameState, GameTimeline, History, Position};
+use monumla_core::{
+    EntityId, EntityState, EntityTypeId, GameState, GameTimeline, History, Position,
+};
 
 pub struct FenGame {
     pub timeline: GameTimeline,
@@ -129,7 +131,9 @@ impl ChessRules {
             .into_iter()
             .find(|movement| movement.to == current_pawn_square)
             .ok_or_else(|| {
-                ChessError::InvalidFen("synthetic en-passant predecessor is not a legal double pawn move".into())
+                ChessError::InvalidFen(
+                    "synthetic en-passant predecessor is not a legal double pawn move".into(),
+                )
             })?;
         self.execute_move(&mut turn, None, movement, None)?;
         timeline.commit_turn(turn)?;
@@ -165,7 +169,10 @@ impl ChessRules {
             if pieces.len() > 16 {
                 return Err(ChessError::InvalidFen(format!(
                     "unsupported position: {} has more than sixteen pieces",
-                    match side { ChessSide::White => "white", ChessSide::Black => "black" }
+                    match side {
+                        ChessSide::White => "white",
+                        ChessSide::Black => "black",
+                    }
                 )));
             }
             let pawns = pieces
@@ -175,13 +182,15 @@ impl ChessRules {
             if pawns > 8 {
                 return Err(ChessError::InvalidFen(format!(
                     "unsupported position: {} has more than eight pawns",
-                    match side { ChessSide::White => "white", ChessSide::Black => "black" }
+                    match side {
+                        ChessSide::White => "white",
+                        ChessSide::Black => "black",
+                    }
                 )));
             }
-            if pieces
-                .iter()
-                .any(|entity| entity.entity_type == PAWN && (entity.position.y == 0 || entity.position.y == 7))
-            {
+            if pieces.iter().any(|entity| {
+                entity.entity_type == PAWN && (entity.position.y == 0 || entity.position.y == 7)
+            }) {
                 return Err(ChessError::InvalidFen(
                     "unsupported position: pawn on the first or eighth rank".into(),
                 ));
@@ -314,10 +323,14 @@ fn apply_castling_metadata(state: &mut GameState, field: &str) -> Result<(), Che
             if king.entity_type == KING && king.owner == side.player() {
                 set_has_moved(king, !any_right);
             } else if any_right {
-                return Err(ChessError::InvalidFen("castling right has no matching king".into()));
+                return Err(ChessError::InvalidFen(
+                    "castling right has no matching king".into(),
+                ));
             }
         } else if any_right {
-            return Err(ChessError::InvalidFen("castling right has no matching king".into()));
+            return Err(ChessError::InvalidFen(
+                "castling right has no matching king".into(),
+            ));
         }
 
         for (x, bit) in [(7_u16, king_side_bit), (0_u16, queen_side_bit)] {
@@ -327,10 +340,14 @@ fn apply_castling_metadata(state: &mut GameState, field: &str) -> Result<(), Che
                 if rook.entity_type == ROOK && rook.owner == side.player() {
                     set_has_moved(rook, !has_right);
                 } else if has_right {
-                    return Err(ChessError::InvalidFen("castling right has no matching rook".into()));
+                    return Err(ChessError::InvalidFen(
+                        "castling right has no matching rook".into(),
+                    ));
                 }
             } else if has_right {
-                return Err(ChessError::InvalidFen("castling right has no matching rook".into()));
+                return Err(ChessError::InvalidFen(
+                    "castling right has no matching rook".into(),
+                ));
             }
         }
     }
@@ -425,11 +442,11 @@ fn serialize_castling(rights: u8) -> String {
 }
 
 fn fen_en_passant_target(state: &GameState, history: &History) -> Option<Position> {
-    let previous = history
-        .turns()
-        .iter()
-        .rev()
-        .find(|turn| turn.steps.iter().any(|step| step.action.kind == "chess_move"))?;
+    let previous = history.turns().iter().rev().find(|turn| {
+        turn.steps
+            .iter()
+            .any(|step| step.action.kind == "chess_move")
+    })?;
     // Terminal chess actions (resignation, draw claim/agreement, imported PGN
     // result) intentionally do not change the board or turn. They may add
     // ruleset outcome metadata after the last real chess move, so compare only
@@ -437,7 +454,12 @@ fn fen_en_passant_target(state: &GameState, history: &History) -> Option<Positio
     if previous.after.entities != state.entities || previous.after.turn != state.turn {
         return None;
     }
-    for after in previous.after.entities.values().filter(|entity| entity.entity_type == PAWN) {
+    for after in previous
+        .after
+        .entities
+        .values()
+        .filter(|entity| entity.entity_type == PAWN)
+    {
         let before = previous.before.entities.get(&after.id)?;
         let side = ChessSide::from_player(after.owner)?;
         let was_double_pawn_move =
@@ -461,7 +483,8 @@ fn fen_en_passant_target(state: &GameState, history: &History) -> Option<Positio
 
 fn parse_square(value: &str) -> Result<Position, ChessError> {
     let bytes = value.as_bytes();
-    if bytes.len() != 2 || !(b'a'..=b'h').contains(&bytes[0]) || !(b'1'..=b'8').contains(&bytes[1]) {
+    if bytes.len() != 2 || !(b'a'..=b'h').contains(&bytes[0]) || !(b'1'..=b'8').contains(&bytes[1])
+    {
         return Err(ChessError::InvalidFen("invalid algebraic square".into()));
     }
     Ok(Position::new(
@@ -479,9 +502,14 @@ fn square_name(position: Position) -> String {
 fn offset_rank(position: Position, dy: i16) -> Result<Position, ChessError> {
     let y = i32::from(position.y) + i32::from(dy);
     if !(0..8).contains(&y) {
-        return Err(ChessError::InvalidFen("en-passant geometry is outside the board".into()));
+        return Err(ChessError::InvalidFen(
+            "en-passant geometry is outside the board".into(),
+        ));
     }
-    Ok(Position::new(position.x, u16::try_from(y).expect("0..8 fits u16")))
+    Ok(Position::new(
+        position.x,
+        u16::try_from(y).expect("0..8 fits u16"),
+    ))
 }
 
 #[cfg(test)]
@@ -494,7 +522,12 @@ mod tests {
         let rules = ChessRules::standard();
         let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let imported = rules.from_fen(fen).unwrap();
-        assert_eq!(rules.to_fen(imported.timeline.current(), imported.timeline.history()).unwrap(), fen);
+        assert_eq!(
+            rules
+                .to_fen(imported.timeline.current(), imported.timeline.history())
+                .unwrap(),
+            fen
+        );
         assert_eq!(imported.synthetic_history_len, 0);
     }
 
@@ -505,12 +538,24 @@ mod tests {
             .from_fen("r3k2r/8/8/8/8/8/8/R3K2R w Kq - 7 12")
             .unwrap();
         let state = imported.timeline.current();
-        assert!(!crate::piece::has_moved(state.entity_at(Position::new(4, 0)).unwrap().unwrap()));
-        assert!(!crate::piece::has_moved(state.entity_at(Position::new(7, 0)).unwrap().unwrap()));
-        assert!(crate::piece::has_moved(state.entity_at(Position::new(0, 0)).unwrap().unwrap()));
-        assert!(!crate::piece::has_moved(state.entity_at(Position::new(4, 7)).unwrap().unwrap()));
-        assert!(!crate::piece::has_moved(state.entity_at(Position::new(0, 7)).unwrap().unwrap()));
-        assert!(crate::piece::has_moved(state.entity_at(Position::new(7, 7)).unwrap().unwrap()));
+        assert!(!crate::piece::has_moved(
+            state.entity_at(Position::new(4, 0)).unwrap().unwrap()
+        ));
+        assert!(!crate::piece::has_moved(
+            state.entity_at(Position::new(7, 0)).unwrap().unwrap()
+        ));
+        assert!(crate::piece::has_moved(
+            state.entity_at(Position::new(0, 0)).unwrap().unwrap()
+        ));
+        assert!(!crate::piece::has_moved(
+            state.entity_at(Position::new(4, 7)).unwrap().unwrap()
+        ));
+        assert!(!crate::piece::has_moved(
+            state.entity_at(Position::new(0, 7)).unwrap().unwrap()
+        ));
+        assert!(crate::piece::has_moved(
+            state.entity_at(Position::new(7, 7)).unwrap().unwrap()
+        ));
     }
 
     #[test]
@@ -540,16 +585,19 @@ mod tests {
             .find(|movement| movement.to == Position::new(3, 5))
             .unwrap();
         assert!(matches!(ep.kind, ChessMoveKind::EnPassant { .. }));
-        assert_eq!(rules.to_fen(imported.timeline.current(), imported.timeline.history()).unwrap(), fen);
+        assert_eq!(
+            rules
+                .to_fen(imported.timeline.current(), imported.timeline.history())
+                .unwrap(),
+            fen
+        );
     }
 
     #[test]
     fn invalid_fen_is_rejected() {
         let rules = ChessRules::standard();
         assert!(rules.from_fen("8/8/8/8/8/8/8/8 w - - 0 1").is_err());
-        assert!(rules
-            .from_fen("4k3/8/8/8/8/8/8/4K3 w K - 0 1")
-            .is_err());
+        assert!(rules.from_fen("4k3/8/8/8/8/8/8/4K3 w K - 0 1").is_err());
         assert!(rules
             .from_fen("4k3/8/8/3pP3/8/8/8/4K3 w - d3 0 17")
             .is_err());
@@ -558,15 +606,11 @@ mod tests {
     #[test]
     fn strict_fen_validation_rejects_impossible_standard_positions() {
         let rules = ChessRules::standard();
-        assert!(rules
-            .from_fen("4k3/8/8/8/8/8/8/P3K3 w - - 0 1")
-            .is_err());
+        assert!(rules.from_fen("4k3/8/8/8/8/8/8/P3K3 w - - 0 1").is_err());
         assert!(rules
             .from_fen("4k3/pppppppp/8/8/8/8/PPPPPPPP/Q3KQQQ w - - 0 1")
             .is_err());
-        assert!(rules
-            .from_fen("4k3/8/8/8/8/8/4R3/4K3 w - - 0 1")
-            .is_err());
+        assert!(rules.from_fen("4k3/8/8/8/8/8/4R3/4K3 w - - 0 1").is_err());
     }
 
     #[test]
@@ -592,7 +636,9 @@ mod tests {
         timeline.commit_turn(turn).unwrap();
 
         assert_eq!(
-            rules.to_fen(timeline.current(), timeline.history()).unwrap(),
+            rules
+                .to_fen(timeline.current(), timeline.history())
+                .unwrap(),
             "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 17"
         );
     }
@@ -600,11 +646,14 @@ mod tests {
     #[test]
     fn fullmove_number_advances_after_black_move() {
         let rules = ChessRules::standard();
-        let imported = rules
-            .from_fen("4k3/7p/8/8/8/8/P7/4K3 b - - 0 23")
-            .unwrap();
+        let imported = rules.from_fen("4k3/7p/8/8/8/8/P7/4K3 b - - 0 23").unwrap();
         let mut timeline = imported.timeline;
-        let pawn = timeline.current().entity_at(Position::new(7, 6)).unwrap().unwrap().id;
+        let pawn = timeline
+            .current()
+            .entity_at(Position::new(7, 6))
+            .unwrap()
+            .unwrap()
+            .id;
         let mut turn = timeline.begin_turn(crate::BLACK_PLAYER).unwrap();
         let movement = rules
             .legal_moves(timeline.current(), pawn)
@@ -612,11 +661,16 @@ mod tests {
             .into_iter()
             .find(|movement| movement.to == Position::new(7, 5))
             .unwrap();
-        rules.execute_move(&mut turn, Some(timeline.history()), movement, None).unwrap();
+        rules
+            .execute_move(&mut turn, Some(timeline.history()), movement, None)
+            .unwrap();
         timeline.commit_turn(turn).unwrap();
         assert_eq!(rules.halfmove_clock(timeline.current()), 0);
         assert_eq!(rules.fullmove_number(timeline.current()), 24);
-        assert!(rules.to_fen(timeline.current(), timeline.history()).unwrap().ends_with(" 0 24"));
+        assert!(rules
+            .to_fen(timeline.current(), timeline.history())
+            .unwrap()
+            .ends_with(" 0 24"));
         assert_eq!(timeline.current().turn.active_players, vec![WHITE_PLAYER]);
     }
 }

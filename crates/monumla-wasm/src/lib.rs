@@ -1822,37 +1822,41 @@ fn string_error(error: impl ToString) -> String {
     error.to_string()
 }
 
-fn chess_turn_notation(rules: &ChessRules, turn: &monumla_core::TurnRecord, prefix: &monumla_core::History) -> Result<String, String> {
-    Ok(match turn.steps.last().map(|step| step.action.kind.as_str()) {
-                Some("chess_move") => rules
-                    .san_for_turn(turn, prefix)
-                    .map_err(string_error)?,
-                Some("chess_resign") => "Resignation".to_owned(),
-                Some("chess_draw_agreement") => "Draw agreement".to_owned(),
-                Some("chess_draw_claim_threefold") => "Threefold repetition claimed".to_owned(),
-                Some("chess_draw_claim_fifty_move") => "Fifty-move draw claimed".to_owned(),
-                Some("chess_draw_claim_threefold_by_move") => {
-                    let san = turn
-                        .steps
-                        .last()
-                        .and_then(|step| step.action.data.get("san"))
-                        .and_then(monumla_core::StateValue::as_str)
-                        .unwrap_or("?");
-                    format!("Threefold repetition claimed by intended move {san}")
-                }
-                Some("chess_draw_claim_fifty_move_by_move") => {
-                    let san = turn
-                        .steps
-                        .last()
-                        .and_then(|step| step.action.data.get("san"))
-                        .and_then(monumla_core::StateValue::as_str)
-                        .unwrap_or("?");
-                    format!("Fifty-move draw claimed by intended move {san}")
-                }
-                Some("chess_recorded_result") => "Recorded PGN result".to_owned(),
-                Some(other) => other.to_owned(),
-                None => "Terminal action".to_owned(),
-            })
+fn chess_turn_notation(
+    rules: &ChessRules,
+    turn: &monumla_core::TurnRecord,
+    prefix: &monumla_core::History,
+) -> Result<String, String> {
+    Ok(
+        match turn.steps.last().map(|step| step.action.kind.as_str()) {
+            Some("chess_move") => rules.san_for_turn(turn, prefix).map_err(string_error)?,
+            Some("chess_resign") => "Resignation".to_owned(),
+            Some("chess_draw_agreement") => "Draw agreement".to_owned(),
+            Some("chess_draw_claim_threefold") => "Threefold repetition claimed".to_owned(),
+            Some("chess_draw_claim_fifty_move") => "Fifty-move draw claimed".to_owned(),
+            Some("chess_draw_claim_threefold_by_move") => {
+                let san = turn
+                    .steps
+                    .last()
+                    .and_then(|step| step.action.data.get("san"))
+                    .and_then(monumla_core::StateValue::as_str)
+                    .unwrap_or("?");
+                format!("Threefold repetition claimed by intended move {san}")
+            }
+            Some("chess_draw_claim_fifty_move_by_move") => {
+                let san = turn
+                    .steps
+                    .last()
+                    .and_then(|step| step.action.data.get("san"))
+                    .and_then(monumla_core::StateValue::as_str)
+                    .unwrap_or("?");
+                format!("Fifty-move draw claimed by intended move {san}")
+            }
+            Some("chess_recorded_result") => "Recorded PGN result".to_owned(),
+            Some(other) => other.to_owned(),
+            None => "Terminal action".to_owned(),
+        },
+    )
 }
 
 #[cfg(test)]

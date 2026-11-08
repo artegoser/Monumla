@@ -3,8 +3,8 @@ use crate::{
     BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK, STANDARD_FEN, WHITE_PLAYER,
 };
 use monumla_core::{
-    ChoiceInput, EntityId, EntityTypeId, GameState, GameTimeline, History, Position, RecordedAction,
-    StateMap, StateValue, TurnRecord, TurnSession,
+    ChoiceInput, EntityId, EntityTypeId, GameState, GameTimeline, History, Position,
+    RecordedAction, StateMap, StateValue, TurnRecord, TurnSession,
 };
 use std::collections::BTreeMap;
 
@@ -24,7 +24,8 @@ impl ChessRules {
         promotion: Option<EntityTypeId>,
     ) -> Result<String, ChessError> {
         let actor = state.entity(movement.actor)?;
-        let side = ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
+        let side =
+            ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
         let mut san = match movement.kind {
             ChessMoveKind::Castle { .. } => {
                 if movement.to.x > movement.from.x {
@@ -56,7 +57,8 @@ impl ChessRules {
                     return Err(ChessError::MoveInputRejected(movement.actor));
                 }
                 if !move_choices.is_empty() {
-                    let promotion = promotion.ok_or(ChessError::PromotionRequired(movement.actor))?;
+                    let promotion =
+                        promotion.ok_or(ChessError::PromotionRequired(movement.actor))?;
                     let letter = piece_letter(promotion)
                         .filter(|_| Pawn::is_promotion_type(promotion))
                         .ok_or(ChessError::InvalidPromotion(promotion))?;
@@ -69,10 +71,12 @@ impl ChessRules {
             }
         };
 
-        let (after, next_history) = self.simulate_notated_turn(state, history, movement, promotion)?;
+        let (after, next_history) =
+            self.simulate_notated_turn(state, history, movement, promotion)?;
         let next_side = side.opponent();
         if self.in_check(&after, next_side)? {
-            let replies = self.legal_moves_for_side_with_history(&after, Some(&next_history), next_side)?;
+            let replies =
+                self.legal_moves_for_side_with_history(&after, Some(&next_history), next_side)?;
             san.push(if replies.is_empty() { '#' } else { '+' });
         }
         Ok(san)
@@ -121,7 +125,8 @@ impl ChessRules {
         let mut matches = Vec::new();
         for movement in moves {
             let local_choices = self.piece_move_choices(state, Some(history), movement)?;
-            let move_choices = self.move_choices(state, Some(history), movement, &StateMap::new())?;
+            let move_choices =
+                self.move_choices(state, Some(history), movement, &StateMap::new())?;
             if !local_choices.is_empty() && move_choices.is_empty() {
                 continue;
             }
@@ -143,12 +148,8 @@ impl ChessRules {
                 else {
                     continue;
                 };
-                let candidate = normalize_san(&self.san_for_move(
-                    state,
-                    history,
-                    movement,
-                    Some(promotion),
-                )?);
+                let candidate =
+                    normalize_san(&self.san_for_move(state, history, movement, Some(promotion))?);
                 if candidate == token {
                     matches.push((movement, Some(promotion)));
                 }
@@ -193,10 +194,7 @@ impl ChessRules {
                 )));
             }
         }
-        let declared_result = movetext_result
-            .as_deref()
-            .or(tag_result)
-            .unwrap_or("*");
+        let declared_result = movetext_result.as_deref().or(tag_result).unwrap_or("*");
         let result_was_explicit = movetext_result.is_some() || tag_result.is_some();
         self.apply_declared_pgn_result(&mut timeline, declared_result, result_was_explicit)?;
 
@@ -228,9 +226,14 @@ impl ChessRules {
                 final_state = turn.after.clone();
                 continue;
             }
-            if turn.steps.last().is_some_and(|step| step.action.kind == "chess_move") {
+            if turn
+                .steps
+                .last()
+                .is_some_and(|step| step.action.kind == "chess_move")
+            {
                 let san = self.san_for_turn(turn, &prefix)?;
-                let side = ChessSide::from_player(turn.actor).ok_or(ChessError::UnknownSide(turn.actor))?;
+                let side = ChessSide::from_player(turn.actor)
+                    .ok_or(ChessError::UnknownSide(turn.actor))?;
                 moves.push((self.fullmove_number(&turn.before), side, san));
             }
             prefix = prefix.with_appended(turn.clone())?;
@@ -239,12 +242,48 @@ impl ChessRules {
 
         let result = result_token(self.status(&final_state, history)?.outcome.as_ref());
         let mut tags = vec![
-            ("Event".to_owned(), source_tags.get("Event").cloned().unwrap_or_else(|| "Monumla local chess game".to_owned())),
-            ("Site".to_owned(), source_tags.get("Site").cloned().unwrap_or_else(|| "?".to_owned())),
-            ("Date".to_owned(), source_tags.get("Date").cloned().unwrap_or_else(|| "????.??.??".to_owned())),
-            ("Round".to_owned(), source_tags.get("Round").cloned().unwrap_or_else(|| "-".to_owned())),
-            ("White".to_owned(), source_tags.get("White").cloned().unwrap_or_else(|| "White".to_owned())),
-            ("Black".to_owned(), source_tags.get("Black").cloned().unwrap_or_else(|| "Black".to_owned())),
+            (
+                "Event".to_owned(),
+                source_tags
+                    .get("Event")
+                    .cloned()
+                    .unwrap_or_else(|| "Monumla local chess game".to_owned()),
+            ),
+            (
+                "Site".to_owned(),
+                source_tags
+                    .get("Site")
+                    .cloned()
+                    .unwrap_or_else(|| "?".to_owned()),
+            ),
+            (
+                "Date".to_owned(),
+                source_tags
+                    .get("Date")
+                    .cloned()
+                    .unwrap_or_else(|| "????.??.??".to_owned()),
+            ),
+            (
+                "Round".to_owned(),
+                source_tags
+                    .get("Round")
+                    .cloned()
+                    .unwrap_or_else(|| "-".to_owned()),
+            ),
+            (
+                "White".to_owned(),
+                source_tags
+                    .get("White")
+                    .cloned()
+                    .unwrap_or_else(|| "White".to_owned()),
+            ),
+            (
+                "Black".to_owned(),
+                source_tags
+                    .get("Black")
+                    .cloned()
+                    .unwrap_or_else(|| "Black".to_owned()),
+            ),
             ("Result".to_owned(), result.to_owned()),
         ];
         if initial_fen != STANDARD_FEN {
@@ -252,7 +291,18 @@ impl ChessRules {
             tags.push(("FEN".to_owned(), initial_fen.to_owned()));
         }
         for (name, value) in source_tags {
-            if matches!(name.as_str(), "Event" | "Site" | "Date" | "Round" | "White" | "Black" | "Result" | "SetUp" | "FEN") {
+            if matches!(
+                name.as_str(),
+                "Event"
+                    | "Site"
+                    | "Date"
+                    | "Round"
+                    | "White"
+                    | "Black"
+                    | "Result"
+                    | "SetUp"
+                    | "FEN"
+            ) {
                 continue;
             }
             tags.push((name.clone(), value.clone()));
@@ -399,10 +449,7 @@ impl ChessRules {
                 let choice = choices
                     .into_iter()
                     .find(|choice| {
-                        choice
-                            .data
-                            .get("entity_type")
-                            .and_then(StateValue::as_u64)
+                        choice.data.get("entity_type").and_then(StateValue::as_u64)
                             == Some(u64::from(entity_type.get()))
                     })
                     .ok_or(ChessError::InvalidPromotion(entity_type))?;
@@ -419,7 +466,8 @@ impl ChessRules {
         promotion: Option<EntityTypeId>,
     ) -> Result<(GameState, History), ChessError> {
         let actor = state.entity(movement.actor)?;
-        let side = ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
+        let side =
+            ChessSide::from_player(actor.owner).ok_or(ChessError::UnknownSide(actor.owner))?;
         let mut turn = TurnSession::new(state, side.player())?;
         let input = self.notation_move_input(state, history, movement, promotion)?;
         self.execute_move(&mut turn, Some(history), movement, input.as_ref())?;
@@ -479,7 +527,8 @@ fn piece_letter(entity_type: EntityTypeId) -> Option<char> {
 }
 
 fn file_char(file: u16) -> Result<char, ChessError> {
-    let file = u8::try_from(file).map_err(|_| ChessError::InvalidSan("file is outside board".into()))?;
+    let file =
+        u8::try_from(file).map_err(|_| ChessError::InvalidSan("file is outside board".into()))?;
     if file >= 8 {
         return Err(ChessError::InvalidSan("file is outside chess board".into()));
     }
@@ -487,7 +536,8 @@ fn file_char(file: u16) -> Result<char, ChessError> {
 }
 
 fn rank_char(rank: u16) -> Result<char, ChessError> {
-    let rank = u8::try_from(rank).map_err(|_| ChessError::InvalidSan("rank is outside board".into()))?;
+    let rank =
+        u8::try_from(rank).map_err(|_| ChessError::InvalidSan("rank is outside board".into()))?;
     if rank >= 8 {
         return Err(ChessError::InvalidSan("rank is outside chess board".into()));
     }
@@ -495,7 +545,11 @@ fn rank_char(rank: u16) -> Result<char, ChessError> {
 }
 
 fn square_name(position: Position) -> Result<String, ChessError> {
-    Ok(format!("{}{}", file_char(position.x)?, rank_char(position.y)?))
+    Ok(format!(
+        "{}{}",
+        file_char(position.x)?,
+        rank_char(position.y)?
+    ))
 }
 
 fn normalize_san(value: &str) -> String {
@@ -607,7 +661,9 @@ fn pgn_san_tokens(movetext: &str) -> Result<(Vec<String>, Option<String>), Chess
         }
         if is_result_token(token) {
             if result.as_deref().is_some_and(|previous| previous != token) {
-                return Err(ChessError::InvalidPgn("conflicting movetext results".into()));
+                return Err(ChessError::InvalidPgn(
+                    "conflicting movetext results".into(),
+                ));
             }
             result = Some(token.to_owned());
             continue;
@@ -672,25 +728,19 @@ fn strip_pgn_comments_and_variations(input: &str) -> Result<String, ChessError> 
 
         match ch {
             '{' => {
-                if variation_depth == 0
-                    && !output.chars().last().is_some_and(char::is_whitespace)
-                {
+                if variation_depth == 0 && !output.chars().last().is_some_and(char::is_whitespace) {
                     output.push(' ');
                 }
                 brace_depth = 1;
             }
             ';' => {
-                if variation_depth == 0
-                    && !output.chars().last().is_some_and(char::is_whitespace)
-                {
+                if variation_depth == 0 && !output.chars().last().is_some_and(char::is_whitespace) {
                     output.push(' ');
                 }
                 semicolon_comment = true;
             }
             '(' => {
-                if variation_depth == 0
-                    && !output.chars().last().is_some_and(char::is_whitespace)
-                {
+                if variation_depth == 0 && !output.chars().last().is_some_and(char::is_whitespace) {
                     output.push(' ');
                 }
                 variation_depth += 1;
@@ -748,14 +798,17 @@ mod tests {
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), movement, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    movement,
+                    None
+                )
                 .unwrap(),
             "e4"
         );
 
-        let imported = rules
-            .from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1")
-            .unwrap();
+        let imported = rules.from_fen("4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1").unwrap();
         let movement = move_to(
             &rules,
             imported.timeline.current(),
@@ -765,14 +818,17 @@ mod tests {
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), movement, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    movement,
+                    None
+                )
                 .unwrap(),
             "exd5"
         );
 
-        let imported = rules
-            .from_fen("4k3/8/8/8/8/8/8/4K2R w K - 0 1")
-            .unwrap();
+        let imported = rules.from_fen("4k3/8/8/8/8/8/8/4K2R w K - 0 1").unwrap();
         let movement = move_to(
             &rules,
             imported.timeline.current(),
@@ -782,14 +838,17 @@ mod tests {
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), movement, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    movement,
+                    None
+                )
                 .unwrap(),
             "O-O"
         );
 
-        let imported = rules
-            .from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
-            .unwrap();
+        let imported = rules.from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
         let movement = move_to(
             &rules,
             imported.timeline.current(),
@@ -831,9 +890,7 @@ mod tests {
     #[test]
     fn san_disambiguates_by_file_and_rank() {
         let rules = ChessRules::standard();
-        let imported = rules
-            .from_fen("4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1")
-            .unwrap();
+        let imported = rules.from_fen("4k3/8/8/8/8/8/8/1N2KN2 w - - 0 1").unwrap();
         let left = move_to(
             &rules,
             imported.timeline.current(),
@@ -850,20 +907,28 @@ mod tests {
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), left, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    left,
+                    None
+                )
                 .unwrap(),
             "Nbd2"
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), right, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    right,
+                    None
+                )
                 .unwrap(),
             "Nfd2"
         );
 
-        let imported = rules
-            .from_fen("4k3/8/8/8/8/R7/8/R3K3 w - - 0 1")
-            .unwrap();
+        let imported = rules.from_fen("4k3/8/8/8/8/R7/8/R3K3 w - - 0 1").unwrap();
         let lower = move_to(
             &rules,
             imported.timeline.current(),
@@ -880,13 +945,23 @@ mod tests {
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), lower, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    lower,
+                    None
+                )
                 .unwrap(),
             "R1a2"
         );
         assert_eq!(
             rules
-                .san_for_move(imported.timeline.current(), imported.timeline.history(), upper, None)
+                .san_for_move(
+                    imported.timeline.current(),
+                    imported.timeline.history(),
+                    upper,
+                    None
+                )
                 .unwrap(),
             "R3a2"
         );
@@ -923,10 +998,14 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            rules.to_fen(game.timeline.current(), game.timeline.history()).unwrap(),
+            rules
+                .to_fen(game.timeline.current(), game.timeline.history())
+                .unwrap(),
             "r1bqkbnr/1ppp1ppp/p1n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4"
         );
-        let exported = rules.to_pgn(&game.initial_fen, game.timeline.history()).unwrap();
+        let exported = rules
+            .to_pgn(&game.initial_fen, game.timeline.history())
+            .unwrap();
         assert!(exported.contains("1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *"));
     }
 
@@ -935,7 +1014,9 @@ mod tests {
         let rules = ChessRules::standard();
         let pgn = "[SetUp \"1\"]\n[FEN \"4k3/8/8/8/8/8/4P3/4K3 b - - 0 17\"]\n\n17... Kf7 *";
         let game = rules.from_pgn(pgn).unwrap();
-        let exported = rules.to_pgn(&game.initial_fen, game.timeline.history()).unwrap();
+        let exported = rules
+            .to_pgn(&game.initial_fen, game.timeline.history())
+            .unwrap();
         assert!(exported.contains("[SetUp \"1\"]"));
         assert!(exported.contains("[FEN \"4k3/8/8/8/8/8/4P3/4K3 b - - 0 17\"]"));
         assert!(exported.contains("17... Kf7 *"));
@@ -947,13 +1028,18 @@ mod tests {
             .from_pgn("[Result \"0-1\"]\n\n1. e4 e5 2. Nf3 Nc6 0-1")
             .unwrap();
         assert_eq!(
-            rules.status(game.timeline.current(), game.timeline.history()).unwrap().outcome,
+            rules
+                .status(game.timeline.current(), game.timeline.history())
+                .unwrap()
+                .outcome,
             Some(ChessOutcome::RecordedWin {
                 winner: crate::BLACK_PLAYER,
                 loser: crate::WHITE_PLAYER,
             })
         );
-        let exported = rules.to_pgn(&game.initial_fen, game.timeline.history()).unwrap();
+        let exported = rules
+            .to_pgn(&game.initial_fen, game.timeline.history())
+            .unwrap();
         assert!(exported.contains("[Result \"0-1\"]"));
         assert!(exported.trim_end().ends_with("0-1"));
     }
@@ -961,9 +1047,7 @@ mod tests {
     #[test]
     fn pgn_rejects_conflicting_declared_result() {
         let rules = ChessRules::standard();
-        assert!(rules
-            .from_pgn("[Result \"1-0\"]\n\n1. e4 e5 0-1")
-            .is_err());
+        assert!(rules.from_pgn("[Result \"1-0\"]\n\n1. e4 e5 0-1").is_err());
     }
 
     #[test]
@@ -999,9 +1083,11 @@ mod tests {
         let rules = ChessRules::standard();
         let game = rules.from_pgn("1. f3 e5 2. g4 Qh4$1").unwrap();
         assert!(matches!(
-            rules.status(game.timeline.current(), game.timeline.history()).unwrap().outcome,
+            rules
+                .status(game.timeline.current(), game.timeline.history())
+                .unwrap()
+                .outcome,
             Some(ChessOutcome::Checkmate { .. })
         ));
     }
-
 }

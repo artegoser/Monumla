@@ -1,15 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use crate::{pieces::pawn::Pawn, ChessRules, ChessSide, BISHOP, KNIGHT, PAWN, QUEEN, ROOK, WHITE_PLAYER};
+    use crate::{
+        pieces::pawn::Pawn, ChessRules, ChessSide, BISHOP, KNIGHT, PAWN, QUEEN, ROOK, WHITE_PLAYER,
+    };
     use monumla_core::{Position, TurnSession};
 
     #[test]
     fn every_standard_promotion_type_executes() {
         let rules = ChessRules::standard();
         for promotion in [QUEEN, ROOK, BISHOP, KNIGHT] {
-            let imported = rules
-                .from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
-                .unwrap();
+            let imported = rules.from_fen("4k3/P7/8/8/8/8/8/4K3 w - - 0 1").unwrap();
             let state = imported.timeline.current().clone();
             let pawn = state.entity_at(Position::new(0, 6)).unwrap().unwrap().id;
             assert_eq!(state.entity(pawn).unwrap().entity_type, PAWN);
@@ -46,7 +46,9 @@ mod tests {
             .from_fen("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1")
             .unwrap()
             .timeline;
-        let initial_fen = rules.to_fen(timeline.current(), timeline.history()).unwrap();
+        let initial_fen = rules
+            .to_fen(timeline.current(), timeline.history())
+            .unwrap();
         let rook = timeline
             .current()
             .entity_at(Position::new(0, 0))
@@ -65,16 +67,34 @@ mod tests {
             .execute_move(&mut turn, Some(&history), movement, None)
             .unwrap();
         timeline.commit_turn(turn).unwrap();
-        let moved_fen = rules.to_fen(timeline.current(), timeline.history()).unwrap();
+        let moved_fen = rules
+            .to_fen(timeline.current(), timeline.history())
+            .unwrap();
         assert_ne!(moved_fen, initial_fen);
-        assert!(crate::piece::has_moved(timeline.current().entity(rook).unwrap()));
+        assert!(crate::piece::has_moved(
+            timeline.current().entity(rook).unwrap()
+        ));
 
         timeline.undo().unwrap();
-        assert_eq!(rules.to_fen(timeline.current(), timeline.history()).unwrap(), initial_fen);
-        assert!(!crate::piece::has_moved(timeline.current().entity(rook).unwrap()));
+        assert_eq!(
+            rules
+                .to_fen(timeline.current(), timeline.history())
+                .unwrap(),
+            initial_fen
+        );
+        assert!(!crate::piece::has_moved(
+            timeline.current().entity(rook).unwrap()
+        ));
 
         timeline.redo().unwrap();
-        assert_eq!(rules.to_fen(timeline.current(), timeline.history()).unwrap(), moved_fen);
-        assert!(crate::piece::has_moved(timeline.current().entity(rook).unwrap()));
+        assert_eq!(
+            rules
+                .to_fen(timeline.current(), timeline.history())
+                .unwrap(),
+            moved_fen
+        );
+        assert!(crate::piece::has_moved(
+            timeline.current().entity(rook).unwrap()
+        ));
     }
 }

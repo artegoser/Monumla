@@ -76,7 +76,11 @@ mod tests {
         let rules = ChessRules::standard();
         let timeline = initial_timeline();
         for (depth, expected) in [(1, 20), (2, 400), (3, 8_902)] {
-            assert_eq!(rules.perft(&timeline, depth).unwrap(), expected, "depth {depth}");
+            assert_eq!(
+                rules.perft(&timeline, depth).unwrap(),
+                expected,
+                "depth {depth}"
+            );
         }
     }
 
@@ -92,7 +96,11 @@ mod tests {
         let rules = ChessRules::standard();
         let timeline = kiwipete_timeline(&rules);
         for (depth, expected) in [(1, 48), (2, 2_039)] {
-            assert_eq!(rules.perft(&timeline, depth).unwrap(), expected, "depth {depth}");
+            assert_eq!(
+                rules.perft(&timeline, depth).unwrap(),
+                expected,
+                "depth {depth}"
+            );
         }
     }
 
@@ -108,7 +116,11 @@ mod tests {
         let rules = ChessRules::standard();
         let timeline = en_passant_timeline(&rules);
         for (depth, expected) in [(1, 14), (2, 191), (3, 2_812)] {
-            assert_eq!(rules.perft(&timeline, depth).unwrap(), expected, "depth {depth}");
+            assert_eq!(
+                rules.perft(&timeline, depth).unwrap(),
+                expected,
+                "depth {depth}"
+            );
         }
     }
 
@@ -116,7 +128,10 @@ mod tests {
     #[ignore = "slow perft correctness gate"]
     fn en_passant_and_discovered_check_reference_position_matches_perft_at_depth_four() {
         let rules = ChessRules::standard();
-        assert_eq!(rules.perft(&en_passant_timeline(&rules), 4).unwrap(), 43_238);
+        assert_eq!(
+            rules.perft(&en_passant_timeline(&rules), 4).unwrap(),
+            43_238
+        );
     }
 
     #[test]
@@ -127,7 +142,11 @@ mod tests {
             .unwrap()
             .timeline;
         for (depth, expected) in [(1, 6), (2, 264), (3, 9_467)] {
-            assert_eq!(rules.perft(&timeline, depth).unwrap(), expected, "depth {depth}");
+            assert_eq!(
+                rules.perft(&timeline, depth).unwrap(),
+                expected,
+                "depth {depth}"
+            );
         }
     }
 }

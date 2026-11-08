@@ -109,7 +109,10 @@ impl ChessPieceRule for Pawn {
             }
         }
 
-        if let Some(previous) = context.history().and_then(|history| history.previous_turn()) {
+        if let Some(previous) = context
+            .history()
+            .and_then(|history| history.previous_turn())
+        {
             moves.extend(en_passant_moves_from_previous(context, previous)?);
         }
 
@@ -233,7 +236,6 @@ fn ensure_type(context: ChessPieceContext<'_>, expected: EntityTypeId) -> Result
     }
 }
 
-
 pub(crate) fn turn_records_entity_move(
     previous: &TurnRecord,
     entity: EntityId,
@@ -241,11 +243,7 @@ pub(crate) fn turn_records_entity_move(
     to: Position,
 ) -> bool {
     previous.steps.iter().any(|step| {
-        let action_actor = step
-            .action
-            .data
-            .get("actor")
-            .and_then(StateValue::as_u64);
+        let action_actor = step.action.data.get("actor").and_then(StateValue::as_u64);
         step.action.kind == "chess_move"
             && action_actor == Some(u64::from(entity.get()))
             && step.delta.changes.iter().any(|change| {
@@ -302,12 +300,7 @@ pub(crate) fn en_passant_moves_from_previous(
             continue;
         }
 
-        if !turn_records_entity_move(
-            previous,
-            adjacent.id,
-            before.position,
-            after.position,
-        ) {
+        if !turn_records_entity_move(previous, adjacent.id, before.position, after.position) {
             continue;
         }
 

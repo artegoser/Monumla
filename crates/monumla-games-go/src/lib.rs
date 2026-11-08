@@ -2,8 +2,9 @@ mod legality;
 use monumla_core::{
     Choice, ChoiceKind, ChoiceSpec, EntityId, EntityPresentation, EntityRule, EntityRuleContext,
     EntityState, EntityTypeId, GameOutcome, GameState, History, InteractionError, InteractionFlow,
-    InteractionRules, OutcomeRule, PlayerId, PlayerState, Position, PresentationCue, RecordedAction,
-    RuleContext, RuleError, RuleRegistry, StateMap, StateValue, TurnRecord, TurnSession,
+    InteractionRules, OutcomeRule, PlayerId, PlayerState, Position, PresentationCue,
+    RecordedAction, RuleContext, RuleError, RuleRegistry, StateMap, StateValue, TurnRecord,
+    TurnSession,
 };
 use std::collections::{BTreeSet, VecDeque};
 
@@ -154,12 +155,11 @@ pub fn registry() -> RuleRegistry {
 }
 
 pub fn state_from_config(config: GoConfig) -> Result<GameState, RuleError> {
-    let config = GoConfig::aga(config.size, config.scoring, config.handicap).map(|validated| {
-        GoConfig {
+    let config =
+        GoConfig::aga(config.size, config.scoring, config.handicap).map(|validated| GoConfig {
             komi_half_points: config.komi_half_points,
             ..validated
-        }
-    })?;
+        })?;
     let mut state = GameState::new(config.size, config.size)?;
     state.add_player(PlayerState::new(BLACK))?;
     state.add_player(PlayerState::new(WHITE))?;
@@ -306,7 +306,11 @@ fn state_bool(state: &GameState, key: &str) -> bool {
 }
 
 fn entity_bool(entity: &EntityState, key: &str) -> bool {
-    entity.state.get(key).and_then(StateValue::as_bool).unwrap_or(false)
+    entity
+        .state
+        .get(key)
+        .and_then(StateValue::as_bool)
+        .unwrap_or(false)
 }
 
 fn mark_key(player: PlayerId) -> Result<&'static str, InteractionError> {
@@ -604,9 +608,10 @@ fn clear_review_marks(state: &mut GameState) {
 }
 
 fn review_sets_equal(state: &GameState) -> bool {
-    state.entities.values().all(|entity| {
-        entity_bool(entity, DEAD_MARK_BLACK) == entity_bool(entity, DEAD_MARK_WHITE)
-    })
+    state
+        .entities
+        .values()
+        .all(|entity| entity_bool(entity, DEAD_MARK_BLACK) == entity_bool(entity, DEAD_MARK_WHITE))
 }
 
 fn toggle_group_mark(
@@ -766,7 +771,9 @@ fn remove_agreed_dead(state: &mut GameState) -> Result<(), InteractionError> {
     let dead = state
         .entities
         .values()
-        .filter(|entity| entity_bool(entity, DEAD_MARK_BLACK) && entity_bool(entity, DEAD_MARK_WHITE))
+        .filter(|entity| {
+            entity_bool(entity, DEAD_MARK_BLACK) && entity_bool(entity, DEAD_MARK_WHITE)
+        })
         .map(|entity| entity.id)
         .collect::<Vec<_>>();
     for entity in dead {
@@ -900,10 +907,7 @@ impl GoInteractionRules {
         Ok(choices)
     }
 
-    fn review_choices(
-        &self,
-        state: &GameState,
-    ) -> Result<Vec<ChoiceSpec>, InteractionError> {
+    fn review_choices(&self, state: &GameState) -> Result<Vec<ChoiceSpec>, InteractionError> {
         let mut choices = state
             .entities
             .values()
@@ -928,7 +932,8 @@ impl InteractionRules for GoInteractionRules {
             PHASE_PLAY => self.play_choices(&turn.working, player),
             PHASE_REVIEW => self.review_choices(&turn.working),
             PHASE_FINAL_WHITE_PASS => {
-                let mut choices = vec![ChoiceSpec::option("final_pass").with_label("White final pass")];
+                let mut choices =
+                    vec![ChoiceSpec::option("final_pass").with_label("White final pass")];
                 choices.push(ChoiceSpec::option("resign").with_label("Resign"));
                 Ok(choices)
             }
@@ -972,43 +977,40 @@ impl GoInteractionRules {
                 let mut action = RecordedAction::new("go.place");
                 action.data.insert("x", u64::from(position.x));
                 action.data.insert("y", u64::from(position.y));
-                turn.apply_transaction(
-                    action,
-                    |transaction| -> Result<(), InteractionError> {
-                        let result = apply_placement(transaction.raw_state_mut(), player, *position)?;
-                        if self
-                            .seen_positions
-                            .contains(&(opponent(player)?, board_key(transaction.state())?))
-                        {
-                            return Err(InteractionError::RuleViolation(
-                                "AGA situational superko forbids this placement".into(),
-                            ));
-                        }
-                        if result.captured > 0 {
-                            add_counter(
-                                transaction.raw_state_mut(),
-                                prisoner_key(player)?,
-                                result.captured,
-                            );
-                        }
-                        transaction
-                            .ruleset_state_mut()
-                            .insert(CONSECUTIVE_PASSES, 0_u64);
-                        transaction
-                            .ruleset_state_mut()
-                            .insert(RESUMED_AFTER_DISPUTE, false);
-                        transaction
-                            .raw_state_mut()
-                            .set_active_players(vec![opponent(player)?])?;
-                        let mut data = StateMap::new();
-                        data.insert("stone", u64::from(result.stone.get()));
-                        data.insert("x", u64::from(position.x));
-                        data.insert("y", u64::from(position.y));
-                        data.insert("captured", result.captured);
-                        transaction.present(PresentationCue::new("go.place").with_data(data));
-                        Ok(())
-                    },
-                )?;
+                turn.apply_transaction(action, |transaction| -> Result<(), InteractionError> {
+                    let result = apply_placement(transaction.raw_state_mut(), player, *position)?;
+                    if self
+                        .seen_positions
+                        .contains(&(opponent(player)?, board_key(transaction.state())?))
+                    {
+                        return Err(InteractionError::RuleViolation(
+                            "AGA situational superko forbids this placement".into(),
+                        ));
+                    }
+                    if result.captured > 0 {
+                        add_counter(
+                            transaction.raw_state_mut(),
+                            prisoner_key(player)?,
+                            result.captured,
+                        );
+                    }
+                    transaction
+                        .ruleset_state_mut()
+                        .insert(CONSECUTIVE_PASSES, 0_u64);
+                    transaction
+                        .ruleset_state_mut()
+                        .insert(RESUMED_AFTER_DISPUTE, false);
+                    transaction
+                        .raw_state_mut()
+                        .set_active_players(vec![opponent(player)?])?;
+                    let mut data = StateMap::new();
+                    data.insert("stone", u64::from(result.stone.get()));
+                    data.insert("x", u64::from(position.x));
+                    data.insert("y", u64::from(position.y));
+                    data.insert("captured", result.captured);
+                    transaction.present(PresentationCue::new("go.place").with_data(data));
+                    Ok(())
+                })?;
                 Ok(InteractionFlow::FinishTurn)
             }
             ChoiceKind::SelectOption { key } if key == "pass" => {
@@ -1071,12 +1073,9 @@ impl GoInteractionRules {
                 }
                 let mut action = RecordedAction::new("go.mark_dead");
                 action.data.insert("entity", u64::from(entity.get()));
-                turn.apply_transaction(
-                    action,
-                    |transaction| -> Result<(), InteractionError> {
-                        toggle_group_mark(transaction.raw_state_mut(), player, *entity)
-                    },
-                )?;
+                turn.apply_transaction(action, |transaction| -> Result<(), InteractionError> {
+                    toggle_group_mark(transaction.raw_state_mut(), player, *entity)
+                })?;
                 Ok(InteractionFlow::FinishTurn)
             }
             ChoiceKind::SelectOption { key } if key == "review_done" => {
@@ -1094,7 +1093,9 @@ impl GoInteractionRules {
                             .and_then(StateValue::as_bool)
                             .unwrap_or(false);
                         if !other_done {
-                            transaction.raw_state_mut().set_active_players(vec![other])?;
+                            transaction
+                                .raw_state_mut()
+                                .set_active_players(vec![other])?;
                             return Ok(());
                         }
                         if review_sets_equal(transaction.state()) {
@@ -1253,14 +1254,8 @@ pub fn status_details(state: &GameState) -> StateMap {
     details.insert("handicap", state_u64(state, CONFIG_HANDICAP));
     details.insert("black_prisoners", state_u64(state, PRISONERS_BLACK));
     details.insert("white_prisoners", state_u64(state, PRISONERS_WHITE));
-    details.insert(
-        "black_pass_stones",
-        state_u64(state, PASS_STONES_BLACK),
-    );
-    details.insert(
-        "white_pass_stones",
-        state_u64(state, PASS_STONES_WHITE),
-    );
+    details.insert("black_pass_stones", state_u64(state, PASS_STONES_BLACK));
+    details.insert("white_pass_stones", state_u64(state, PASS_STONES_WHITE));
     details.insert(
         "review_disagreement",
         state_bool(state, REVIEW_DISAGREEMENT),
@@ -1377,7 +1372,10 @@ pub fn turn_notation(turn: &TurnRecord, board_size: u16) -> String {
                 (Some(x), Some(y)) => format!(
                     "{}{}",
                     go_file(u16::try_from(x).unwrap_or(0)),
-                    u16::try_from(y).unwrap_or(0).saturating_add(1).min(board_size)
+                    u16::try_from(y)
+                        .unwrap_or(0)
+                        .saturating_add(1)
+                        .min(board_size)
                 ),
                 _ => "place".into(),
             }
@@ -1456,10 +1454,8 @@ mod tests {
     ) -> Result<(), InteractionError> {
         let actor = *timeline.current().turn.active_players.first().unwrap();
         let turn = timeline.begin_turn(actor)?;
-        let mut driver = InteractionDriver::new(
-            GoInteractionRules::with_history(timeline.history())?,
-            turn,
-        )?;
+        let mut driver =
+            InteractionDriver::new(GoInteractionRules::with_history(timeline.history())?, turn)?;
         let choice = option(&driver, choice_key);
         driver.choose(choice.id)?;
         timeline.commit_turn(driver.into_turn()?)?;
@@ -1541,13 +1537,7 @@ mod tests {
         add_stone(&mut state, 3, WHITE, 2, 1);
         add_stone(&mut state, 4, WHITE, 1, 2);
         state.set_active_players(vec![BLACK]).unwrap();
-        assert!(!placement_is_legal(
-            &state,
-            &BTreeSet::new(),
-            BLACK,
-            Position::new(1, 1)
-        )
-        .unwrap());
+        assert!(!placement_is_legal(&state, &BTreeSet::new(), BLACK, Position::new(1, 1)).unwrap());
     }
 
     #[test]
@@ -1638,7 +1628,9 @@ mod tests {
         add_stone(&mut state, 4, BLACK, 2, 1);
         add_stone(&mut state, 5, BLACK, 2, 3);
         state.ruleset_state.insert(PHASE, PHASE_REVIEW);
-        state.ruleset_state.insert(LAST_PASSER, u64::from(WHITE.get()));
+        state
+            .ruleset_state
+            .insert(LAST_PASSER, u64::from(WHITE.get()));
         state.set_active_players(vec![BLACK]).unwrap();
         let mut timeline = GameTimeline::new(state).unwrap();
 
@@ -1668,11 +1660,21 @@ mod tests {
         add_stone(&mut state, 4, BLACK, 1, 0);
         add_stone(&mut state, 5, BLACK, 1, 2);
         for entity in group_rule(&state, EntityId::new(1)).unwrap() {
-            state.entity_mut(entity).unwrap().state.insert(DEAD_MARK_BLACK, true);
-            state.entity_mut(entity).unwrap().state.insert(DEAD_MARK_WHITE, true);
+            state
+                .entity_mut(entity)
+                .unwrap()
+                .state
+                .insert(DEAD_MARK_BLACK, true);
+            state
+                .entity_mut(entity)
+                .unwrap()
+                .state
+                .insert(DEAD_MARK_WHITE, true);
         }
         state.ruleset_state.insert(PHASE, PHASE_REVIEW);
-        state.ruleset_state.insert(LAST_PASSER, u64::from(WHITE.get()));
+        state
+            .ruleset_state
+            .insert(LAST_PASSER, u64::from(WHITE.get()));
         state.set_active_players(vec![BLACK]).unwrap();
         finish_scoring(&mut state, FINALIZE_AGREED).unwrap();
         assert!(state.entity(EntityId::new(1)).is_err());
@@ -1704,10 +1706,8 @@ mod tests {
 
     #[test]
     fn area_and_territory_scoring_are_both_supported_with_exact_half_point_komi() {
-        let mut territory_state = state_from_config(
-            GoConfig::aga(3, GoScoring::Territory, 0).unwrap(),
-        )
-        .unwrap();
+        let mut territory_state =
+            state_from_config(GoConfig::aga(3, GoScoring::Territory, 0).unwrap()).unwrap();
         add_stone(&mut territory_state, 1, BLACK, 0, 0);
         add_stone(&mut territory_state, 2, BLACK, 0, 1);
         add_stone(&mut territory_state, 3, BLACK, 1, 0);
@@ -1725,7 +1725,9 @@ mod tests {
     fn black_last_requires_an_explicit_white_final_pass() {
         let mut state = empty_state(5);
         state.ruleset_state.insert(PHASE, PHASE_REVIEW);
-        state.ruleset_state.insert(LAST_PASSER, u64::from(BLACK.get()));
+        state
+            .ruleset_state
+            .insert(LAST_PASSER, u64::from(BLACK.get()));
         state.ruleset_state.insert(REVIEW_DONE_BLACK, true);
         state.set_active_players(vec![WHITE]).unwrap();
         let mut timeline = GameTimeline::new(state).unwrap();
@@ -1741,7 +1743,9 @@ mod tests {
     fn dispute_can_resume_and_immediate_two_passes_finish_with_all_stones_alive() {
         let mut state = empty_state(5);
         state.ruleset_state.insert(PHASE, PHASE_REVIEW);
-        state.ruleset_state.insert(LAST_PASSER, u64::from(WHITE.get()));
+        state
+            .ruleset_state
+            .insert(LAST_PASSER, u64::from(WHITE.get()));
         state.ruleset_state.insert(REVIEW_DISAGREEMENT, true);
         state.set_active_players(vec![BLACK]).unwrap();
         let mut timeline = GameTimeline::new(state).unwrap();
@@ -1793,10 +1797,7 @@ mod tests {
             .state
             .insert(DEAD_MARK_WHITE, true);
         let presentation = registry()
-            .presentation(
-                RuleContext::from_state(&state, None),
-                EntityId::new(1),
-            )
+            .presentation(RuleContext::from_state(&state, None), EntityId::new(1))
             .unwrap();
         assert_eq!(presentation.asset_key, "go/black/stone");
         assert_eq!(

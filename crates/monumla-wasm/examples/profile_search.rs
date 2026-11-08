@@ -123,7 +123,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None
         },
     )?;
-    if opening_plies > 0 { session.opening(1, opening_plies)?; }
+    if opening_plies > 0 {
+        session.opening(1, opening_plies)?;
+    }
     let timeline = session.search_observation()?;
     let perspective: PlayerId = timeline.current().turn.active_players[0];
     let domain = Profile {
