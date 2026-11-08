@@ -1485,6 +1485,49 @@
         }
       ],
       "build_id": "stable-rust1.99.1"
+    },
+    "wasm-checkers-international-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "checkers-international",
+        "ruleset": "checkers-international",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {},
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d8af31c55dbacbad676f5e2a6876a66e5e3e8cd8",
+          "binary_sha256": "9b812f649fc37fc851fc60dfd47c1cba84305f4c31b54b3557f4f21296047c41",
+          "measured_at": "2026-10-28T21:01:59.511736+00:00",
+          "timings": {
+            "checkers-international": {
+              "median_ms": 110.96139499999845,
+              "min_ms": 108.32712899999751,
+              "max_ms": 116.01707699999679
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "3ad7a7be5115194e2f69bbdacdfe66a2ded60f600c52c2bb05a92227251090cd",
+          "measured_at": "2026-10-28T21:01:59.511736+00:00",
+          "timings": {
+            "checkers-international": {
+              "median_ms": 105.10856400000193,
+              "min_ms": 104.15654599999834,
+              "max_ms": 107.94321900000068
+            }
+          },
+          "relative_throughput": 1.0556836738821436
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
     }
   }
 }
