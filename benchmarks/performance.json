@@ -1528,6 +1528,282 @@
         }
       ],
       "build_id": "stable-rust1.99.1"
+    },
+    "native-chess-italian-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "chess-italian",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/italian-queen-g4.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "1ebaf3d7f105f97ee69515ee39db3a286f1ec14e27f97a76c6e1501b57b455f1"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "b802f7a4153af35532f69741063aacb9ba6491cfa45761359be24f66e7a4937e",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 505.08791700121947,
+              "min_ms": 499.98083500395296,
+              "max_ms": 513.8626920015668
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "d03a980765a7083d90cc3837b7a26e18431f62493e660c0daad5791fadd159bb",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 408.14945500460453,
+              "min_ms": 405.5028389993822,
+              "max_ms": 421.3605910044862
+            }
+          },
+          "relative_throughput": 1.237507268006817
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-chess-knights-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "chess-knights",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/central-knights.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "1669354ae4fffe9117b408e18017313879ba8c0a6f5f8bdd8d927ca8f043838c"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "b802f7a4153af35532f69741063aacb9ba6491cfa45761359be24f66e7a4937e",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 423.63169800228206,
+              "min_ms": 413.09199600073043,
+              "max_ms": 543.4726299936301
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "d03a980765a7083d90cc3837b7a26e18431f62493e660c0daad5791fadd159bb",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 360.48849699727725,
+              "min_ms": 353.2932689995505,
+              "max_ms": 384.4009550011833
+            }
+          },
+          "relative_throughput": 1.1751600995065363
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "native-chess-queenside-stable-rust1.99.1": {
+      "runtime": "native",
+      "suite": {
+        "id": "chess-queenside",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/queenside-pressure.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "da4138303fe40f7e24fc0e1ccd7c66dd1debb0aba1929975ff37dc4d9c29cf70"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "b802f7a4153af35532f69741063aacb9ba6491cfa45761359be24f66e7a4937e",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 271.31396099866834,
+              "min_ms": 270.12291199935135,
+              "max_ms": 274.0145569987362
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "d03a980765a7083d90cc3837b7a26e18431f62493e660c0daad5791fadd159bb",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 227.25700700539164,
+              "min_ms": 225.86781899735797,
+              "max_ms": 228.44745500333374
+            }
+          },
+          "relative_throughput": 1.1938640069840902
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-chess-italian-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "chess-italian",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/italian-queen-g4.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "1ebaf3d7f105f97ee69515ee39db3a286f1ec14e27f97a76c6e1501b57b455f1"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "3ad7a7be5115194e2f69bbdacdfe66a2ded60f600c52c2bb05a92227251090cd",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 635.6025610000015,
+              "min_ms": 631.7435979999991,
+              "max_ms": 643.7104070000005
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "5ac3fbe575e2af09ee7b3c45f28d3a1dd148ea601d6f61a633c4492c1ae1ddaa",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-italian": {
+              "median_ms": 530.4114730000001,
+              "min_ms": 521.5913089999995,
+              "max_ms": 542.5703229999981
+            }
+          },
+          "relative_throughput": 1.1983197825737857
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-chess-knights-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "chess-knights",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/central-knights.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "1669354ae4fffe9117b408e18017313879ba8c0a6f5f8bdd8d927ca8f043838c"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "3ad7a7be5115194e2f69bbdacdfe66a2ded60f600c52c2bb05a92227251090cd",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 520.7449100000013,
+              "min_ms": 517.7301450000014,
+              "max_ms": 522.8222449999994
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "5ac3fbe575e2af09ee7b3c45f28d3a1dd148ea601d6f61a633c4492c1ae1ddaa",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-knights": {
+              "median_ms": 450.47473100000207,
+              "min_ms": 447.8064950000007,
+              "max_ms": 466.6585239999986
+            }
+          },
+          "relative_throughput": 1.1559913890042344
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
+    },
+    "wasm-chess-queenside-stable-rust1.99.1": {
+      "runtime": "wasm",
+      "suite": {
+        "id": "chess-queenside",
+        "ruleset": "chess",
+        "pgn": "benchmarks/positions/chess/queenside-pressure.pgn",
+        "depth": 3,
+        "nodes": 100000,
+        "lines": 1,
+        "seed": 1,
+        "fixture_sha256": {
+          "pgn": "da4138303fe40f7e24fc0e1ccd7c66dd1debb0aba1929975ff37dc4d9c29cf70"
+        },
+        "warmups": 5,
+        "warmup_ms": 1000
+      },
+      "points": [
+        {
+          "revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+          "binary_sha256": "3ad7a7be5115194e2f69bbdacdfe66a2ded60f600c52c2bb05a92227251090cd",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 340.7375810000012,
+              "min_ms": 336.17135899999994,
+              "max_ms": 344.63285400000314
+            }
+          },
+          "relative_throughput": 1.0
+        },
+        {
+          "revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+          "binary_sha256": "5ac3fbe575e2af09ee7b3c45f28d3a1dd148ea601d6f61a633c4492c1ae1ddaa",
+          "measured_at": "2026-11-08T09:18:57.313374+00:00",
+          "timings": {
+            "chess-queenside": {
+              "median_ms": 293.4709520000033,
+              "min_ms": 289.4009500000029,
+              "max_ms": 296.6822969999994
+            }
+          },
+          "relative_throughput": 1.161060672880488
+        }
+      ],
+      "build_id": "stable-rust1.99.1"
     }
   }
 }

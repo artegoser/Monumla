@@ -225,3 +225,23 @@ Valgrind Callgrind **3.27.1** successfully profiled the normal frozen **`d589aa4
 [The compact report](profiling.json) retains the binary checksum and leading exclusive costs. The chess single-square attack query accounts for **28.10% of process instruction references including its callees**. Go's board-key construction, state validation and delta construction account for about **11.82%, 11.43% and 10.35% exclusively**. Battleship repeatedly formats shot metadata keys; the `shot` query accounts for **53.65% including callees**. Tic-tac-toe spends **21.72% exclusively** in the hash-writing routine. These identify different optimization targets across games.
 
 Instruction references are diagnostics, **not NPS or native wall time**. Inclusive costs overlap and cannot be summed. Valgrind reported its emulated brk-region limit during these runs, allowing libc to take its mmap fallback; that limitation is recorded per case. The searches still completed with identical work and answers. All complete traces, requests, responses, annotation reports and logs remain under ignored `target/monumla-bench/native-callgrind/`. No performance-journal or Elo point is inferred from profiling alone.
+
+## Direct chess attack queries (2026-11-08)
+
+**`a7ed9ac`** optimizes the existing chess legality query used for check, king moves and castling. Built-in pieces can answer whether they attack one requested square without allocating their full attack list. Sliding pieces reject unrelated directions immediately and inspect only the path to the target. The full attack-list API remains available, and custom pieces inherit a default single-square query using their existing list. The shared search continues to consume the same ordinary rules interface.
+
+Independent comparisons against the original attack lists cover **6,534,912** combinations of every built-in piece, side, origin, target and single blocker, including friendly blockers, occupied targets, board edges and out-of-bounds targets. All **233 release workspace tests** pass, along with all three ignored perft gates: initial depth four, Kiwipete depth three, and the en-passant/discovered-check position at depth four.
+
+[The complete 30-case matrix](latest-matrix.json) and [comparison image](performance.png) compare **`d589aa4` → `a7ed9ac`**, stable Rust 1.99.1, with the same CPUs, case suite, five/1,000-ms minimum warmups and nine measured alternating pairs. Every recorded search preserves completed depth, selective depth, nodes, score, PV, ranked lines and stop reason.
+
+| Chess case | Native median, ms | Native ratio | WASM median, ms | WASM ratio |
+|---|---:|---:|---:|---:|
+| Italian | 505.088 → 408.149 | 1.238× | 635.603 → 530.411 | 1.198× |
+| Central knights | 423.632 → 360.488 | 1.175× | 520.745 → 450.475 | 1.156× |
+| Queenside | 271.314 → 227.257 | 1.194× | 340.738 → 293.471 | 1.161× |
+
+All six chess gains have non-overlapping observed ranges and enter the gain-only journal. **Native Battleship-ready is 1.4% slower with non-overlapping ranges** and remains visible in the complete matrix. Every other case overlaps. The all-case geometric means are **1.039× native and 1.031× WASM**; this pass establishes chess speedups, not an all-game win or Elo improvement. No journal predecessor bridge is needed, and earlier gain series remain intact.
+
+Callgrind on the identical saved 2,879-node chess request reports **5,593,119,107 → 4,544,791,267** process instruction references, about **18.7% fewer**, with identical results. [The profile report](profiling.json) retains the matched comparison. Separate native hook instrumentation measured **524.10 → 423.10 ms** on the same search; named V8 profiles are also retained. These diagnostics are separate from the uninstrumented timing matrix. Raw matrices, profiles, request replay, source-patch mapping and frozen artifact checksums remain under ignored `target/monumla-bench/attack-query-*`.
+
+Verification passed: **233 release Rust tests**, all **three slow perft gates**, warning-free Clippy, Svelte checks, the production build, **100 desktop/mobile browser tests**, and native/WASM compatibility checks on Rust **1.80.0**. The browser WASM checksum exactly matches the measured candidate.

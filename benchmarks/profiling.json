@@ -312,5 +312,21 @@
       "completed_iteration": 11,
       "selective_depth": 9
     }
+  ],
+  "comparisons": [
+    {
+      "case": "chess-italian",
+      "baseline_revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+      "candidate_revision": "a7ed9ac7298ee3862fd96245e52091fcc28ae1f3",
+      "baseline_binary_sha256": "b802f7a4153af35532f69741063aacb9ba6491cfa45761359be24f66e7a4937e",
+      "candidate_binary_sha256": "d03a980765a7083d90cc3837b7a26e18431f62493e660c0daad5791fadd159bb",
+      "same_work_and_answer": true,
+      "baseline_instructions": 5593119107,
+      "candidate_instructions": 4544791267,
+      "instruction_ratio": 1.2306657838418171,
+      "baseline_attack_query_inclusive_instructions": 1571531068,
+      "candidate_attack_query_inclusive_instructions": 510432049,
+      "method": "Same saved request trace under Callgrind; both runs include init and search and report the brk-region fallback. Instruction counts are diagnostics, not wall-time estimates."
+    }
   ]
 }
