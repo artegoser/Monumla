@@ -5,7 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-publish = false
+description = "Russian and international checkers rules for the Monumla game runtime."
 
 [dependencies]
 monumla-core.workspace = true

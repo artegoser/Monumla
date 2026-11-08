@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Classic Battleship rules and player observations for the Monumla game runtime."
 
 [dependencies]
 monumla-core.workspace = true

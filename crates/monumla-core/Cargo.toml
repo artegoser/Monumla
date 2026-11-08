@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+description = "Composable state, rules, history, and interaction primitives for the Monumla game runtime."
 
 [dependencies]
 serde.workspace = true
