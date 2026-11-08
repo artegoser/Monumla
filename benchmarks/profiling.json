@@ -1,0 +1,316 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-11-08T08:50:46.907370+00:00",
+  "source_revision": "d589aa4b788016f5c4b7ff123ac10b48dbcb4579",
+  "binary_sha256": "b802f7a4153af35532f69741063aacb9ba6491cfa45761359be24f66e7a4937e",
+  "profiler": "Valgrind Callgrind 3.27.1, Fedora package extracted locally",
+  "cpu": 5,
+  "method": "Entire init/prelude and one fixed-depth analyze request, software instruction profiling. No timed match or performance matrix runs concurrently; instrumented elapsed times are not NPS benchmarks.",
+  "cases": [
+    {
+      "case": "chess-italian",
+      "nodes": 2879,
+      "same_work_and_answer": true,
+      "instructions": 5593119107,
+      "top_self": [
+        {
+          "function": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+          "source_file": "???",
+          "instructions": 389217687,
+          "fraction_of_process_instructions": 0.06958866413427159
+        },
+        {
+          "function": "<monumla_core::state::GameState>::entity_at",
+          "source_file": "???",
+          "instructions": 367324001,
+          "fraction_of_process_instructions": 0.06567426760861933
+        },
+        {
+          "function": "<monumla_games_chess::game::ChessRules>::is_square_attacked",
+          "source_file": "???",
+          "instructions": 290937697,
+          "fraction_of_process_instructions": 0.0520170751657837
+        },
+        {
+          "function": "<monumla_core::state::GameState>::entity",
+          "source_file": "???",
+          "instructions": 266954575,
+          "fraction_of_process_instructions": 0.04772910604851884
+        },
+        {
+          "function": "_int_malloc",
+          "source_file": "malloc.c",
+          "instructions": 233371975,
+          "fraction_of_process_instructions": 0.041724835558736115
+        },
+        {
+          "function": "<alloc::collections::btree::map::IntoIter<monumla_core::ids::EntityId, monumla_core::state::EntityState>>::dying_next",
+          "source_file": "???",
+          "instructions": 217528870,
+          "fraction_of_process_instructions": 0.03889222915488325
+        },
+        {
+          "function": "core::slice::sort::shared::smallsort::small_sort_general_with_scratch::<monumla_games_chess::outcome::PositionPieceKey, <monumla_games_chess::outcome::PositionPieceKey as core::cmp::PartialOrd>::lt>",
+          "source_file": "???",
+          "instructions": 181061652,
+          "fraction_of_process_instructions": 0.03237221459728875
+        },
+        {
+          "function": "<alloc::collections::btree::map::BTreeMap<monumla_core::ids::EntityId, monumla_core::state::EntityState> as core::cmp::PartialEq>::eq",
+          "source_file": "???",
+          "instructions": 166150202,
+          "fraction_of_process_instructions": 0.029706179829436626
+        }
+      ],
+      "profiler_warnings": [
+        "Valgrind brk region overflow; libc can use its mmap fallback. These are instrumented instruction counts, not native elapsed-time or NPS estimates."
+      ],
+      "attack_query_inclusive_instructions": 1571531068,
+      "attack_query_fraction": 0.2809757914922944,
+      "completed_iteration": 3,
+      "selective_depth": 7
+    },
+    {
+      "case": "checkers-russian",
+      "nodes": 281,
+      "same_work_and_answer": true,
+      "instructions": 422783108,
+      "top_self": [
+        {
+          "function": "<monumla_core::state::GameState>::entity_at",
+          "source_file": "???",
+          "instructions": 41508538,
+          "fraction_of_process_instructions": 0.0981792725739648
+        },
+        {
+          "function": "<monumla_core::value::StateMap>::get",
+          "source_file": "???",
+          "instructions": 23780243,
+          "fraction_of_process_instructions": 0.056246908994292175
+        },
+        {
+          "function": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+          "source_file": "???",
+          "instructions": 23246197,
+          "fraction_of_process_instructions": 0.05498374121418304
+        },
+        {
+          "function": "_int_malloc",
+          "source_file": "malloc.c",
+          "instructions": 23076150,
+          "fraction_of_process_instructions": 0.05458153261884815
+        },
+        {
+          "function": "monumla_games_checkers::moves::capture_paths",
+          "source_file": "???",
+          "instructions": 21022942,
+          "fraction_of_process_instructions": 0.049725122887360015
+        },
+        {
+          "function": "<alloc::vec::Vec<&monumla_core::state::EntityState> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&monumla_core::state::EntityState, core::iter::adapters::filter::Filter<alloc::collections::btree::map::Values<monumla_core::ids::EntityId, monumla_core::state::EntityState>, monumla_games_checkers::outcome::pieces::{closure#0}>>>::from_iter",
+          "source_file": "???",
+          "instructions": 20497654,
+          "fraction_of_process_instructions": 0.048482670220589795
+        },
+        {
+          "function": "monumla_games_checkers::moves::legal_moves",
+          "source_file": "???",
+          "instructions": 20266370,
+          "fraction_of_process_instructions": 0.04793561903613235
+        },
+        {
+          "function": "<monumla_core::state::GameState>::entity",
+          "source_file": "???",
+          "instructions": 18832548,
+          "fraction_of_process_instructions": 0.04454422999321912
+        }
+      ],
+      "profiler_warnings": [],
+      "completed_iteration": 3,
+      "selective_depth": 7
+    },
+    {
+      "case": "go-19-midgame",
+      "nodes": 1915,
+      "same_work_and_answer": true,
+      "instructions": 19482849825,
+      "top_self": [
+        {
+          "function": "monumla_games_go::board_key",
+          "source_file": "???",
+          "instructions": 2303226067,
+          "fraction_of_process_instructions": 0.11821812967241306
+        },
+        {
+          "function": "<monumla_core::state::GameState>::validate",
+          "source_file": "???",
+          "instructions": 2226458935,
+          "fraction_of_process_instructions": 0.11427788824523262
+        },
+        {
+          "function": "<monumla_core::transaction::StateDelta>::between",
+          "source_file": "???",
+          "instructions": 2017444678,
+          "fraction_of_process_instructions": 0.10354977306303802
+        },
+        {
+          "function": "_int_malloc",
+          "source_file": "malloc.c",
+          "instructions": 1655161358,
+          "fraction_of_process_instructions": 0.08495478704948649
+        },
+        {
+          "function": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+          "source_file": "???",
+          "instructions": 1185694100,
+          "fraction_of_process_instructions": 0.06085835032606684
+        },
+        {
+          "function": "free",
+          "source_file": "malloc.c",
+          "instructions": 640982280,
+          "fraction_of_process_instructions": 0.032899821420247485
+        },
+        {
+          "function": "_int_free_merge_chunk",
+          "source_file": "malloc.c",
+          "instructions": 627101880,
+          "fraction_of_process_instructions": 0.03218737944565561
+        },
+        {
+          "function": "<alloc::collections::btree::map::BTreeMap<alloc::string::String, monumla_core::value::StateValue> as core::cmp::PartialEq>::eq",
+          "source_file": "???",
+          "instructions": 497897323,
+          "fraction_of_process_instructions": 0.025555672166661582
+        }
+      ],
+      "profiler_warnings": [
+        "Valgrind brk region overflow; libc can use its mmap fallback. These are instrumented instruction counts, not native elapsed-time or NPS estimates."
+      ],
+      "completed_iteration": 2,
+      "selective_depth": 3
+    },
+    {
+      "case": "battleship-damaged",
+      "nodes": 10000,
+      "same_work_and_answer": true,
+      "instructions": 8052202820,
+      "top_self": [
+        {
+          "function": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+          "source_file": "???",
+          "instructions": 786124090,
+          "fraction_of_process_instructions": 0.09762845119194352
+        },
+        {
+          "function": "alloc::fmt::format::format_inner",
+          "source_file": "???",
+          "instructions": 673921859,
+          "fraction_of_process_instructions": 0.08369409887765346
+        },
+        {
+          "function": "<monumla_core::value::StateMap>::get",
+          "source_file": "???",
+          "instructions": 661781247,
+          "fraction_of_process_instructions": 0.08218636089943894
+        },
+        {
+          "function": "core::fmt::write",
+          "source_file": "???",
+          "instructions": 579216645,
+          "fraction_of_process_instructions": 0.07193269443752039
+        },
+        {
+          "function": "__memcmp_avx2_movbe",
+          "source_file": "memcmp-avx2-movbe.S",
+          "instructions": 502291322,
+          "fraction_of_process_instructions": 0.06237936788581786
+        },
+        {
+          "function": "<alloc::string::String as core::fmt::Write>::write_str",
+          "source_file": "???",
+          "instructions": 483108656,
+          "fraction_of_process_instructions": 0.05999707990465148
+        },
+        {
+          "function": "<core::fmt::Formatter>::pad_integral",
+          "source_file": "???",
+          "instructions": 463784922,
+          "fraction_of_process_instructions": 0.05759727274231773
+        },
+        {
+          "function": "_int_malloc",
+          "source_file": "malloc.c",
+          "instructions": 334294760,
+          "fraction_of_process_instructions": 0.04151593886454042
+        }
+      ],
+      "profiler_warnings": [
+        "Valgrind brk region overflow; libc can use its mmap fallback. These are instrumented instruction counts, not native elapsed-time or NPS estimates."
+      ],
+      "completed_iteration": 1,
+      "selective_depth": 0
+    },
+    {
+      "case": "tictactoe-solved",
+      "nodes": 11604,
+      "same_work_and_answer": true,
+      "instructions": 1102987504,
+      "top_self": [
+        {
+          "function": "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+          "source_file": "???",
+          "instructions": 239574711,
+          "fraction_of_process_instructions": 0.21720528123045718
+        },
+        {
+          "function": "<monumla_core::state::GameState>::entity_at",
+          "source_file": "???",
+          "instructions": 57364403,
+          "fraction_of_process_instructions": 0.052008207520001064
+        },
+        {
+          "function": "_int_malloc",
+          "source_file": "malloc.c",
+          "instructions": 52657301,
+          "fraction_of_process_instructions": 0.04774061429439368
+        },
+        {
+          "function": "<<monumla_core::history::GameTimeline>::semantic_digest::Identity as core::hash::Hash>::hash::<monumla_core::fingerprint::FingerprintHasher>",
+          "source_file": "???",
+          "instructions": 52278758,
+          "fraction_of_process_instructions": 0.04739741638995033
+        },
+        {
+          "function": "free",
+          "source_file": "malloc.c",
+          "instructions": 51343662,
+          "fraction_of_process_instructions": 0.04654963162665168
+        },
+        {
+          "function": "malloc",
+          "source_file": "malloc.c",
+          "instructions": 43174029,
+          "fraction_of_process_instructions": 0.03914280882007164
+        },
+        {
+          "function": "<monumla_core::state::GameState>::validate",
+          "source_file": "???",
+          "instructions": 42890647,
+          "fraction_of_process_instructions": 0.038885886598403384
+        },
+        {
+          "function": "monumla_games_tictactoe::lines",
+          "source_file": "???",
+          "instructions": 40422270,
+          "fraction_of_process_instructions": 0.036647985451701004
+        }
+      ],
+      "profiler_warnings": [
+        "Valgrind brk region overflow; libc can use its mmap fallback. These are instrumented instruction counts, not native elapsed-time or NPS estimates."
+      ],
+      "completed_iteration": 11,
+      "selective_depth": 9
+    }
+  ]
+}

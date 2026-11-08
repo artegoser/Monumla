@@ -209,3 +209,19 @@ The end-to-end result did not justify shipping it: geometric means were **1.0004
 Only that WASM observation enters [the gain history](performance-history.png). Its series starts at the directly measured predecessor; no bridge comparison is needed and all earlier series remain intact. The full source patch was matched to the commit after measuring the frozen candidate. Raw records, build provenance, unchanged-key audit, native hook timings and named V8 profiles remain under ignored `target/monumla-bench/fingerprint-walk-*`. These measurements establish a limited WASM performance gain, not an Elo gain.
 
 Verification passed: **231 release Rust tests**, warning-free Clippy, Svelte checks, production build, **100 desktop/mobile browser tests**, native/WASM checks on Rust **1.80.0**, and the fingerprint compatibility tests on that minimum compiler. The browser WASM checksum exactly matches the measured candidate. Development continues to follow unpinned `stable`.
+
+## Native instruction profiles (2026-11-08)
+
+Valgrind Callgrind **3.27.1** successfully profiled the normal frozen **`d589aa4`** release worker on CPU 5, without kernel sampling access or a special instrumented Rust build. The official Fedora package and its annotation scripts were extracted under ignored `target/monumla-bench/tools/`; no project dependency or system installation was added. Each trace includes initialization/prelude followed by one fixed-depth, node-limited search with no time deadline. All five results match the uninstrumented worker's depth, selective depth, nodes, score, PV, lines and stop reason.
+
+| Representative case | Reported tree nodes | Whole-process instruction references |
+|---|---:|---:|
+| Chess, Italian position | 2,879 | 5,593,119,107 |
+| Russian checkers | 281 | 422,783,108 |
+| Go 19×19 midgame | 1,915 | 19,482,849,825 |
+| Battleship, damaged fleets | 10,000 | 8,052,202,820 |
+| Classic tic-tac-toe solve | 11,604 | 1,102,987,504 |
+
+[The compact report](profiling.json) retains the binary checksum and leading exclusive costs. The chess single-square attack query accounts for **28.10% of process instruction references including its callees**. Go's board-key construction, state validation and delta construction account for about **11.82%, 11.43% and 10.35% exclusively**. Battleship repeatedly formats shot metadata keys; the `shot` query accounts for **53.65% including callees**. Tic-tac-toe spends **21.72% exclusively** in the hash-writing routine. These identify different optimization targets across games.
+
+Instruction references are diagnostics, **not NPS or native wall time**. Inclusive costs overlap and cannot be summed. Valgrind reported its emulated brk-region limit during these runs, allowing libc to take its mmap fallback; that limitation is recorded per case. The searches still completed with identical work and answers. All complete traces, requests, responses, annotation reports and logs remain under ignored `target/monumla-bench/native-callgrind/`. No performance-journal or Elo point is inferred from profiling alone.

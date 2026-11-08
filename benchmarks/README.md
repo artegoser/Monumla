@@ -123,6 +123,26 @@ The browser's preferred path is one continuous WASM call in a worker. The main t
 
 Use `wasm-pack build crates/monumla-wasm --profiling --target web --out-name monumla --out-dir /absolute/local/profile-wasm` to retain names for V8 CPU profiles. `wasm_throughput.mjs` supports `--snapshot`, `--continuous true`, and `--module`; run it under `node --cpu-prof --cpu-prof-dir=target/monumla-bench` for a local sample profile. Do not mix profiling runs with clean timing measurements. Linux perf sampling may be denied by host policy even for user-space events; shared-hook native instrumentation remains available without changing global kernel settings.
 
+Callgrind also profiles the normal native release worker without kernel sampling
+access. Feed it a saved JSON-lines request trace, with `time_ms: 0` so instrumentation
+does not change a time-limited search's stopping point:
+
+```sh
+valgrind --tool=callgrind \
+  --callgrind-out-file=target/monumla-bench/native.callgrind \
+  target/release/examples/engine_worker < target/monumla-bench/requests.jsonl
+callgrind_annotate --auto=no --inclusive=no \
+  target/monumla-bench/native.callgrind
+```
+
+Verify the resulting search work and answer against the same uninstrumented
+binary. Callgrind instruction counts describe the instrumented execution; they
+are not elapsed-time, cycle or NPS measurements. Inclusive call costs overlap,
+especially with recursion, and must not be added together. Saved traces can
+include initialization and opening moves, so identify that scope explicitly.
+[The compact native profile report](profiling.json) records representative cases
+from all five games, binary identity, verification and profiler limitations.
+
 ## Internal Elo pools and asymmetric budgets
 
 ```sh
