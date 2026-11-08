@@ -1,6 +1,8 @@
 # Monumla
 
-Monumla is a local-first programmable game runtime with a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, Go, Battleship, and tic-tac-toe rulesets compile to WebAssembly for the browser.
+Monumla is a multiplayer games club built with SvelteKit, Prisma, SQLite, and WebSockets. Create an account, find opponents across six rulesets, challenge friends, play the computer, and revisit every online game. Ratings are independent for each ruleset and time-control category.
+
+The shared programmable game runtime has a Svelte frontend. Its generic Rust core hosts composable entity, ability, game, interaction, history, and outcome rules; the built-in chess, checkers, Go, Battleship, and tic-tac-toe rulesets compile to WebAssembly for the browser.
 
 ## Repository layout
 
@@ -24,7 +26,7 @@ Monumla is a local-first programmable game runtime with a Svelte frontend. Its g
 
 ## Requirements
 
-- Node.js 22+
+- Node.js 24 LTS
 - pnpm
 - Rust stable for development (supported minimum: 1.80)
 - `wasm-pack` for browser WASM builds
@@ -45,6 +47,8 @@ Install frontend dependencies:
 
 ```bash
 pnpm install --frozen-lockfile
+pnpm db:generate
+pnpm db:migrate
 ```
 
 Run the local Svelte application backed by the shared Rust/WASM runtime:
@@ -53,7 +57,7 @@ Run the local Svelte application backed by the shared Rust/WASM runtime:
 pnpm dev
 ```
 
-`pnpm dev`, `pnpm build`, and `pnpm check` build the browser WASM package first. You can also build it explicitly:
+`pnpm dev` and `pnpm build` generate Prisma and both browser/server WASM bindings. `pnpm check` builds the browser WASM package before checking Svelte. You can also build it explicitly:
 
 ```bash
 pnpm wasm:build
@@ -91,6 +95,13 @@ The normal workspace suite keeps expensive depth-4 perft cases ignored so the de
 cargo test --release -p monumla-games-chess perft::tests:: -- --ignored
 ```
 
+Online platform:
+
+```bash
+pnpm test:server
+pnpm exec tsc --noEmit -p tsconfig.server.json
+```
+
 Frontend:
 
 ```bash
@@ -98,6 +109,16 @@ pnpm check
 pnpm lint
 pnpm build
 ```
+
+## Online play and deployment
+
+See [the online platform guide](docs/ONLINE_PLATFORM.md) for accounts, matchmaking, friends, challenges, clocks, Elo, history, and Coolify configuration. The Dockerfile and `compose.yaml` serve HTTP and WebSockets on port 3000 with persistent SQLite storage at `/app/data`. Set `ORIGIN` to your public URL and run one replica.
+
+```sh
+docker compose up --build -d
+```
+
+The repository uses [AGPLv3](LICENSE). Builds include corresponding source at `/source.tar.gz`. Previously published MIT versions retain their original license.
 
 ## Development plan
 

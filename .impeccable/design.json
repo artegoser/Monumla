@@ -1,0 +1,345 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-08T00:00:00+03:00",
+	"title": "Design System: Monumla",
+	"extensions": {
+		"colorMeta": {
+			"ground": {
+				"role": "neutral",
+				"displayName": "Graphite Ground",
+				"canonical": "#202427",
+				"tonalRamp": [
+					"oklch(15% 0.015 230)",
+					"oklch(22% 0.015 230)",
+					"oklch(29% 0.015 230)",
+					"oklch(36% 0.015 230)",
+					"oklch(50% 0.015 230)",
+					"oklch(64% 0.015 230)",
+					"oklch(79% 0.015 230)",
+					"oklch(94% 0.015 230)"
+				]
+			},
+			"surface": {
+				"role": "neutral",
+				"displayName": "Graphite Surface",
+				"canonical": "#2a2e31",
+				"tonalRamp": [
+					"oklch(17% 0.017 230)",
+					"oklch(24% 0.017 230)",
+					"oklch(31% 0.017 230)",
+					"oklch(38% 0.017 230)",
+					"oklch(52% 0.017 230)",
+					"oklch(66% 0.017 230)",
+					"oklch(81% 0.017 230)",
+					"oklch(95% 0.017 230)"
+				]
+			},
+			"surface-raised": {
+				"role": "neutral",
+				"displayName": "Raised Graphite",
+				"canonical": "#32373b",
+				"tonalRamp": [
+					"oklch(20% 0.018 230)",
+					"oklch(27% 0.018 230)",
+					"oklch(34% 0.018 230)",
+					"oklch(41% 0.018 230)",
+					"oklch(55% 0.018 230)",
+					"oklch(69% 0.018 230)",
+					"oklch(83% 0.018 230)",
+					"oklch(96% 0.018 230)"
+				]
+			},
+			"surface-hover": {
+				"role": "neutral",
+				"displayName": "Hover Graphite",
+				"canonical": "#383f43",
+				"tonalRamp": [
+					"oklch(22% 0.019 230)",
+					"oklch(29% 0.019 230)",
+					"oklch(36% 0.019 230)",
+					"oklch(43% 0.019 230)",
+					"oklch(57% 0.019 230)",
+					"oklch(71% 0.019 230)",
+					"oklch(85% 0.019 230)",
+					"oklch(97% 0.019 230)"
+				]
+			},
+			"foreground": {
+				"role": "neutral",
+				"displayName": "Foreground",
+				"canonical": "#e6e8e5",
+				"tonalRamp": [
+					"oklch(25% 0.012 145)",
+					"oklch(32% 0.012 145)",
+					"oklch(39% 0.012 145)",
+					"oklch(46% 0.012 145)",
+					"oklch(60% 0.012 145)",
+					"oklch(74% 0.012 145)",
+					"oklch(88% 0.012 145)",
+					"oklch(96% 0.012 145)"
+				]
+			},
+			"muted": {
+				"role": "neutral",
+				"displayName": "Muted Slate",
+				"canonical": "#a7b0b2",
+				"tonalRamp": [
+					"oklch(24% 0.018 220)",
+					"oklch(31% 0.018 220)",
+					"oklch(38% 0.018 220)",
+					"oklch(45% 0.018 220)",
+					"oklch(59% 0.018 220)",
+					"oklch(73% 0.018 220)",
+					"oklch(87% 0.018 220)",
+					"oklch(96% 0.018 220)"
+				]
+			},
+			"line": {
+				"role": "neutral",
+				"displayName": "Translucent Divider",
+				"canonical": "#ffffff12",
+				"tonalRamp": [
+					"rgba(255,255,255,0.03)",
+					"rgba(255,255,255,0.05)",
+					"rgba(255,255,255,0.07)",
+					"rgba(255,255,255,0.09)",
+					"rgba(255,255,255,0.12)",
+					"rgba(255,255,255,0.16)",
+					"rgba(255,255,255,0.22)",
+					"rgba(255,255,255,0.30)"
+				]
+			},
+			"accent-sage": {
+				"role": "primary",
+				"displayName": "Soft Sage Action",
+				"canonical": "#b9d5a1",
+				"tonalRamp": [
+					"oklch(24% 0.055 125)",
+					"oklch(31% 0.072 125)",
+					"oklch(38% 0.089 125)",
+					"oklch(45% 0.106 125)",
+					"oklch(59% 0.106 125)",
+					"oklch(73% 0.106 125)",
+					"oklch(86% 0.082 125)",
+					"oklch(95% 0.045 125)"
+				]
+			},
+			"accent-ink": {
+				"role": "neutral",
+				"displayName": "Sage Ink",
+				"canonical": "#21321a",
+				"tonalRamp": [
+					"oklch(15% 0.04 125)",
+					"oklch(22% 0.05 125)",
+					"oklch(29% 0.06 125)",
+					"oklch(36% 0.07 125)",
+					"oklch(50% 0.07 125)",
+					"oklch(64% 0.07 125)",
+					"oklch(79% 0.055 125)",
+					"oklch(94% 0.03 125)"
+				]
+			},
+			"error": {
+				"role": "tertiary",
+				"displayName": "Warm Error",
+				"canonical": "#f2ada5",
+				"tonalRamp": [
+					"oklch(24% 0.055 25)",
+					"oklch(31% 0.072 25)",
+					"oklch(38% 0.089 25)",
+					"oklch(45% 0.106 25)",
+					"oklch(59% 0.106 25)",
+					"oklch(73% 0.106 25)",
+					"oklch(86% 0.082 25)",
+					"oklch(95% 0.045 25)"
+				]
+			},
+			"field": {
+				"role": "neutral",
+				"displayName": "Field Graphite",
+				"canonical": "#22272a",
+				"tonalRamp": [
+					"oklch(16% 0.016 230)",
+					"oklch(23% 0.016 230)",
+					"oklch(30% 0.016 230)",
+					"oklch(37% 0.016 230)",
+					"oklch(51% 0.016 230)",
+					"oklch(65% 0.016 230)",
+					"oklch(80% 0.016 230)",
+					"oklch(94% 0.016 230)"
+				]
+			}
+		},
+		"typographyMeta": {
+			"display": {
+				"displayName": "Display",
+				"purpose": "Operative page titles and high-level task headings."
+			},
+			"headline": {
+				"displayName": "Headline",
+				"purpose": "Profile identity and section-leading names."
+			},
+			"title": {
+				"displayName": "Title",
+				"purpose": "Selected game and sheet titles."
+			},
+			"body": {
+				"displayName": "Body",
+				"purpose": "Explanatory copy and supporting page text."
+			},
+			"label": {
+				"displayName": "Label",
+				"purpose": "Tabs, compact navigation, metadata, and control labels."
+			}
+		},
+		"shadows": [
+			{
+				"name": "board-frame",
+				"value": "0 2px 10px rgb(0 0 0 / 45%)",
+				"purpose": "Functional separation around the active board frame."
+			},
+			{
+				"name": "analysis-panel",
+				"value": "0 3px 16px #0002",
+				"purpose": "Restrained separation for the game analysis panel."
+			}
+		],
+		"motion": [
+			{
+				"name": "state-transition",
+				"value": "background 0.15s ease, color 0.15s ease",
+				"purpose": "Short, quiet button state transitions."
+			},
+			{
+				"name": "reduced-motion",
+				"value": "prefers-reduced-motion: reduce",
+				"purpose": "Disable transitions and animations when the user requests reduced motion."
+			}
+		],
+		"breakpoints": [
+			{
+				"name": "wide",
+				"value": "1450px"
+			},
+			{
+				"name": "desktop-tight",
+				"value": "1120px"
+			},
+			{
+				"name": "tablet",
+				"value": "900px"
+			},
+			{
+				"name": "mobile",
+				"value": "620px"
+			},
+			{
+				"name": "match-stack",
+				"value": "700px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Primary Button",
+			"kind": "button",
+			"refersTo": "button-primary",
+			"description": "The main action in a sheet, challenge flow, or completed game.",
+			"html": "<button class=\"ds-btn-primary\">Find an opponent</button>",
+			"css": ".ds-btn-primary { border: 0; border-radius: 7px; min-height: 44px; padding: 13px 20px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; background: var(--accent-sage, #b9d5a1); color: var(--accent-ink, #21321a); font: 550 12px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-primary:hover { background: #cae5b3; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Secondary Button",
+			"kind": "button",
+			"refersTo": "button-secondary",
+			"description": "A lower-emphasis action that remains legible on a graphite sheet.",
+			"html": "<button class=\"ds-btn-secondary\">Cancel search</button>",
+			"css": ".ds-btn-secondary { border: 0; border-radius: 7px; min-height: 44px; padding: 13px 20px; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-raised, #32373b); color: var(--foreground, #e6e8e5); font: 550 12px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-secondary:hover { background: var(--surface-hover, #383f43); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Text Link",
+			"kind": "nav",
+			"refersTo": "button-primary",
+			"description": "A compact unfilled action for secondary navigation and quiet alternatives.",
+			"html": "<a class=\"ds-text-link\" href=\"#\">Open analysis board ↗</a>",
+			"css": ".ds-text-link { display: inline-flex; align-items: center; padding: 7px 0; color: var(--accent-sage, #b9d5a1); font: 400 13px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-underline-offset: 0.2em; text-decoration: none; } .ds-text-link:hover { text-decoration: underline; } .ds-text-link:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Field",
+			"kind": "input",
+			"refersTo": "input-field",
+			"description": "A username, time, or game setup field embedded in a sheet.",
+			"html": "<label class=\"ds-field\">Your opponent<input class=\"ds-input\" placeholder=\"Search by username\" /></label>",
+			"css": ".ds-field { display: grid; gap: 8px; color: var(--muted, #a7b0b2); font: 400 12px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid #647074; border-radius: 6px; padding: 11px 12px; background: var(--field, #22272a); color: var(--foreground, #e6e8e5); font: inherit; } .ds-input::placeholder { color: #9ca8ab; opacity: 1; } .ds-input:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Navigation",
+			"kind": "nav",
+			"description": "The compact primary navigation keeps the active destination visible.",
+			"html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Play</a><a class=\"ds-nav-link\" href=\"#\">Players</a><a class=\"ds-nav-link\" href=\"#\">Rankings</a></nav>",
+			"css": ".ds-nav { display: flex; align-self: stretch; gap: 30px; } .ds-nav-link { position: relative; display: flex; align-items: center; color: var(--muted, #a7b0b2); font: 550 14px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-decoration: none; } .ds-nav-link:hover { color: var(--foreground, #e6e8e5); } .ds-nav-link-active { color: var(--foreground, #e6e8e5); } .ds-nav-link-active::after { content: ''; position: absolute; right: 0; bottom: 16px; left: 0; height: 2px; background: var(--accent-sage, #b9d5a1); } .ds-nav-link:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Pairing Sheet",
+			"kind": "card",
+			"refersTo": "surface-card",
+			"description": "The central surface for choosing a mode and time control.",
+			"html": "<section class=\"ds-pairing-sheet\"><div class=\"ds-pairing-tabs\"><button class=\"ds-tab ds-tab-active\">Quick pairing</button><button class=\"ds-tab\">Computer</button></div><div class=\"ds-pairing-body\"><h2>Chess</h2><div class=\"ds-time-grid\"><button class=\"ds-time ds-time-active\"><strong>5 + 3</strong><small>Rapid</small></button><button class=\"ds-time\"><strong>10 + 0</strong><small>Rapid</small></button></div></div></section>",
+			"css": ".ds-pairing-sheet { overflow: hidden; border-radius: 12px; background: var(--surface, #2a2e31); color: var(--foreground, #e6e8e5); } .ds-pairing-tabs { display: flex; gap: 23px; padding: 0 24px; border-bottom: 1px solid var(--line, #ffffff12); } .ds-tab { position: relative; border: 0; padding: 20px 0; background: transparent; color: var(--muted, #a7b0b2); font: 400 12px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; cursor: pointer; } .ds-tab-active { color: var(--accent-sage, #b9d5a1); } .ds-tab-active::after { content: ''; position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--accent-sage, #b9d5a1); } .ds-tab:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; } .ds-pairing-body { padding: 25px; } .ds-pairing-body h2 { margin: 0 0 18px; font: 550 22px/1.25 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-time-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; } .ds-time { border: 1px solid transparent; border-radius: 7px; padding: 18px 4px 15px; display: grid; gap: 7px; background: var(--surface-raised, #32373b); color: var(--foreground, #e6e8e5); cursor: pointer; } .ds-time:hover { background: var(--surface-hover, #383f43); } .ds-time-active { border-color: #b9d5a175; background: #b9d5a10d; color: var(--accent-sage, #b9d5a1); } .ds-time strong { font: 500 24px/1.1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-time small { color: var(--muted, #a7b0b2); font: 400 11px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }"
+		},
+		{
+			"name": "Game Picker",
+			"kind": "custom",
+			"description": "The vertical selector that keeps all six game choices close to pairing.",
+			"html": "<button class=\"ds-game-picker ds-game-picker-active\"><span class=\"ds-game-icon\">♞</span><span><strong>Chess</strong><small>8×8 board</small></span><span class=\"ds-picker-arrow\">›</span></button>",
+			"css": ".ds-game-picker { width: 100%; min-height: 78px; display: flex; align-items: center; gap: 15px; border: 0; border-radius: 8px; padding: 15px 13px; background: transparent; color: var(--muted, #a7b0b2); text-align: left; cursor: pointer; } .ds-game-picker:hover { background: #ffffff06; color: var(--foreground, #e6e8e5); } .ds-game-picker-active { background: #b9d5a111; color: var(--accent-sage, #b9d5a1); } .ds-game-picker strong, .ds-game-picker small { display: block; } .ds-game-picker strong { color: var(--foreground, #e6e8e5); font: 550 13px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-game-picker small { margin-top: 5px; color: var(--muted, #a7b0b2); font: 400 11px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-game-icon { width: 30px; color: currentColor; font-size: 28px; } .ds-picker-arrow { margin-left: auto; font-size: 20px; opacity: 0.6; } .ds-game-picker:focus-visible { outline: 2px solid var(--accent-sage, #b9d5a1); outline-offset: 3px; }"
+		},
+		{
+			"name": "Match Clock",
+			"kind": "custom",
+			"description": "A player-strip clock that makes the active turn immediately legible.",
+			"html": "<div class=\"ds-match-player\"><span class=\"ds-avatar\">MO</span><span class=\"ds-player-copy\"><strong>Monumla</strong><small>1500 Elo</small></span><time class=\"ds-clock ds-clock-active\">5:00</time></div>",
+			"css": ".ds-match-player { display: flex; align-items: center; gap: 12px; padding: 14px 0; color: var(--foreground, #e6e8e5); } .ds-avatar { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 7px; background: #495a4a; color: #dcebd3; font: 650 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-player-copy { display: grid; gap: 5px; } .ds-player-copy strong { font: 550 14px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-player-copy small { color: var(--muted, #a7b0b2); font: 400 11px/1.35 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; } .ds-clock { margin-left: auto; border-radius: 6px; padding: 9px 13px; background: var(--surface, #2a2e31); color: var(--muted, #a7b0b2); font: 500 34px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.025em; } .ds-clock-active { background: var(--accent-sage, #b9d5a1); color: var(--accent-ink, #21321a); }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Living Games Club",
+		"overview": "Monumla is a quiet, practical games club: finding an opponent is the first task, and the interface keeps the boards, clocks, people, and personal record close at hand. Graphite surfaces create a calm room for play while sage actions mark the next useful move. Clear system UI type and board-inspired rows keep the product legible across six games without turning the shell into a theme park.\n\nThe visual language is dense where decisions happen and generous around the playing space. Tonal surfaces, thin dividers, and small status signals establish hierarchy without decorative glow. Desktop uses a broad club layout; mobile keeps the same priorities by stacking the workbench and making horizontally clipped data discoverable.",
+		"keyCharacteristics": [
+			"Graphite ground with restrained tonal surface steps.",
+			"Sage is reserved for actions, selection, links, and active state.",
+			"System UI typography with a compact label scale and 30–42px operative page titles.",
+			"Rounded practical controls and 12px sheets, with no ornamental effects."
+		],
+		"rules": [
+			{
+				"name": "The One Accent Rule",
+				"body": "Sage carries action and attention; do not introduce another competing accent for ordinary interface state.",
+				"section": "colors"
+			},
+			{
+				"name": "The Clear System Type Rule",
+				"body": "Keep the system UI stack, modest tracking, and tabular numerals; hierarchy comes from size, weight, and spacing rather than display-face switching.",
+				"section": "typography"
+			},
+			{
+				"name": "The Tonal Depth Rule",
+				"body": "Establish hierarchy with the graphite ramp first; use a shadow only when a board, overlay, or functional sheet must separate from its immediate surface.",
+				"section": "elevation"
+			}
+		],
+		"dos": [
+			"Do use the graphite ground and tonal surface ramp to separate page, sheet, and control layers.",
+			"Do reserve sage for actions, active navigation, selected game/time states, links, presence, and meaningful positive status.",
+			"Do keep page titles within the observed 30–42px operative range and use system UI throughout.",
+			"Do make mobile stacking and horizontally scrollable rating data explicit rather than silently clipping important content.",
+			"Do preserve visible focus outlines and reduced-motion behavior for interactive controls."
+		],
+		"donts": [
+			"Don't add decorative glows, gradients, or a second bright accent to ordinary platform surfaces.",
+			"Don't replace the system type with a display face or turn labels into ornamental eyebrows.",
+			"Don't use thick borders or hard offset shadows as a default surface treatment.",
+			"Don't hide game choice, pairing, clock, or rating information when the layout becomes narrow."
+		]
+	}
+}

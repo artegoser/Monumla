@@ -1,0 +1,18 @@
+services:
+  monumla:
+    build: .
+    restart: unless-stopped
+    stop_grace_period: 35s
+    environment:
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      DATABASE_URL: file:/app/data/monumla.db
+      HOST: 0.0.0.0
+      PORT: '3000'
+      BODY_SIZE_LIMIT: 1M
+    ports:
+      - '3000:3000'
+    volumes:
+      - monumla-data:/app/data
+
+volumes:
+  monumla-data:

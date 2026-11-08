@@ -26,6 +26,11 @@ test('accounts, profiles, friends, challenges, live play, Elo, replay, and compu
 	await page.goto('/');
 	await expect(page.getByRole('heading', { name: 'Find your next game.' })).toBeVisible();
 	await expect(page.locator('.connection-label')).toHaveText('Connected');
+	const source = await page.request.get('/source.tar.gz');
+	expect(source.ok()).toBe(true);
+	expect(source.headers()['content-type']).toContain('application/gzip');
+	expect(source.headers()['content-encoding']).toBeUndefined();
+	expect([...(await source.body()).subarray(0, 2)]).toEqual([0x1f, 0x8b]);
 	await page.screenshot({
 		path: `.impeccable/review/${testInfo.project.name}.png`,
 		fullPage: true

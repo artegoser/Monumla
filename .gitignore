@@ -35,6 +35,7 @@ vite.config.ts.timestamp-*
 /src/lib/wasm/pkg
 /server/wasm/
 /static/source.tar.gz
+/monumla-source.tar.gz
 
 # Browser verification
 /test-results

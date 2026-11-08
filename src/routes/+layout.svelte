@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { resolve, asset } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import '../app.css';
 	import '../platform.css';
 	import { onMount } from 'svelte';
@@ -109,9 +109,9 @@
 <footer class="site-footer">
 	<span>Monumla · A place to play.</span>
 	<nav aria-label="Footer">
-		<a href={resolve('/analysis')}>Analysis</a><a href={asset('/source.tar.gz')}>Source code</a><a
-			href={resolve('/license')}>AGPLv3</a
-		><span class="connection-label"
+		<a href={resolve('/analysis')}>Analysis</a><a href={resolve('/source.tar.gz')} download
+			>Source code</a
+		><a href={resolve('/license')}>AGPLv3</a><span class="connection-label"
 			><span class="presence-dot" class:disconnected={$connection !== 'online'}
 			></span>{$connection === 'online'
 				? 'Connected'

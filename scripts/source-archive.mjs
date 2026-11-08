@@ -44,12 +44,14 @@ const result = spawnSync(
 		'--exclude=*.db',
 		'--exclude=*.db-wal',
 		'--exclude=*.db-shm',
+		'--exclude=*/.env',
+		'--exclude=*/.env.*',
 		'--exclude=__pycache__',
 		'--exclude=server/wasm',
 		'--exclude=src/lib/wasm/pkg',
 		'--exclude=static/source.tar.gz',
 		'-czf',
-		'static/source.tar.gz',
+		'monumla-source.tar.gz',
 		...paths
 	],
 	{ stdio: 'inherit' }
