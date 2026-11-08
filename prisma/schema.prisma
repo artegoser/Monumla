@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String       @id @default(cuid())
+  username     String
+  usernameKey  String       @unique
+  email        String       @unique
+  passwordHash String
+  country      String       @default("")
+  bio          String       @default("")
+  createdAt    DateTime     @default(now())
+  sessions     Session[]
+  ratings      Rating[]
+  firstGames   Game[]       @relation("FirstPlayer")
+  secondGames  Game[]       @relation("SecondPlayer")
+  sentFriends  Friendship[] @relation("FriendSender")
+  gotFriends   Friendship[] @relation("FriendRecipient")
+  challenges   Challenge[]  @relation("ChallengeSender")
+  invitations  Challenge[]  @relation("ChallengeRecipient")
+  queue        QueueEntry?
+}
+
+model Session {
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Rating {
+  id       String @id @default(cuid())
+  userId   String
+  ruleset  String
+  category String
+  value    Int    @default(1500)
+  games    Int    @default(0)
+  wins     Int    @default(0)
+  draws    Int    @default(0)
+  losses   Int    @default(0)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ruleset, category])
+  @@index([ruleset, category, value])
+}
+
+model Game {
+  id             String     @id @default(cuid())
+  ruleset        String
+  category       String
+  initialSeconds Int
+  increment      Int
+  rated          Boolean    @default(false)
+  computerLevel  Int?
+  status         String     @default("active")
+  result         String?
+  termination    String?
+  firstUserId    String?
+  secondUserId   String?
+  firstRating    Int        @default(1500)
+  secondRating   Int        @default(1500)
+  firstDelta     Int?
+  secondDelta    Int?
+  firstMs        Int
+  secondMs       Int
+  activeSide     Int        @default(1)
+  turnStartedAt  DateTime   @default(now())
+  snapshot       String
+  revision       Int        @default(0)
+  drawOffer      Int?
+  createdAt      DateTime   @default(now())
+  finishedAt     DateTime?
+  firstUser      User?      @relation("FirstPlayer", fields: [firstUserId], references: [id])
+  secondUser     User?      @relation("SecondPlayer", fields: [secondUserId], references: [id])
+  moves          GameMove[]
+
+  @@index([firstUserId, createdAt])
+  @@index([secondUserId, createdAt])
+  @@index([status, createdAt])
+}
+
+model GameMove {
+  id       String @id @default(cuid())
+  gameId   String
+  ply      Int
+  actor    Int
+  notation String
+  firstMs  Int
+  secondMs Int
+  viewOne  String
+  viewTwo  String
+  game     Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, ply])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  pairKey     String   @unique
+  senderId    String
+  recipientId String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  sender      User     @relation("FriendSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User     @relation("FriendRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+model Challenge {
+  id             String   @id @default(cuid())
+  senderId       String
+  recipientId    String
+  ruleset        String
+  initialSeconds Int
+  increment      Int
+  rated          Boolean  @default(true)
+  senderSide     Int      @default(1)
+  status         String   @default("pending")
+  gameId         String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  sender         User     @relation("ChallengeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient      User     @relation("ChallengeRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, status, expiresAt])
+}
+
+model QueueEntry {
+  userId         String   @id
+  ruleset        String
+  category       String
+  initialSeconds Int
+  increment      Int
+  rated          Boolean
+  rating         Int
+  joinedAt       DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ruleset, initialSeconds, increment, rated, joinedAt])
+}

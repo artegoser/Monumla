@@ -96,6 +96,19 @@ pub fn from_search_snapshot(snapshot: JsValue) -> Result<GameHandle, JsValue> {
 
 #[wasm_bindgen]
 impl GameHandle {
+    /// Complete authoritative state for trusted server persistence only.
+    /// Unlike search snapshots this retains hidden information.
+    #[wasm_bindgen(js_name=exportState)]
+    pub fn export_state(&self) -> Result<JsValue, JsValue> {
+        self.persistent_snapshot()
+            .map_err(js_error)?
+            .serialize(
+                &serde_wasm_bindgen::Serializer::new()
+                    .serialize_large_number_types_as_bigints(true),
+            )
+            .map_err(js_error)
+    }
+
     #[wasm_bindgen(js_name=analysisPositionKey)]
     pub fn analysis_position_key(&self) -> String {
         self.position_key()
@@ -479,6 +492,12 @@ impl GameHandle {
         })
     }
     fn snapshot(&self) -> Result<Snapshot, String> {
+        let mut snapshot = self.persistent_snapshot()?;
+        snapshot.timeline = self.analysis_timeline()?;
+        Ok(snapshot)
+    }
+
+    fn persistent_snapshot(&self) -> Result<Snapshot, String> {
         if self.turn_in_progress() {
             return Err("Finish the current move first.".into());
         }
@@ -488,7 +507,7 @@ impl GameHandle {
         };
         Ok(Snapshot {
             ruleset: self.ruleset(),
-            timeline: self.analysis_timeline()?,
+            timeline: self.timeline().clone(),
             initial_fen,
             undo_floor,
             pgn_tags,

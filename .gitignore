@@ -24,16 +24,22 @@ vite.config.ts.timestamp-*
 
 # SQLite
 *.db
+*.db-shm
+*.db-wal
+/data/
 
 # Rust
 /target
 
 # Generated WASM bindings
 /src/lib/wasm/pkg
+/server/wasm/
+/static/source.tar.gz
 
 # Browser verification
 /test-results
 /playwright-report
+/.impeccable/review/
 
 # Local Python benchmark caches
 /scripts/bench/__pycache__/

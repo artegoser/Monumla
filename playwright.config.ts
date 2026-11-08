@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolve } from 'node:path';
 
 export default defineConfig({
 	testDir: './tests/browser',
@@ -8,6 +9,7 @@ export default defineConfig({
 	reporter: 'list',
 	use: {
 		baseURL: 'http://127.0.0.1:4173',
+		actionTimeout: 10_000,
 		trace: 'retain-on-failure',
 		launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
 			? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
@@ -19,9 +21,13 @@ export default defineConfig({
 	],
 	webServer: {
 		command:
-			'NODE_ENV=production node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort',
+			'pnpm db:migrate && NODE_ENV=production node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort',
+		env: {
+			DATABASE_URL: `file:${resolve('test-results/browser.db')}`,
+			ORIGIN: 'http://127.0.0.1:4173'
+		},
 		url: 'http://127.0.0.1:4173',
-		reuseExistingServer: !process.env.CI,
+		reuseExistingServer: false,
 		timeout: 30_000
 	}
 });

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('Battleship supports manual placement, rotation, removal and automatic setup', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await expect(page.getByRole('heading', { name: 'Battleship', exact: true })).toBeVisible();
 	await expect(page.locator('.sea-cell')).toHaveCount(200);
@@ -30,7 +30,7 @@ test('Battleship supports manual placement, rotation, removal and automatic setu
 });
 
 test('local Battleship covers the fleet before handing over the device', async ({ page }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await page.getByRole('combobox', { name: /^Opponent/ }).selectOption('local');
 	await page.getByRole('button', { name: 'Auto arrange', exact: true }).click();
@@ -47,7 +47,7 @@ test('local Battleship covers the fleet before handing over the device', async (
 test('Battleship analysis uses sampled public information and play hides hints', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await page.getByRole('button', { name: 'Auto arrange', exact: true }).click();
 	await page.getByRole('button', { name: 'Ready', exact: true }).click();
@@ -67,7 +67,7 @@ test('Battleship analysis uses sampled public information and play hides hints',
 test('tic-tac-toe supports rectangular presets, custom boards and meaningful history', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('tictactoe');
 	await page.getByRole('combobox', { name: /^Opponent/ }).selectOption('local');
 	await expect(page.locator('.alignment-cell')).toHaveCount(9);
@@ -93,7 +93,7 @@ test('tic-tac-toe supports rectangular presets, custom boards and meaningful his
 test('tic-tac-toe computer plays automatically and analysis returns three candidates', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('tictactoe');
 	await page.getByRole('button', { name: 'A1 · Empty', exact: true }).click();
 	await expect(page.locator('.alignment-cell.circle')).toHaveCount(1, { timeout: 15000 });
@@ -105,7 +105,7 @@ test('tic-tac-toe computer plays automatically and analysis returns three candid
 test('ship rotation works with orientation controls, R and a placed-ship right click', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await page.getByRole('button', { name: 'Vertical', exact: true }).click();
 	await expect(page.getByRole('button', { name: 'Vertical', exact: true })).toHaveAttribute(
@@ -126,7 +126,7 @@ test('ship rotation works with orientation controls, R and a placed-ship right c
 });
 
 test('rotation shortcut uses the physical key in a Russian layout', async ({ page }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await expect(page.getByRole('button', { name: 'Horizontal', exact: true })).toHaveAttribute(
 		'aria-pressed',
@@ -146,7 +146,7 @@ test('rotation shortcut uses the physical key in a Russian layout', async ({ pag
 test('all alignment presets have visible horizontal and vertical lines and square cells', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('tictactoe');
 	for (const [preset, columns, rows] of [
 		['3,3,3', 3, 3],
@@ -182,7 +182,7 @@ test('all alignment presets have visible horizontal and vertical lines and squar
 });
 
 test('alignment review shows named move quality only in analysis', async ({ page }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('tictactoe');
 	await page.getByRole('combobox', { name: /^Opponent/ }).selectOption('local');
 	for (const cell of ['A1', 'A2', 'B1', 'B2', 'C1'])
@@ -203,7 +203,7 @@ test('alignment review shows named move quality only in analysis', async ({ page
 test('Battleship review uses a sampled pre-shot estimate and keeps fog intact', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await page.getByRole('button', { name: 'Auto arrange', exact: true }).click();
 	await page.getByRole('button', { name: 'Ready', exact: true }).click();
@@ -225,7 +225,7 @@ test('Battleship review uses a sampled pre-shot estimate and keeps fog intact', 
 test('fleet setup previews contain the full footprint and orientation without claiming a ranking', async ({
 	page
 }) => {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await page.getByLabel('Game variant').selectOption('battleship');
 	await page.getByRole('button', { name: 'Analysis', exact: true }).click();
 	await expect(page.getByRole('heading', { name: 'Fleet placement' })).toBeVisible();

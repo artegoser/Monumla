@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 async function open(page: Page, ruleset = 'chess') {
-	await page.goto('/');
+	await page.goto('/analysis');
 	await expect(page.getByRole('heading', { name: 'Your game' })).toBeVisible();
 	if (ruleset !== 'chess') await page.getByLabel('Game variant').selectOption(ruleset);
 	if (ruleset === 'go') {
