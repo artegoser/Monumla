@@ -315,7 +315,11 @@ impl ChessRules {
             .values()
             .filter(|entity| entity.owner == by_side.player())
         {
-            if self.attacks(state, entity.id)?.contains(&square) {
+            let context = ChessPieceContext::new(state, entity.id)?;
+            if self
+                .piece_rule(context.entity().entity_type)?
+                .attacks_square(context, square)?
+            {
                 return Ok(true);
             }
         }

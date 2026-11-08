@@ -1,5 +1,5 @@
 use crate::{
-    piece::{offset, set_has_moved, standard_presentation},
+    piece::{leaper_attacks_square, offset, set_has_moved, standard_presentation},
     ChessError, ChessPieceContext, ChessPieceKind, ChessPieceRule, ChessSide, PseudoMove, BISHOP,
     KNIGHT, PAWN, QUEEN, ROOK,
 };
@@ -130,6 +130,20 @@ impl ChessPieceRule for Pawn {
                 )
             })
             .collect())
+    }
+
+    fn attacks_square(
+        &self,
+        context: ChessPieceContext<'_>,
+        target: Position,
+    ) -> Result<bool, ChessError> {
+        ensure_type(context, PAWN)?;
+        let forward = context.side()?.forward();
+        Ok(leaper_attacks_square(
+            context,
+            &[(-1, forward), (1, forward)],
+            target,
+        ))
     }
 
     fn move_choices(

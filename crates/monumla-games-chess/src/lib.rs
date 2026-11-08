@@ -2,6 +2,8 @@
 #![forbid(unsafe_code)]
 
 #[cfg(test)]
+mod attack_tests;
+#[cfg(test)]
 mod correctness;
 mod error;
 mod fen;

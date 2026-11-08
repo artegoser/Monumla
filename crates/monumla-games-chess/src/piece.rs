@@ -212,6 +212,16 @@ pub trait ChessPieceRule: EntityRule {
 
     fn attacks(&self, context: ChessPieceContext<'_>) -> Result<Vec<Position>, ChessError>;
 
+    /// Query one attacked square. Custom pieces can keep their existing attack
+    /// list implementation; built-ins avoid allocating a complete list here.
+    fn attacks_square(
+        &self,
+        context: ChessPieceContext<'_>,
+        target: Position,
+    ) -> Result<bool, ChessError> {
+        Ok(self.attacks(context)?.contains(&target))
+    }
+
     /// Piece-local continuation choices required to complete a selected move.
     /// Core and the chess interaction coordinator treat these as opaque generic
     /// choices; only the piece rule owns their meaning.
@@ -288,6 +298,16 @@ pub(crate) fn leaper_attacks(
         .collect()
 }
 
+pub(crate) fn leaper_attacks_square(
+    context: ChessPieceContext<'_>,
+    offsets: &[(i16, i16)],
+    target: Position,
+) -> bool {
+    offsets
+        .iter()
+        .any(|&(dx, dy)| offset(context.state(), context.entity().position, dx, dy) == Some(target))
+}
+
 pub(crate) fn ray_moves(
     context: ChessPieceContext<'_>,
     directions: &[(i16, i16)],
@@ -327,6 +347,38 @@ pub(crate) fn ray_attacks(
         }
     }
     Ok(attacks)
+}
+
+/// Test one target along the built-ins' unit sliding directions.
+pub(crate) fn ray_attacks_square(
+    context: ChessPieceContext<'_>,
+    directions: &[(i16, i16)],
+    target: Position,
+) -> Result<bool, ChessError> {
+    if !context.state().board.contains(target) {
+        return Ok(false);
+    }
+    let from = context.entity().position;
+    let dx = i32::from(target.x) - i32::from(from.x);
+    let dy = i32::from(target.y) - i32::from(from.y);
+    if (dx == 0 && dy == 0) || (dx != 0 && dy != 0 && dx.abs() != dy.abs()) {
+        return Ok(false);
+    }
+    let direction = (dx.signum() as i16, dy.signum() as i16);
+    if !directions.contains(&direction) {
+        return Ok(false);
+    }
+    let mut current = from;
+    while let Some(to) = offset(context.state(), current, direction.0, direction.1) {
+        if to == target {
+            return Ok(true);
+        }
+        if context.entity_at(to)?.is_some() {
+            return Ok(false);
+        }
+        current = to;
+    }
+    Ok(false)
 }
 
 pub(crate) fn standard_presentation(

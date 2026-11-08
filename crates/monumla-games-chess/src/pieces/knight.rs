@@ -1,5 +1,5 @@
 use crate::{
-    piece::{leaper_attacks, leaper_moves, standard_presentation},
+    piece::{leaper_attacks, leaper_attacks_square, leaper_moves, standard_presentation},
     ChessError, ChessPieceContext, ChessPieceKind, ChessPieceRule, PseudoMove, KNIGHT,
 };
 use monumla_core::{
@@ -39,5 +39,12 @@ impl ChessPieceRule for Knight {
 
     fn attacks(&self, context: ChessPieceContext<'_>) -> Result<Vec<Position>, ChessError> {
         Ok(leaper_attacks(context, &OFFSETS))
+    }
+    fn attacks_square(
+        &self,
+        context: ChessPieceContext<'_>,
+        target: Position,
+    ) -> Result<bool, ChessError> {
+        Ok(leaper_attacks_square(context, &OFFSETS, target))
     }
 }

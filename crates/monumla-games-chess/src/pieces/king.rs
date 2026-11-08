@@ -1,6 +1,9 @@
 use crate::{
-    piece::{has_moved, leaper_attacks, leaper_moves, standard_presentation},
-    ChessError, ChessPieceContext, ChessPieceKind, ChessPieceRule, ChessRules, PseudoMove, KING, ROOK,
+    piece::{
+        has_moved, leaper_attacks, leaper_attacks_square, leaper_moves, standard_presentation,
+    },
+    ChessError, ChessPieceContext, ChessPieceKind, ChessPieceRule, ChessRules, PseudoMove, KING,
+    ROOK,
 };
 use monumla_core::{
     EntityPresentation, EntityRule, EntityRuleContext, EntityTypeId, Position, RuleError,
@@ -40,8 +43,14 @@ impl ChessPieceRule for King {
     fn attacks(&self, context: ChessPieceContext<'_>) -> Result<Vec<Position>, ChessError> {
         Ok(leaper_attacks(context, &OFFSETS))
     }
+    fn attacks_square(
+        &self,
+        context: ChessPieceContext<'_>,
+        target: Position,
+    ) -> Result<bool, ChessError> {
+        Ok(leaper_attacks_square(context, &OFFSETS, target))
+    }
 }
-
 
 pub(crate) fn castling_moves(
     rules: &ChessRules,

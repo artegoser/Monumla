@@ -1,5 +1,5 @@
 use crate::{
-    piece::{ray_attacks, ray_moves, standard_presentation},
+    piece::{ray_attacks, ray_attacks_square, ray_moves, standard_presentation},
     ChessError, ChessPieceContext, ChessPieceKind, ChessPieceRule, PseudoMove, ROOK,
 };
 use monumla_core::{
@@ -30,5 +30,12 @@ impl ChessPieceRule for Rook {
 
     fn attacks(&self, context: ChessPieceContext<'_>) -> Result<Vec<Position>, ChessError> {
         ray_attacks(context, &DIRECTIONS)
+    }
+    fn attacks_square(
+        &self,
+        context: ChessPieceContext<'_>,
+        target: Position,
+    ) -> Result<bool, ChessError> {
+        ray_attacks_square(context, &DIRECTIONS, target)
     }
 }
